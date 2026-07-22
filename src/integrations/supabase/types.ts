@@ -373,11 +373,14 @@ export type Database = {
         Relationships: [];
       };
     };
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type -- required shape for supabase-js's generic inference
     Views: {};
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type -- required shape for supabase-js's generic inference
     Functions: {};
     Enums: {
       referral_kind: "platform" | "product";
     };
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type -- required shape for supabase-js's generic inference
     CompositeTypes: {};
   };
 };
