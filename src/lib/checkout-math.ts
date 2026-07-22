@@ -1,6 +1,7 @@
 // Pure money-logic, kept separate from checkout.functions.ts so it's testable
 // without mocking Stripe/Supabase modules.
-import { MIN_CHARGE_CENTS, calcPlatformFeeCents } from "@/lib/fees";
+import { MIN_CHARGE_CENTS } from "@/lib/fees";
+import { calcPlatformFeeCents, type PlanTier } from "@/lib/plans";
 
 export type ProductPricing = {
   price_cents: number;
@@ -33,14 +34,16 @@ export type DestinationChargeParams = {
 // The actual Kitsly fix: every purchase charge routes through Stripe Connect
 // as a destination charge, so the seller is actually paid and the platform
 // actually collects its cut — instead of a plain platform-account charge
-// with no Connect routing at all.
+// with no Connect routing at all. The fee percentage depends on the
+// *seller's* plan tier (Free pays a platform fee; Creator/Pro don't).
 export function buildDestinationChargeParams(
   amountCents: number,
   connectedAccountId: string,
+  sellerTier: PlanTier,
 ): DestinationChargeParams {
   return {
     amount: amountCents,
-    application_fee_amount: calcPlatformFeeCents(amountCents),
+    application_fee_amount: calcPlatformFeeCents(sellerTier, amountCents),
     transfer_data: { destination: connectedAccountId },
   };
 }

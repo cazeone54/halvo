@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getStripeClient, getStripeErrorMessage } from "@/lib/stripe.server";
 import { resolveOptionalUserId } from "@/lib/optional-auth.server";
+import { resolveUserTier } from "@/lib/user-plan.functions";
 import {
   computeChargeAmountCents,
   isAboveMinimumCharge,
@@ -61,12 +62,14 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
       throw new Error("The charge amount is below the minimum allowed.");
     }
 
+    const sellerTier = await resolveUserTier(supabaseAdmin, product.owner_id);
+
     try {
       const intent = await stripe.paymentIntents.create({
         currency: "usd",
         automatic_payment_methods: { enabled: true },
         metadata: { productId: product.id, product_name: product.name },
-        ...buildDestinationChargeParams(chargeAmountCents, sellerProfile.stripe_connect_id),
+        ...buildDestinationChargeParams(chargeAmountCents, sellerProfile.stripe_connect_id, sellerTier),
       });
       return { clientSecret: intent.client_secret };
     } catch (error) {

@@ -15,6 +15,10 @@ import {
 import { startStripeConnectOnboarding, getStripeConnectStatus } from "@/lib/stripe-connect.functions";
 import { listMySales } from "@/lib/sales.functions";
 import { refundTransaction } from "@/lib/refunds.functions";
+import { getMyPlan } from "@/lib/user-plan.functions";
+import { createSubscriptionCheckout, createPortalSession } from "@/lib/payments.functions";
+import { PLAN_LABELS, PLAN_PRICE_USD, type PlanTier } from "@/lib/plans";
+import { StripeEmbeddedCheckoutView } from "@/components/stripe-embedded-checkout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,11 +43,23 @@ function DashboardHome() {
   const startOnboardingFn = useServerFn(startStripeConnectOnboarding);
   const salesFn = useServerFn(listMySales);
   const refundFn = useServerFn(refundTransaction);
+  const planFn = useServerFn(getMyPlan);
+  const subscriptionCheckoutFn = useServerFn(createSubscriptionCheckout);
+  const portalFn = useServerFn(createPortalSession);
 
   const profileQ = useQuery({ queryKey: ["my-profile"], queryFn: () => profileFn() });
   const productsQ = useQuery({ queryKey: ["my-products"], queryFn: () => productsFn() });
   const connectQ = useQuery({ queryKey: ["stripe-connect-status"], queryFn: () => connectStatusFn() });
   const salesQ = useQuery({ queryKey: ["my-sales"], queryFn: () => salesFn() });
+  const planQ = useQuery({ queryKey: ["my-plan"], queryFn: () => planFn() });
+
+  const [checkoutTier, setCheckoutTier] = useState<PlanTier | null>(null);
+  const portalMut = useMutation({
+    mutationFn: () => portalFn(),
+    onSuccess: (res) => {
+      if (res.url) window.location.href = res.url;
+    },
+  });
 
   const refundMut = useMutation({
     mutationFn: (transactionId: string) => refundFn({ data: { transactionId } }),
@@ -114,6 +130,45 @@ function DashboardHome() {
           Your storefront: <code>{BASE_URL}/u/{profile.handle}</code>
         </p>
       ) : null}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Plan</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm">
+              Current plan: <Badge>{PLAN_LABELS[planQ.data?.tier ?? "free"]}</Badge>
+            </p>
+            {planQ.data && planQ.data.tier !== "free" ? (
+              <Button size="sm" variant="outline" onClick={() => portalMut.mutate()} disabled={portalMut.isPending}>
+                Manage billing
+              </Button>
+            ) : null}
+          </div>
+
+          {planQ.data?.tier === "free" ? (
+            <div className="flex gap-2">
+              <Button size="sm" onClick={() => setCheckoutTier(checkoutTier === "creator" ? null : "creator")}>
+                Upgrade to Creator (${PLAN_PRICE_USD.creator}/mo)
+              </Button>
+              <Button size="sm" onClick={() => setCheckoutTier(checkoutTier === "pro" ? null : "pro")}>
+                Upgrade to Pro (${PLAN_PRICE_USD.pro}/mo)
+              </Button>
+            </div>
+          ) : null}
+
+          {checkoutTier ? (
+            <StripeEmbeddedCheckoutView
+              fetchClientSecret={async () => {
+                const res = await subscriptionCheckoutFn({ data: { tier: checkoutTier } });
+                if (!res.clientSecret) throw new Error("Could not start checkout");
+                return res.clientSecret;
+              }}
+            />
+          ) : null}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

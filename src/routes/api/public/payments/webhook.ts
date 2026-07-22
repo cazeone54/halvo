@@ -40,6 +40,48 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
   });
 }
 
+// The subscriptions table is the single source of truth for plan tier —
+// this is the only place that ever writes to it.
+async function upsertSubscription(subscription: Stripe.Subscription) {
+  const userId = subscription.metadata?.userId;
+  if (!userId) {
+    console.error("Webhook: subscription has no userId in metadata", subscription.id);
+    return;
+  }
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  const item = subscription.items.data[0];
+  const priceId = item?.price?.id ?? "";
+  const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
+
+  await supabaseAdmin.from("subscriptions").upsert(
+    {
+      user_id: userId,
+      stripe_subscription_id: subscription.id,
+      stripe_customer_id: customerId,
+      price_id: priceId,
+      status: subscription.status,
+      current_period_start: item?.current_period_start
+        ? new Date(item.current_period_start * 1000).toISOString()
+        : null,
+      current_period_end: item?.current_period_end
+        ? new Date(item.current_period_end * 1000).toISOString()
+        : null,
+      cancel_at_period_end: subscription.cancel_at_period_end,
+    },
+    { onConflict: "stripe_subscription_id" },
+  );
+}
+
+async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await supabaseAdmin
+    .from("subscriptions")
+    .update({ status: "canceled" })
+    .eq("stripe_subscription_id", subscription.id);
+}
+
 export const Route = createFileRoute("/api/public/payments/webhook")({
   server: {
     handlers: {
@@ -61,6 +103,13 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
           switch (event.type) {
             case "payment_intent.succeeded":
               await handlePaymentIntentSucceeded(event.data.object as Stripe.PaymentIntent);
+              break;
+            case "customer.subscription.created":
+            case "customer.subscription.updated":
+              await upsertSubscription(event.data.object as Stripe.Subscription);
+              break;
+            case "customer.subscription.deleted":
+              await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
               break;
             default:
               break;

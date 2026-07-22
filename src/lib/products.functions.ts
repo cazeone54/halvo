@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { resolveUserTier } from "@/lib/user-plan.functions";
+import { PLAN_LIMITS } from "@/lib/plans";
 
 const slugify = (name: string, suffix: string) =>
   `${name
@@ -35,6 +37,17 @@ export const createProduct = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data, context }) => {
+    const tier = await resolveUserTier(context.supabase, context.userId);
+    const { count } = await context.supabase
+      .from("products")
+      .select("id", { count: "exact", head: true })
+      .eq("owner_id", context.userId);
+    if ((count ?? 0) >= PLAN_LIMITS[tier].productsMax) {
+      throw new Error(
+        `You've reached the ${PLAN_LIMITS[tier].productsMax}-product limit on your current plan. Upgrade to add more.`,
+      );
+    }
+
     const slug = slugify(data.name, Math.random().toString(36).slice(2, 8));
     const { data: product, error } = await context.supabase
       .from("products")

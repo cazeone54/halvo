@@ -5,7 +5,8 @@ import {
   enforcedMinCents,
   buildDestinationChargeParams,
 } from "@/lib/checkout-math";
-import { calcPlatformFeeCents, MIN_CHARGE_CENTS } from "@/lib/fees";
+import { MIN_CHARGE_CENTS } from "@/lib/fees";
+import { calcPlatformFeeCents } from "@/lib/plans";
 
 describe("computeChargeAmountCents", () => {
   it("uses the fixed price for non-PWYW products regardless of requested amount", () => {
@@ -44,15 +45,21 @@ describe("isAboveMinimumCharge / enforcedMinCents", () => {
 });
 
 describe("buildDestinationChargeParams", () => {
-  it("sets application_fee_amount and transfer_data.destination for a real Connect destination charge", () => {
-    const params = buildDestinationChargeParams(10_00, "acct_123");
+  it("charges the platform fee for a free-tier seller", () => {
+    const params = buildDestinationChargeParams(10_00, "acct_123", "free");
     expect(params.amount).toBe(10_00);
-    expect(params.application_fee_amount).toBe(calcPlatformFeeCents(10_00));
+    expect(params.application_fee_amount).toBe(calcPlatformFeeCents("free", 10_00));
+    expect(params.application_fee_amount).toBeGreaterThan(0);
     expect(params.transfer_data).toEqual({ destination: "acct_123" });
   });
 
+  it("charges zero platform fee for a creator/pro-tier seller", () => {
+    expect(buildDestinationChargeParams(10_00, "acct_123", "creator").application_fee_amount).toBe(0);
+    expect(buildDestinationChargeParams(10_00, "acct_123", "pro").application_fee_amount).toBe(0);
+  });
+
   it("never sends a zero-amount destination charge with a nonzero fee", () => {
-    const params = buildDestinationChargeParams(0, "acct_123");
+    const params = buildDestinationChargeParams(0, "acct_123", "free");
     expect(params.application_fee_amount).toBe(0);
   });
 });
