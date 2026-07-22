@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
+import { PersonaMarquee } from "@/components/persona-marquee";
 import { BRAND_NAME } from "@/lib/site";
 import { PLAN_LABELS, PLAN_PRICE_USD } from "@/lib/plans";
 
@@ -61,6 +62,23 @@ function HomePage() {
                 <Link to="/pricing">See pricing</Link>
               </Button>
             </div>
+          </div>
+
+          <div className="pb-16">
+            <p className="mb-4 text-center text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Built for creators selling
+            </p>
+            <PersonaMarquee />
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-3xl px-4 pb-20 sm:px-6">
+          <h2 className="text-center font-[family-name:var(--font-display)] text-2xl font-semibold sm:text-3xl">
+            See how it works
+          </h2>
+          <p className="mt-2 text-center text-muted-foreground">30 seconds: list a product, get paid.</p>
+          <div className="mt-6 overflow-hidden rounded-2xl border border-border/60 shadow-xl">
+            <video className="w-full" src="/explainer.mp4" controls preload="metadata" />
           </div>
         </section>
 

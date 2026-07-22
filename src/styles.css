@@ -154,6 +154,24 @@
   background-image: radial-gradient(60% 50% at 50% 0%, var(--hero-glow) 0%, transparent 70%);
 }
 
+@keyframes marquee-left {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes marquee-right {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
+}
+
+@utility animate-marquee-left {
+  animation: marquee-left 32s linear infinite;
+}
+
+@utility animate-marquee-right {
+  animation: marquee-right 32s linear infinite;
+}
+
 @utility card-hover {
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
   &:hover {
