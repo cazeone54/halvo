@@ -145,7 +145,6 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
     // converge on the same transactionId and both still run the
     // coupon/commission enrichment against it.
     let transactionId: string;
-    let weInsertedFresh = false;
 
     const { data: inserted, error: insertError } = await supabaseAdmin
       .from("transactions")
@@ -181,24 +180,19 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
     } else {
       if (!inserted) throw new Error("Could not record purchase");
       transactionId = inserted.id;
-      weInsertedFresh = true;
     }
 
-    // Coupon redemption count: only the writer that actually created the row
-    // increments it, so a race with the webhook fallback can't double-count.
-    if (couponCode && weInsertedFresh) {
-      const { data: couponRow } = await supabaseAdmin
-        .from("coupons")
-        .select("id, redemptions")
-        .eq("code", couponCode)
-        .eq("owner_id", product.owner_id ?? "")
-        .maybeSingle();
-      if (couponRow) {
-        await supabaseAdmin
-          .from("coupons")
-          .update({ redemptions: couponRow.redemptions + 1 })
-          .eq("id", couponRow.id);
-      }
+    // coupon_redemptions has a unique constraint on transaction_id, so this
+    // is naturally idempotent regardless of which side won the row-insert
+    // race — the same trick used for commissions below. A mutable counter
+    // column can't give this guarantee (it either double-counts or, as
+    // observed in testing, never increments at all depending on which
+    // writer won).
+    if (coupon) {
+      const { error: redemptionError } = await supabaseAdmin
+        .from("coupon_redemptions")
+        .insert({ coupon_id: coupon.id, transaction_id: transactionId });
+      if (redemptionError && redemptionError.code !== "23505") throw new Error(redemptionError.message);
     }
 
     // Commissions have a unique constraint on transaction_id, so this is

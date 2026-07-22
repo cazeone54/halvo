@@ -240,7 +240,6 @@ export type Database = {
           percent_off: number | null;
           amount_off_cents: number | null;
           max_redemptions: number | null;
-          redemptions: number;
           active: boolean;
           expires_at: string | null;
           created_at: string;
@@ -254,7 +253,6 @@ export type Database = {
           percent_off?: number | null;
           amount_off_cents?: number | null;
           max_redemptions?: number | null;
-          redemptions?: number;
           active?: boolean;
           expires_at?: string | null;
           created_at?: string;
@@ -268,11 +266,31 @@ export type Database = {
           percent_off?: number | null;
           amount_off_cents?: number | null;
           max_redemptions?: number | null;
-          redemptions?: number;
           active?: boolean;
           expires_at?: string | null;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      coupon_redemptions: {
+        Row: {
+          id: string;
+          coupon_id: string;
+          transaction_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          coupon_id: string;
+          transaction_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          coupon_id?: string;
+          transaction_id?: string;
+          created_at?: string;
         };
         Relationships: [];
       };

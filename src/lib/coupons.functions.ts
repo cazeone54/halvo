@@ -9,11 +9,15 @@ export const listMyCoupons = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("coupons")
-      .select("*")
+      .select("*, coupon_redemptions(count)")
       .eq("owner_id", context.userId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return data;
+    return (data ?? []).map((c) => {
+      const { coupon_redemptions, ...rest } = c;
+      const redemptions = (coupon_redemptions as unknown as Array<{ count: number }>)[0]?.count ?? 0;
+      return { ...rest, redemptions };
+    });
   });
 
 export const createCoupon = createServerFn({ method: "POST" })
@@ -78,6 +82,8 @@ export const deleteCoupon = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export type ValidCoupon = CouponDiscount & { id: string };
+
 // Server-only helper (not a public RPC) — the checkout flow already runs
 // entirely through the service-role client, so validation is just a direct,
 // owner-scoped query rather than a separate Postgres function.
@@ -87,7 +93,7 @@ export async function findValidCoupon(
   >,
   code: string,
   productId: string,
-): Promise<CouponDiscount | null> {
+): Promise<ValidCoupon | null> {
   const { data: product } = await supabaseAdmin
     .from("products")
     .select("owner_id")
@@ -97,16 +103,23 @@ export async function findValidCoupon(
 
   const { data: coupon } = await supabaseAdmin
     .from("coupons")
-    .select("id, percent_off, amount_off_cents, product_id, active, expires_at, max_redemptions, redemptions")
+    .select("id, percent_off, amount_off_cents, product_id, active, expires_at, max_redemptions")
     .eq("code", code.toUpperCase())
     .eq("owner_id", product.owner_id)
     .single();
   if (!coupon || !coupon.active) return null;
   if (coupon.product_id && coupon.product_id !== productId) return null;
   if (coupon.expires_at && new Date(coupon.expires_at) <= new Date()) return null;
-  if (coupon.max_redemptions != null && coupon.redemptions >= coupon.max_redemptions) return null;
 
-  return { percent_off: coupon.percent_off, amount_off_cents: coupon.amount_off_cents };
+  if (coupon.max_redemptions != null) {
+    const { count } = await supabaseAdmin
+      .from("coupon_redemptions")
+      .select("id", { count: "exact", head: true })
+      .eq("coupon_id", coupon.id);
+    if ((count ?? 0) >= coupon.max_redemptions) return null;
+  }
+
+  return { id: coupon.id, percent_off: coupon.percent_off, amount_off_cents: coupon.amount_off_cents };
 }
 
 // Public — lets the checkout UI preview the discounted price before paying.

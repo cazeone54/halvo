@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { resolveUserTier } from "@/lib/user-plan.functions";
 import { PLAN_LIMITS } from "@/lib/plans";
+import type { Database } from "@/integrations/supabase/types";
 
 const slugify = (name: string, suffix: string) =>
   `${name
@@ -82,7 +83,7 @@ export const updateProduct = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { productId, ...rest } = data;
-    const update: Record<string, unknown> = {};
+    const update: Database["public"]["Tables"]["products"]["Update"] = {};
     if (rest.name !== undefined) update.name = rest.name;
     if (rest.description !== undefined) update.description = rest.description;
     if (rest.priceCents !== undefined) update.price_cents = rest.priceCents;
