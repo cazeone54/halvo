@@ -149,3 +149,16 @@
 @utility glow-white {
   box-shadow: 0 0 40px color-mix(in oklab, var(--foreground) 8%, transparent), 0 0 80px color-mix(in oklab, var(--foreground) 4%, transparent);
 }
+
+@utility bg-hero-glow {
+  background-image: radial-gradient(60% 50% at 50% 0%, var(--hero-glow) 0%, transparent 70%);
+}
+
+@utility card-hover {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  &:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in oklab, var(--primary) 40%, var(--border));
+    box-shadow: 0 8px 24px color-mix(in oklab, var(--foreground) 6%, transparent);
+  }
+}

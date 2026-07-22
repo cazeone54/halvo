@@ -2,6 +2,17 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import {
+  CreditCard,
+  Wallet,
+  Package,
+  ShoppingBag,
+  FileText,
+  Sparkles,
+  Plus,
+  Trash2,
+  ExternalLink,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile, updateMyHandle } from "@/lib/profile.functions";
 import {
@@ -153,7 +164,10 @@ function DashboardHome() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Plan</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
+            Plan
+          </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
@@ -192,7 +206,10 @@ function DashboardHome() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Payouts</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Wallet className="h-4 w-4 text-muted-foreground" />
+            Payouts
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {connect?.chargesEnabled ? (
@@ -211,17 +228,27 @@ function DashboardHome() {
       </Card>
 
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold font-[family-name:var(--font-display)]">Products</h1>
+        <h1 className="flex items-center gap-2 text-xl font-semibold font-[family-name:var(--font-display)]">
+          <Package className="h-5 w-5 text-muted-foreground" />
+          Products
+        </h1>
         <Button size="sm" onClick={() => setShowNewProduct((v) => !v)}>
-          {showNewProduct ? "Cancel" : "New product"}
+          {showNewProduct ? "Cancel" : (
+            <>
+              <Plus className="h-4 w-4" /> New product
+            </>
+          )}
         </Button>
       </div>
 
       {showNewProduct ? (
         <Card>
           <CardContent className="flex flex-col gap-3 pt-6">
-            <div className="rounded-md border border-dashed p-3">
-              <Label>AI assist — describe it roughly, get a polished name + description</Label>
+            <div className="rounded-md border border-dashed border-primary/40 bg-primary/5 p-3">
+              <Label className="flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+                AI assist — describe it roughly, get a polished name + description
+              </Label>
               <div className="mt-2 flex gap-2">
                 <Input
                   value={pitch}
@@ -268,15 +295,18 @@ function DashboardHome() {
           <ProductRow key={product.id} product={product} onDelete={() => deleteMut.mutate(product.id)} />
         ))}
         {productsQ.data?.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No products yet.</p>
+          <EmptyState icon={Package} message="No products yet — create your first one above." />
         ) : null}
       </div>
 
       <div>
-        <h2 className="text-xl font-semibold font-[family-name:var(--font-display)]">Sales</h2>
+        <h2 className="flex items-center gap-2 text-xl font-semibold font-[family-name:var(--font-display)]">
+          <ShoppingBag className="h-5 w-5 text-muted-foreground" />
+          Sales
+        </h2>
         <div className="mt-3 flex flex-col gap-3">
           {(salesQ.data ?? []).map((sale) => (
-            <Card key={sale.id}>
+            <Card key={sale.id} className="card-hover">
               <CardContent className="flex items-center justify-between pt-6">
                 <div>
                   <p className="font-medium">{sale.productName}</p>
@@ -300,12 +330,21 @@ function DashboardHome() {
               </CardContent>
             </Card>
           ))}
-          {salesQ.data?.length === 0 ? <p className="text-sm text-muted-foreground">No sales yet.</p> : null}
+          {salesQ.data?.length === 0 ? <EmptyState icon={ShoppingBag} message="No sales yet." /> : null}
           {refundMut.error ? (
             <p className="text-sm text-destructive">{(refundMut.error as Error).message}</p>
           ) : null}
         </div>
       </div>
+    </div>
+  );
+}
+
+function EmptyState({ icon: Icon, message }: { icon: typeof Package; message: string }) {
+  return (
+    <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-10 text-center">
+      <Icon className="h-8 w-8 text-muted-foreground/50" />
+      <p className="text-sm text-muted-foreground">{message}</p>
     </div>
   );
 }
@@ -355,23 +394,28 @@ function ProductRow({
   });
 
   return (
-    <Card>
+    <Card className="card-hover">
       <CardContent className="flex flex-col gap-2 pt-6">
         <div className="flex items-center justify-between">
-          <div>
-            <p className="font-medium">{product.name}</p>
-            <p className="text-sm text-muted-foreground">${(product.price_cents / 100).toFixed(2)}</p>
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+              <Package className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="font-medium">{product.name}</p>
+              <p className="text-sm text-muted-foreground">${(product.price_cents / 100).toFixed(2)}</p>
+            </div>
           </div>
           <div className="flex gap-2">
             {product.url_slug ? (
               <Button asChild variant="outline" size="sm">
                 <a href={`/p/${product.url_slug}`} target="_blank" rel="noreferrer">
-                  View
+                  <ExternalLink className="h-3.5 w-3.5" /> View
                 </a>
               </Button>
             ) : null}
             <Button variant="destructive" size="sm" onClick={onDelete}>
-              Delete
+              <Trash2 className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
@@ -379,7 +423,10 @@ function ProductRow({
         <div className="flex flex-col gap-1 border-t pt-2">
           {(filesQ.data ?? []).map((f) => (
             <div key={f.id} className="flex items-center justify-between text-sm">
-              <span>{f.file_name}</span>
+              <span className="flex items-center gap-1.5 text-muted-foreground">
+                <FileText className="h-3.5 w-3.5" />
+                {f.file_name}
+              </span>
               <Button variant="ghost" size="sm" onClick={() => removeMut.mutate(f.id)}>
                 Remove
               </Button>
