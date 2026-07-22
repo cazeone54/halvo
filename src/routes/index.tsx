@@ -1,27 +1,81 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { PublicNav } from "@/components/public-nav";
+import { PublicFooter } from "@/components/public-footer";
 import { BRAND_NAME } from "@/lib/site";
+import { PLAN_LABELS, PLAN_PRICE_USD } from "@/lib/plans";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
-// Minimal placeholder — the full marketing site (features/pricing/FAQ/blog)
-// is Phase 5. This just needs to get a seller from "landed" to "signed in".
+const FEATURES = [
+  {
+    title: "Instant checkout",
+    body: "Stripe-powered checkout with Apple Pay, Google Pay, and card — buyers get their download the second payment succeeds.",
+  },
+  {
+    title: "Real payouts",
+    body: "Sales route through Stripe Connect as a real destination charge, so your cut lands in your own Stripe balance automatically.",
+  },
+  {
+    title: "Discounts & affiliates",
+    body: "Run percent-off or flat discount codes, and let affiliates earn a commission on every sale they refer.",
+  },
+  {
+    title: "AI-assisted listings",
+    body: "Turn a rough pitch into a polished product name and description in seconds.",
+  },
+];
+
 function HomePage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-4 text-center">
-      <h1 className="font-[family-name:var(--font-display)] text-4xl font-semibold tracking-tight text-gradient sm:text-5xl">
-        {BRAND_NAME}
-      </h1>
-      <p className="max-w-md text-muted-foreground">
-        Sell digital products in minutes. Instant checkout, instant delivery, real payouts.
-      </p>
-      <div className="flex gap-3">
-        <Button asChild size="lg">
-          <Link to="/login">Get started</Link>
-        </Button>
-      </div>
+    <div className="flex min-h-screen flex-col">
+      <PublicNav />
+      <main className="flex-1">
+        <section className="mx-auto flex max-w-3xl flex-col items-center gap-6 px-4 py-20 text-center sm:px-6">
+          <h1 className="font-[family-name:var(--font-display)] text-4xl font-semibold tracking-tight text-gradient sm:text-6xl">
+            {BRAND_NAME}
+          </h1>
+          <p className="max-w-md text-lg text-muted-foreground">
+            Sell digital products in minutes. Instant checkout, instant delivery, real payouts.
+          </p>
+          <div className="flex gap-3">
+            <Button asChild size="lg">
+              <Link to="/login">Get started</Link>
+            </Button>
+            <Button asChild size="lg" variant="outline">
+              <Link to="/pricing">See pricing</Link>
+            </Button>
+          </div>
+        </section>
+
+        <section className="mx-auto grid max-w-4xl grid-cols-1 gap-4 px-4 pb-16 sm:grid-cols-2 sm:px-6">
+          {FEATURES.map((f) => (
+            <Card key={f.title}>
+              <CardContent className="pt-6">
+                <h2 className="font-[family-name:var(--font-display)] font-semibold">{f.title}</h2>
+                <p className="mt-1 text-sm text-muted-foreground">{f.body}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </section>
+
+        <section className="border-t bg-muted/30 py-16">
+          <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
+            <h2 className="font-[family-name:var(--font-display)] text-2xl font-semibold">Simple pricing</h2>
+            <p className="mt-2 text-muted-foreground">
+              Start free. Upgrade when you outgrow it — {PLAN_LABELS.creator} is ${PLAN_PRICE_USD.creator}/mo,{" "}
+              {PLAN_LABELS.pro} is ${PLAN_PRICE_USD.pro}/mo.
+            </p>
+            <Button asChild className="mt-4" variant="outline">
+              <Link to="/pricing">Compare plans</Link>
+            </Button>
+          </div>
+        </section>
+      </main>
+      <PublicFooter />
     </div>
   );
 }
