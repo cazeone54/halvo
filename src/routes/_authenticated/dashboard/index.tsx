@@ -17,6 +17,7 @@ import { listMySales } from "@/lib/sales.functions";
 import { refundTransaction } from "@/lib/refunds.functions";
 import { getMyPlan } from "@/lib/user-plan.functions";
 import { createSubscriptionCheckout, createPortalSession } from "@/lib/payments.functions";
+import { generateProductCopy } from "@/lib/ai-copywriter.functions";
 import { PLAN_LABELS, PLAN_PRICE_USD, type PlanTier } from "@/lib/plans";
 import { StripeEmbeddedCheckoutView } from "@/components/stripe-embedded-checkout";
 import { Button } from "@/components/ui/button";
@@ -76,6 +77,15 @@ function DashboardHome() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [pitch, setPitch] = useState("");
+  const generateCopyFn = useServerFn(generateProductCopy);
+  const aiMut = useMutation({
+    mutationFn: () => generateCopyFn({ data: { pitch, currentName: name || undefined } }),
+    onSuccess: (res) => {
+      setName(res.name);
+      setDescription(res.description);
+    },
+  });
   const createMut = useMutation({
     mutationFn: () =>
       createProductFn({
@@ -200,6 +210,27 @@ function DashboardHome() {
       {showNewProduct ? (
         <Card>
           <CardContent className="flex flex-col gap-3 pt-6">
+            <div className="rounded-md border border-dashed p-3">
+              <Label>AI assist — describe it roughly, get a polished name + description</Label>
+              <div className="mt-2 flex gap-2">
+                <Input
+                  value={pitch}
+                  onChange={(e) => setPitch(e.target.value)}
+                  placeholder="e.g. a notion template for tracking freelance invoices"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => aiMut.mutate()}
+                  disabled={!pitch || aiMut.isPending}
+                >
+                  {aiMut.isPending ? "Generating…" : "Generate with AI"}
+                </Button>
+              </div>
+              {aiMut.error ? (
+                <p className="mt-1 text-sm text-destructive">{(aiMut.error as Error).message}</p>
+              ) : null}
+            </div>
             <div>
               <Label>Name</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} />

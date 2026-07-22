@@ -12,6 +12,7 @@ export type PlanLimits = {
   maxFileMb: number;
   totalStorageMb: number;
   platformFeePct: number;
+  aiGenerationsPerMonth: number;
 };
 
 export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
@@ -21,6 +22,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxFileMb: 100,
     totalStorageMb: 500,
     platformFeePct: 0.05,
+    aiGenerationsPerMonth: 10,
   },
   creator: {
     productsMax: Number.POSITIVE_INFINITY,
@@ -28,6 +30,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxFileMb: 2048,
     totalStorageMb: 20480,
     platformFeePct: 0,
+    aiGenerationsPerMonth: 100,
   },
   pro: {
     productsMax: Number.POSITIVE_INFINITY,
@@ -35,6 +38,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxFileMb: 10240,
     totalStorageMb: 204800,
     platformFeePct: 0,
+    aiGenerationsPerMonth: 300,
   },
 };
 
