@@ -1,0 +1,12 @@
+{
+  "name": "Halvo",
+  "short_name": "Halvo",
+  "description": "Sell digital products in minutes.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#1a7a7a",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

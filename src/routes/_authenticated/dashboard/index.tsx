@@ -20,6 +20,7 @@ import { createSubscriptionCheckout, createPortalSession } from "@/lib/payments.
 import { generateProductCopy } from "@/lib/ai-copywriter.functions";
 import { PLAN_LABELS, PLAN_PRICE_USD, type PlanTier } from "@/lib/plans";
 import { StripeEmbeddedCheckoutView } from "@/components/stripe-embedded-checkout";
+import { OnboardingChecklist } from "@/components/onboarding-checklist";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -140,6 +141,14 @@ function DashboardHome() {
           Your storefront: <code>{BASE_URL}/u/{profile.handle}</code>
         </p>
       ) : null}
+
+      <OnboardingChecklist
+        hasProduct={(productsQ.data?.length ?? 0) > 0}
+        stripeConnected={!!connect?.chargesEnabled}
+        handle={profile?.handle ?? null}
+        onCreateProduct={() => setShowNewProduct(true)}
+        onConnectStripe={() => connectMut.mutate()}
+      />
 
       <Card>
         <CardHeader>

@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { BRAND_NAME } from "@/lib/site";
 
 export function PublicNav() {
@@ -21,6 +22,7 @@ export function PublicNav() {
           </Link>
         </nav>
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <Button asChild variant="ghost" size="sm">
             <Link to="/login">Sign in</Link>
           </Button>

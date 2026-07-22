@@ -8,12 +8,13 @@ import { useEffect } from "react";
 import type { QueryClient } from "@tanstack/react-query";
 import { QueryClientProvider } from "@tanstack/react-query";
 import appCss from "../styles.css?url";
-import { BRAND_NAME } from "@/lib/site";
+import { BRAND_NAME, BRAND_KEY } from "@/lib/site";
 import { captureReferralFromUrl } from "@/lib/referral-attribution";
+import { ThemeProvider } from "@/components/theme-provider";
 
-// Applies system dark-mode preference before hydration to avoid a flash of
-// the wrong theme. A manual light/dark/system toggle is Phase 6 polish.
-const themeBootScript = `(function(){try{var d=window.matchMedia('(prefers-color-scheme: dark)').matches;if(d){document.documentElement.classList.add('dark');document.documentElement.style.colorScheme='dark';}else{document.documentElement.style.colorScheme='light';}}catch(e){}})();`;
+// Applies the persisted light/dark/system choice before hydration to avoid
+// a flash of the wrong theme.
+const themeBootScript = `(function(){try{var t=localStorage.getItem('${BRAND_KEY}-theme')||'system';var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d){document.documentElement.classList.add('dark');document.documentElement.style.colorScheme='dark';}else{document.documentElement.style.colorScheme='light';}}catch(e){}})();`;
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
@@ -25,8 +26,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         name: "description",
         content: `${BRAND_NAME} lets creators sell digital products with instant checkout and download delivery.`,
       },
+      { name: "theme-color", content: "#1a7a7a" },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      { rel: "stylesheet", href: appCss },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "icon", href: "/icon.svg", type: "image/svg+xml" },
+      { rel: "apple-touch-icon", href: "/icon.svg" },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
@@ -70,7 +77,9 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      <ThemeProvider>
+        <Outlet />
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

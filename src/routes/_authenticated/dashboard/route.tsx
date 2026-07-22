@@ -1,6 +1,7 @@
 import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { BRAND_NAME } from "@/lib/site";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -40,9 +41,12 @@ function DashboardLayout() {
             </Link>
           </nav>
         </div>
-        <Button variant="ghost" size="sm" onClick={signOut}>
-          Sign out
-        </Button>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <Button variant="ghost" size="sm" onClick={signOut}>
+            Sign out
+          </Button>
+        </div>
       </header>
       <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
         <Outlet />
