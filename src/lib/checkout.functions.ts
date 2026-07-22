@@ -5,7 +5,9 @@ import { resolveOptionalUserId } from "@/lib/optional-auth.server";
 import { resolveUserTier } from "@/lib/user-plan.functions";
 import { findValidCoupon } from "@/lib/coupons.functions";
 import { applyCouponDiscount } from "@/lib/coupon-math";
-import { resolveReferralCode, insertCommissionForTransaction } from "@/lib/referrals.functions";
+import { resolveReferralCode } from "@/lib/referrals.functions";
+import { calcCommissionCents } from "@/lib/commission-math";
+import { computeTransactionBackfill } from "@/lib/transaction-race";
 import {
   computeChargeAmountCents,
   isAboveMinimumCharge,
@@ -108,13 +110,6 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const stripe = getStripeClient();
 
-    const { data: existing } = await supabaseAdmin
-      .from("transactions")
-      .select("id")
-      .eq("stripe_payment_intent_id", data.paymentIntentId)
-      .maybeSingle();
-    if (existing) return { transactionId: existing.id };
-
     const intent = await stripe.paymentIntents.retrieve(data.paymentIntentId);
     if (intent.status !== "succeeded") {
       throw new Error("Payment has not succeeded yet.");
@@ -142,7 +137,17 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
 
     const buyerId = await resolveOptionalUserId();
 
-    const { data: transaction, error: insertError } = await supabaseAdmin
+    // The webhook's payment_intent.succeeded reconciliation fallback
+    // (Phase 1) races this exact insert — both this call and the webhook see
+    // "no existing row" and both try to insert. Rather than one side just
+    // silently no-op'ing (which used to skip coupon-redemption/commission
+    // bookkeeping entirely whenever the webhook won), both branches below
+    // converge on the same transactionId and both still run the
+    // coupon/commission enrichment against it.
+    let transactionId: string;
+    let weInsertedFresh = false;
+
+    const { data: inserted, error: insertError } = await supabaseAdmin
       .from("transactions")
       .insert({
         product_id: product.id,
@@ -156,9 +161,32 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
       })
       .select("id")
       .single();
-    if (insertError || !transaction) throw new Error(insertError?.message ?? "Could not record purchase");
 
-    if (couponCode) {
+    if (insertError) {
+      if (insertError.code !== "23505") throw new Error(insertError.message); // not unique_violation
+      const { data: existing } = await supabaseAdmin
+        .from("transactions")
+        .select("id, buyer_id, coupon_code")
+        .eq("stripe_payment_intent_id", intent.id)
+        .single();
+      if (!existing) throw new Error("Could not record purchase");
+      transactionId = existing.id;
+
+      // Backfill fields the winning writer (the webhook fallback) doesn't
+      // know how to set itself.
+      const backfill = computeTransactionBackfill(existing, { buyerId, couponCode: couponCode ?? null });
+      if (Object.keys(backfill).length > 0) {
+        await supabaseAdmin.from("transactions").update(backfill).eq("id", transactionId);
+      }
+    } else {
+      if (!inserted) throw new Error("Could not record purchase");
+      transactionId = inserted.id;
+      weInsertedFresh = true;
+    }
+
+    // Coupon redemption count: only the writer that actually created the row
+    // increments it, so a race with the webhook fallback can't double-count.
+    if (couponCode && weInsertedFresh) {
       const { data: couponRow } = await supabaseAdmin
         .from("coupons")
         .select("id, redemptions")
@@ -173,20 +201,25 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
       }
     }
 
+    // Commissions have a unique constraint on transaction_id, so this is
+    // naturally idempotent regardless of which side won the row-insert race
+    // — the referral code is only ever known here (client-side), never by
+    // the webhook fallback, so this is the only place it can be created.
     if (data.referralCode) {
       const referral = await resolveReferralCode(supabaseAdmin, data.referralCode, product.id);
       if (referral && referral.userId !== product.owner_id) {
-        await insertCommissionForTransaction(supabaseAdmin, {
-          referralCodeId: referral.id,
-          referrerUserId: referral.userId,
-          transactionId: transaction.id,
+        const { error: commissionError } = await supabaseAdmin.from("commissions").insert({
+          referral_code_id: referral.id,
+          referrer_user_id: referral.userId,
+          transaction_id: transactionId,
           kind: referral.kind,
-          amountPaidCents: intent.amount_received,
+          amount_cents: calcCommissionCents(intent.amount_received),
         });
+        if (commissionError && commissionError.code !== "23505") throw new Error(commissionError.message);
       }
     }
 
-    return { transactionId: transaction.id };
+    return { transactionId };
   });
 
 // Public — the success page's loader. Returns only non-PII fields.

@@ -29,7 +29,15 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
   if (!product) return;
 
   const buyerEmail = intent.receipt_email ?? "unknown@buyer.reconciled";
+  const couponCode = (intent.metadata?.coupon_code as string | undefined) ?? null;
 
+  // Note: this fallback can't know the buyer's signed-in user id or any
+  // referral code — those only ever reach the server via the client-driven
+  // recordSuccessfulTransaction call (checkout.functions.ts), which also
+  // backfills coupon_code/buyer_id here and creates referral commissions if
+  // it runs after this insert wins the race. Preserving coupon_code here too
+  // just avoids losing it entirely in the rare case the client never calls
+  // back at all (e.g. the browser closed immediately after payment).
   await supabaseAdmin.from("transactions").insert({
     product_id: product.id,
     seller_id: product.owner_id,
@@ -37,6 +45,7 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
     status: "success",
     amount_paid_cents: intent.amount_received,
     stripe_payment_intent_id: intent.id,
+    coupon_code: couponCode,
   });
 }
 

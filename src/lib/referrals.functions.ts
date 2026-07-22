@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireCreatorTier } from "@/lib/user-plan.functions";
-import { calcCommissionCents, COMMISSION_PERCENT } from "@/lib/commission-math";
+import { COMMISSION_PERCENT } from "@/lib/commission-math";
 import type { Database } from "@/integrations/supabase/types";
 
 export { COMMISSION_PERCENT };
@@ -114,21 +114,3 @@ export async function resolveReferralCode(
   return { id: data.id, userId: data.user_id, kind: data.kind };
 }
 
-export async function insertCommissionForTransaction(
-  supabaseAdmin: SupabaseClient<Database>,
-  params: {
-    referralCodeId: string;
-    referrerUserId: string;
-    transactionId: string;
-    kind: "platform" | "product";
-    amountPaidCents: number;
-  },
-): Promise<void> {
-  await supabaseAdmin.from("commissions").insert({
-    referral_code_id: params.referralCodeId,
-    referrer_user_id: params.referrerUserId,
-    transaction_id: params.transactionId,
-    kind: params.kind,
-    amount_cents: calcCommissionCents(params.amountPaidCents),
-  });
-}
