@@ -13,12 +13,15 @@ import {
   removeProductFile,
 } from "@/lib/products.functions";
 import { startStripeConnectOnboarding, getStripeConnectStatus } from "@/lib/stripe-connect.functions";
+import { listMySales } from "@/lib/sales.functions";
+import { refundTransaction } from "@/lib/refunds.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BASE_URL } from "@/lib/site";
+import { formatCents } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/dashboard/")({
   component: DashboardHome,
@@ -34,10 +37,18 @@ function DashboardHome() {
   const deleteProductFn = useServerFn(deleteProduct);
   const connectStatusFn = useServerFn(getStripeConnectStatus);
   const startOnboardingFn = useServerFn(startStripeConnectOnboarding);
+  const salesFn = useServerFn(listMySales);
+  const refundFn = useServerFn(refundTransaction);
 
   const profileQ = useQuery({ queryKey: ["my-profile"], queryFn: () => profileFn() });
   const productsQ = useQuery({ queryKey: ["my-products"], queryFn: () => productsFn() });
   const connectQ = useQuery({ queryKey: ["stripe-connect-status"], queryFn: () => connectStatusFn() });
+  const salesQ = useQuery({ queryKey: ["my-sales"], queryFn: () => salesFn() });
+
+  const refundMut = useMutation({
+    mutationFn: (transactionId: string) => refundFn({ data: { transactionId } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["my-sales"] }),
+  });
 
   const [handle, setHandle] = useState("");
   const handleMut = useMutation({
@@ -163,6 +174,41 @@ function DashboardHome() {
         {productsQ.data?.length === 0 ? (
           <p className="text-sm text-muted-foreground">No products yet.</p>
         ) : null}
+      </div>
+
+      <div>
+        <h2 className="text-xl font-semibold font-[family-name:var(--font-display)]">Sales</h2>
+        <div className="mt-3 flex flex-col gap-3">
+          {(salesQ.data ?? []).map((sale) => (
+            <Card key={sale.id}>
+              <CardContent className="flex items-center justify-between pt-6">
+                <div>
+                  <p className="font-medium">{sale.productName}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {sale.buyerEmail} · {formatCents(sale.amountPaidCents)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant={sale.status === "refunded" ? "secondary" : "default"}>{sale.status}</Badge>
+                  {sale.status === "success" ? (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => refundMut.mutate(sale.id)}
+                      disabled={refundMut.isPending}
+                    >
+                      Refund
+                    </Button>
+                  ) : null}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+          {salesQ.data?.length === 0 ? <p className="text-sm text-muted-foreground">No sales yet.</p> : null}
+          {refundMut.error ? (
+            <p className="text-sm text-destructive">{(refundMut.error as Error).message}</p>
+          ) : null}
+        </div>
       </div>
     </div>
   );
