@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { signImagePath } from "@/lib/signed-image";
+import { productImageUrl } from "@/lib/public-image-url";
 
 export const listDiscover = createServerFn({ method: "GET" })
   .validator((data) =>
@@ -27,9 +27,7 @@ export const listDiscover = createServerFn({ method: "GET" })
     const { data: products, error } = await query;
     if (error) throw new Error(error.message);
 
-    return Promise.all(
-      (products ?? []).map(async (p) => ({ ...p, imageUrl: await signImagePath(supabaseAdmin, p.image_url) })),
-    );
+    return (products ?? []).map((p) => ({ ...p, imageUrl: productImageUrl(p.id, p.image_url) }));
   });
 
 // Powers the category filter chips — only categories actually in use, not a

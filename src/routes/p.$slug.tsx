@@ -1,7 +1,8 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { ShieldCheck, Mail } from "lucide-react";
+import { ShieldCheck, Mail, CircleCheck } from "lucide-react";
 import { getProductPublicView } from "@/lib/product-public.functions";
 import { CheckoutWidget } from "@/components/checkout-widget";
+import { BRAND_NAME, BASE_URL } from "@/lib/site";
 
 export const Route = createFileRoute("/p/$slug")({
   loader: async ({ params }) => {
@@ -10,6 +11,34 @@ export const Route = createFileRoute("/p/$slug")({
     } catch {
       throw notFound();
     }
+  },
+  // Per-product SEO/social metadata — every checkout page used to inherit
+  // the same generic "Halvo" title/description from the root layout, so a
+  // seller sharing their product link anywhere (Twitter, Slack, iMessage)
+  // got a preview card with no product info at all. og:image points at the
+  // stable image proxy (see img.product.$productId.ts), not a short-lived
+  // signed URL, so the preview doesn't go stale.
+  head: ({ loaderData }) => {
+    if (!loaderData) return {};
+    const priceLabel = `$${(loaderData.priceCents / 100).toFixed(2)}`;
+    const title = `${loaderData.name} — ${priceLabel}${loaderData.sellerName ? ` | ${loaderData.sellerName}` : ""}`;
+    const description = loaderData.description ?? `Buy ${loaderData.name} on ${BRAND_NAME}.`;
+    const imageUrl = loaderData.imageUrl ? `${BASE_URL}${loaderData.imageUrl}` : undefined;
+
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "product" },
+        ...(imageUrl ? [{ property: "og:image", content: imageUrl }] : []),
+        { name: "twitter:card", content: imageUrl ? "summary_large_image" : "summary" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
+        ...(imageUrl ? [{ name: "twitter:image", content: imageUrl }] : []),
+      ],
+    };
   },
   component: ProductCheckoutPage,
 });
@@ -34,6 +63,12 @@ function ProductCheckoutPage() {
         <p className="mt-2 text-lg font-medium">
           {product.payWhatYouWant ? "From " : ""}${(product.priceCents / 100).toFixed(2)}
         </p>
+        {product.salesCount > 0 ? (
+          <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+            <CircleCheck className="h-4 w-4 text-primary" />
+            {product.salesCount} sold
+          </p>
+        ) : null}
       </div>
 
       <CheckoutWidget

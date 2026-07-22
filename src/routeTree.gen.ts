@@ -28,6 +28,8 @@ import { Route as AuthenticatedDashboardAnalyticsRouteImport } from './routes/_a
 import { Route as AuthenticatedDashboardDiscountsRouteImport } from './routes/_authenticated/dashboard/discounts'
 import { Route as AuthenticatedDashboardReferralsRouteImport } from './routes/_authenticated/dashboard/referrals'
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard/settings'
+import { Route as ImgAvatarUserIdRouteImport } from './routes/img.avatar.$userId'
+import { Route as ImgProductProductIdRouteImport } from './routes/img.product.$productId'
 import { Route as AuthenticatedDashboardStripeRefreshRouteImport } from './routes/_authenticated/dashboard/stripe.refresh'
 import { Route as AuthenticatedDashboardStripeReturnRouteImport } from './routes/_authenticated/dashboard/stripe.return'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
@@ -132,6 +134,16 @@ const AuthenticatedDashboardSettingsRoute =
     path: '/settings',
     getParentRoute: () => AuthenticatedDashboardRouteRoute,
   } as any)
+const ImgAvatarUserIdRoute = ImgAvatarUserIdRouteImport.update({
+  id: '/img/avatar/$userId',
+  path: '/img/avatar/$userId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ImgProductProductIdRoute = ImgProductProductIdRouteImport.update({
+  id: '/img/product/$productId',
+  path: '/img/product/$productId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedDashboardStripeRefreshRoute =
   AuthenticatedDashboardStripeRefreshRouteImport.update({
     id: '/stripe/refresh',
@@ -169,6 +181,8 @@ export interface FileRoutesByFullPath {
   '/dashboard/discounts': typeof AuthenticatedDashboardDiscountsRoute
   '/dashboard/referrals': typeof AuthenticatedDashboardReferralsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
+  '/img/avatar/$userId': typeof ImgAvatarUserIdRoute
+  '/img/product/$productId': typeof ImgProductProductIdRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/stripe/refresh': typeof AuthenticatedDashboardStripeRefreshRoute
   '/dashboard/stripe/return': typeof AuthenticatedDashboardStripeReturnRoute
@@ -191,6 +205,8 @@ export interface FileRoutesByTo {
   '/dashboard/discounts': typeof AuthenticatedDashboardDiscountsRoute
   '/dashboard/referrals': typeof AuthenticatedDashboardReferralsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
+  '/img/avatar/$userId': typeof ImgAvatarUserIdRoute
+  '/img/product/$productId': typeof ImgProductProductIdRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/stripe/refresh': typeof AuthenticatedDashboardStripeRefreshRoute
   '/dashboard/stripe/return': typeof AuthenticatedDashboardStripeReturnRoute
@@ -216,6 +232,8 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/discounts': typeof AuthenticatedDashboardDiscountsRoute
   '/_authenticated/dashboard/referrals': typeof AuthenticatedDashboardReferralsRoute
   '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
+  '/img/avatar/$userId': typeof ImgAvatarUserIdRoute
+  '/img/product/$productId': typeof ImgProductProductIdRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/dashboard/stripe/refresh': typeof AuthenticatedDashboardStripeRefreshRoute
   '/_authenticated/dashboard/stripe/return': typeof AuthenticatedDashboardStripeReturnRoute
@@ -241,6 +259,8 @@ export interface FileRouteTypes {
     | '/dashboard/discounts'
     | '/dashboard/referrals'
     | '/dashboard/settings'
+    | '/img/avatar/$userId'
+    | '/img/product/$productId'
     | '/dashboard/'
     | '/dashboard/stripe/refresh'
     | '/dashboard/stripe/return'
@@ -263,6 +283,8 @@ export interface FileRouteTypes {
     | '/dashboard/discounts'
     | '/dashboard/referrals'
     | '/dashboard/settings'
+    | '/img/avatar/$userId'
+    | '/img/product/$productId'
     | '/dashboard'
     | '/dashboard/stripe/refresh'
     | '/dashboard/stripe/return'
@@ -287,6 +309,8 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/discounts'
     | '/_authenticated/dashboard/referrals'
     | '/_authenticated/dashboard/settings'
+    | '/img/avatar/$userId'
+    | '/img/product/$productId'
     | '/_authenticated/dashboard/'
     | '/_authenticated/dashboard/stripe/refresh'
     | '/_authenticated/dashboard/stripe/return'
@@ -307,6 +331,8 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   PSlugRoute: typeof PSlugRoute
   UHandleRoute: typeof UHandleRoute
+  ImgAvatarUserIdRoute: typeof ImgAvatarUserIdRoute
+  ImgProductProductIdRoute: typeof ImgProductProductIdRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
@@ -445,6 +471,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardSettingsRouteImport
       parentRoute: typeof AuthenticatedDashboardRouteRoute
     }
+    '/img/avatar/$userId': {
+      id: '/img/avatar/$userId'
+      path: '/img/avatar/$userId'
+      fullPath: '/img/avatar/$userId'
+      preLoaderRoute: typeof ImgAvatarUserIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/img/product/$productId': {
+      id: '/img/product/$productId'
+      path: '/img/product/$productId'
+      fullPath: '/img/product/$productId'
+      preLoaderRoute: typeof ImgProductProductIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/dashboard/stripe/refresh': {
       id: '/_authenticated/dashboard/stripe/refresh'
       path: '/stripe/refresh'
@@ -523,6 +563,8 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   PSlugRoute: PSlugRoute,
   UHandleRoute: UHandleRoute,
+  ImgAvatarUserIdRoute: ImgAvatarUserIdRoute,
+  ImgProductProductIdRoute: ImgProductProductIdRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
 export const routeTree = rootRouteImport

@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { signImagePath } from "@/lib/signed-image";
+import { avatarImageUrl } from "@/lib/public-image-url";
 
 export const getMyProfile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -12,7 +12,7 @@ export const getMyProfile = createServerFn({ method: "GET" })
       .eq("id", context.userId)
       .single();
     if (error) throw new Error(error.message);
-    return { ...data, avatarUrl: await signImagePath(context.supabase, data.avatar_url) };
+    return { ...data, avatarUrl: avatarImageUrl(data.id, data.avatar_url) };
   });
 
 const HANDLE_RE = /^[a-z0-9_-]{3,32}$/;

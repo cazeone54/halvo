@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { signImagePath } from "@/lib/signed-image";
+import { productImageUrl, avatarImageUrl } from "@/lib/public-image-url";
 
 export const getSellerStorefront = createServerFn({ method: "GET" })
   .validator((data) => z.object({ handle: z.string().min(1) }).parse(data))
@@ -21,10 +21,8 @@ export const getSellerStorefront = createServerFn({ method: "GET" })
       .not("url_slug", "is", null)
       .order("created_at", { ascending: false });
 
-    const avatarUrl = await signImagePath(supabaseAdmin, profile.avatar_url);
-    const productsWithImages = await Promise.all(
-      (products ?? []).map(async (p) => ({ ...p, imageUrl: await signImagePath(supabaseAdmin, p.image_url) })),
-    );
-
-    return { profile: { ...profile, avatarUrl }, products: productsWithImages };
+    return {
+      profile: { ...profile, avatarUrl: avatarImageUrl(profile.id, profile.avatar_url) },
+      products: (products ?? []).map((p) => ({ ...p, imageUrl: productImageUrl(p.id, p.image_url) })),
+    };
   });

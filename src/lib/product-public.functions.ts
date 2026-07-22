@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { signImagePath } from "@/lib/signed-image";
+import { productImageUrl } from "@/lib/public-image-url";
 
 export const getProductPublicView = createServerFn({ method: "GET" })
   .validator((data) => z.object({ slug: z.string().min(1) }).parse(data))
@@ -28,15 +28,22 @@ export const getProductPublicView = createServerFn({ method: "GET" })
       supportEmail = seller?.support_email ?? null;
     }
 
+    const { count: salesCount } = await supabaseAdmin
+      .from("transactions")
+      .select("id", { count: "exact", head: true })
+      .eq("product_id", product.id)
+      .eq("status", "success");
+
     return {
       id: product.id,
       name: product.name,
       description: product.description,
       priceCents: product.price_cents,
       payWhatYouWant: product.pay_what_you_want,
-      imageUrl: await signImagePath(supabaseAdmin, product.image_url),
+      imageUrl: productImageUrl(product.id, product.image_url),
       sellerName,
       refundPolicy,
       supportEmail,
+      salesCount: salesCount ?? 0,
     };
   });

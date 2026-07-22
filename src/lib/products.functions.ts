@@ -5,6 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { resolveUserTier } from "@/lib/user-plan.functions";
 import { PLAN_LIMITS } from "@/lib/plans";
 import { checkUploadAgainstLimits } from "@/lib/upload-limits";
+import { productImageUrl } from "@/lib/public-image-url";
 import type { Database } from "@/integrations/supabase/types";
 
 async function currentUploadUsage(
@@ -39,16 +40,7 @@ export const listMyProducts = createServerFn({ method: "GET" })
       .eq("owner_id", context.userId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-
-    return Promise.all(
-      data.map(async (product) => {
-        if (!product.image_url) return { ...product, imageUrl: null };
-        const { data: signed } = await context.supabase.storage
-          .from("digital-assets")
-          .createSignedUrl(product.image_url, 60 * 60);
-        return { ...product, imageUrl: signed?.signedUrl ?? null };
-      }),
-    );
+    return data.map((product) => ({ ...product, imageUrl: productImageUrl(product.id, product.image_url) }));
   });
 
 export const createProduct = createServerFn({ method: "POST" })
