@@ -1,9 +1,27 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { resolveUserTier } from "@/lib/user-plan.functions";
 import { PLAN_LIMITS } from "@/lib/plans";
+import { checkUploadAgainstLimits } from "@/lib/upload-limits";
 import type { Database } from "@/integrations/supabase/types";
+
+async function currentUploadUsage(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  productId: string,
+): Promise<{ currentCountForProduct: number; usedBytesAcrossAllProducts: number }> {
+  const { count } = await supabase
+    .from("product_files")
+    .select("id", { count: "exact", head: true })
+    .eq("product_id", productId);
+
+  const { data: files } = await supabase.from("product_files").select("size_bytes").eq("owner_id", userId);
+  const usedBytesAcrossAllProducts = (files ?? []).reduce((sum, f) => sum + (f.size_bytes ?? 0), 0);
+
+  return { currentCountForProduct: count ?? 0, usedBytesAcrossAllProducts };
+}
 
 const slugify = (name: string, suffix: string) =>
   `${name
@@ -125,8 +143,26 @@ export const listMyProductFiles = createServerFn({ method: "GET" })
     return files;
   });
 
-// Client uploads the file bytes directly to Supabase Storage (owner-prefixed
-// path, allowed by RLS); this just records the resulting row.
+// Public products in this app don't need a pre-signed upload URL check —
+// the client uploads directly to Supabase Storage (owner-prefixed path,
+// allowed by RLS), so the only way to actually stop an over-limit upload is
+// to check *before* the client starts sending bytes. This is that check.
+export const checkCanUploadFile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data) => z.object({ productId: z.string().uuid(), sizeBytes: z.number().int().positive() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const tier = await resolveUserTier(context.supabase, context.userId);
+    const usage = await currentUploadUsage(context.supabase, context.userId, data.productId);
+    const rejection = checkUploadAgainstLimits({ sizeBytes: data.sizeBytes, ...usage }, PLAN_LIMITS[tier]);
+    if (rejection) throw new Error(rejection);
+    return { ok: true };
+  });
+
+// This is the authoritative enforcement point — it re-checks the same
+// limits (in case two uploads raced past checkCanUploadFile concurrently)
+// and, if rejected here, deletes the file that was already uploaded to
+// Storage rather than leaving it orphaned and silently counting against
+// nothing.
 export const attachProductFile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data) =>
@@ -148,6 +184,14 @@ export const attachProductFile = createServerFn({ method: "POST" })
       .eq("owner_id", context.userId)
       .single();
     if (!product) throw new Error("Product not found");
+
+    const tier = await resolveUserTier(context.supabase, context.userId);
+    const usage = await currentUploadUsage(context.supabase, context.userId, data.productId);
+    const rejection = checkUploadAgainstLimits({ sizeBytes: data.sizeBytes, ...usage }, PLAN_LIMITS[tier]);
+    if (rejection) {
+      await context.supabase.storage.from("digital-assets").remove([data.storageFilePath]);
+      throw new Error(rejection);
+    }
 
     const { error } = await context.supabase.from("product_files").insert({
       product_id: data.productId,

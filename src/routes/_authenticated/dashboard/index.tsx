@@ -9,6 +9,7 @@ import {
   createProduct,
   deleteProduct,
   listMyProductFiles,
+  checkCanUploadFile,
   attachProductFile,
   removeProductFile,
 } from "@/lib/products.functions";
@@ -318,6 +319,7 @@ function ProductRow({
 }) {
   const qc = useQueryClient();
   const filesFn = useServerFn(listMyProductFiles);
+  const checkCanUploadFn = useServerFn(checkCanUploadFile);
   const attachFn = useServerFn(attachProductFile);
   const removeFn = useServerFn(removeProductFile);
 
@@ -328,6 +330,11 @@ function ProductRow({
 
   const attachMut = useMutation({
     mutationFn: async (file: File) => {
+      // Checked before uploading any bytes — the client uploads straight to
+      // Storage, so this is the only point that can actually stop an
+      // over-limit upload rather than just refusing to record it afterward.
+      await checkCanUploadFn({ data: { productId: product.id, sizeBytes: file.size } });
+
       const {
         data: { user },
       } = await supabase.auth.getUser();
