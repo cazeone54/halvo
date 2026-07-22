@@ -39,6 +39,9 @@ function DashboardLayout() {
             <Link to="/discover" activeProps={{ className: "text-foreground" }}>
               Discover
             </Link>
+            <Link to="/dashboard/settings" activeProps={{ className: "text-foreground" }}>
+              Settings
+            </Link>
           </nav>
         </div>
         <div className="flex items-center gap-2">

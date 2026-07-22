@@ -63,12 +63,17 @@ function FaqPage() {
           {FAQS.map((group) => (
             <div key={group.group}>
               <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold">{group.group}</h2>
-              <div className="mt-3 flex flex-col gap-4">
+              <div className="mt-3 flex flex-col divide-y divide-border/60 rounded-lg border">
                 {group.items.map((item) => (
-                  <div key={item.q}>
-                    <p className="font-medium">{item.q}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{item.a}</p>
-                  </div>
+                  <details key={item.q} className="group px-4 py-3 open:bg-muted/30">
+                    <summary className="flex cursor-pointer list-none items-center justify-between font-medium marker:content-none">
+                      {item.q}
+                      <span className="ml-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-45">
+                        +
+                      </span>
+                    </summary>
+                    <p className="mt-2 text-sm text-muted-foreground">{item.a}</p>
+                  </details>
                 ))}
               </div>
             </div>

@@ -35,11 +35,20 @@ export const listMyProducts = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("products")
-      .select("id, name, description, price_cents, pay_what_you_want, url_slug, category, created_at")
+      .select("id, name, description, price_cents, pay_what_you_want, url_slug, category, image_url, created_at")
       .eq("owner_id", context.userId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return data;
+
+    return Promise.all(
+      data.map(async (product) => {
+        if (!product.image_url) return { ...product, imageUrl: null };
+        const { data: signed } = await context.supabase.storage
+          .from("digital-assets")
+          .createSignedUrl(product.image_url, 60 * 60);
+        return { ...product, imageUrl: signed?.signedUrl ?? null };
+      }),
+    );
   });
 
 export const createProduct = createServerFn({ method: "POST" })
@@ -117,16 +126,92 @@ export const updateProduct = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const MAX_IMAGE_MB = 5;
+
+// Cover images aren't gated by the per-tier downloadable-file storage limits
+// (upload-limits.ts) — those are about the product's actual deliverable, not
+// its marketing image. Just a flat sane size cap to prevent abuse.
+export const setProductImage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data) =>
+    z
+      .object({
+        productId: z.string().uuid(),
+        storageFilePath: z.string().min(1),
+        sizeBytes: z.number().int().positive().max(MAX_IMAGE_MB * 1024 * 1024),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: product } = await context.supabase
+      .from("products")
+      .select("id, image_url")
+      .eq("id", data.productId)
+      .eq("owner_id", context.userId)
+      .single();
+    if (!product) {
+      await context.supabase.storage.from("digital-assets").remove([data.storageFilePath]);
+      throw new Error("Product not found");
+    }
+
+    const { error } = await context.supabase
+      .from("products")
+      .update({ image_url: data.storageFilePath })
+      .eq("id", data.productId)
+      .eq("owner_id", context.userId);
+    if (error) {
+      await context.supabase.storage.from("digital-assets").remove([data.storageFilePath]);
+      throw new Error(error.message);
+    }
+
+    if (product.image_url) {
+      await context.supabase.storage.from("digital-assets").remove([product.image_url]);
+    }
+    return { ok: true };
+  });
+
+// The actual fix: `transactions.product_id` cascades on delete, so hard-
+// deleting a product with any sales would silently destroy that seller's
+// own revenue records, analytics, and commission history. If the product
+// has ever sold, this unpublishes it (clears url_slug, same "draft" state
+// products already have before first publish) instead of deleting it —
+// preserving all historical data. Only a never-sold product is actually
+// removed, and its storage files are cleaned up too so nothing orphans.
 export const deleteProduct = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data) => z.object({ productId: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
+    const { count: salesCount } = await context.supabase
+      .from("transactions")
+      .select("id", { count: "exact", head: true })
+      .eq("product_id", data.productId);
+
+    if ((salesCount ?? 0) > 0) {
+      const { error: unpublishError } = await context.supabase
+        .from("products")
+        .update({ url_slug: null })
+        .eq("id", data.productId)
+        .eq("owner_id", context.userId);
+      if (unpublishError) throw new Error(unpublishError.message);
+      return { ok: true, unpublishedInstead: true };
+    }
+
+    const { data: files } = await context.supabase
+      .from("product_files")
+      .select("storage_file_path")
+      .eq("product_id", data.productId)
+      .eq("owner_id", context.userId);
+
     const { error } = await context.supabase
       .from("products")
       .delete()
       .eq("id", data.productId)
       .eq("owner_id", context.userId);
     if (error) throw new Error(error.message);
+
+    if (files && files.length > 0) {
+      await context.supabase.storage.from("digital-assets").remove(files.map((f) => f.storage_file_path));
+    }
     return { ok: true };
   });
 

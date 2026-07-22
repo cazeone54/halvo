@@ -27,6 +27,7 @@ import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedDashboardAnalyticsRouteImport } from './routes/_authenticated/dashboard/analytics'
 import { Route as AuthenticatedDashboardDiscountsRouteImport } from './routes/_authenticated/dashboard/discounts'
 import { Route as AuthenticatedDashboardReferralsRouteImport } from './routes/_authenticated/dashboard/referrals'
+import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard/settings'
 import { Route as AuthenticatedDashboardStripeRefreshRouteImport } from './routes/_authenticated/dashboard/stripe.refresh'
 import { Route as AuthenticatedDashboardStripeReturnRouteImport } from './routes/_authenticated/dashboard/stripe.return'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
@@ -125,6 +126,12 @@ const AuthenticatedDashboardReferralsRoute =
     path: '/referrals',
     getParentRoute: () => AuthenticatedDashboardRouteRoute,
   } as any)
+const AuthenticatedDashboardSettingsRoute =
+  AuthenticatedDashboardSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedDashboardRouteRoute,
+  } as any)
 const AuthenticatedDashboardStripeRefreshRoute =
   AuthenticatedDashboardStripeRefreshRouteImport.update({
     id: '/stripe/refresh',
@@ -161,6 +168,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/dashboard/discounts': typeof AuthenticatedDashboardDiscountsRoute
   '/dashboard/referrals': typeof AuthenticatedDashboardReferralsRoute
+  '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/stripe/refresh': typeof AuthenticatedDashboardStripeRefreshRoute
   '/dashboard/stripe/return': typeof AuthenticatedDashboardStripeReturnRoute
@@ -182,6 +190,7 @@ export interface FileRoutesByTo {
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/dashboard/discounts': typeof AuthenticatedDashboardDiscountsRoute
   '/dashboard/referrals': typeof AuthenticatedDashboardReferralsRoute
+  '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/stripe/refresh': typeof AuthenticatedDashboardStripeRefreshRoute
   '/dashboard/stripe/return': typeof AuthenticatedDashboardStripeReturnRoute
@@ -206,6 +215,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/_authenticated/dashboard/discounts': typeof AuthenticatedDashboardDiscountsRoute
   '/_authenticated/dashboard/referrals': typeof AuthenticatedDashboardReferralsRoute
+  '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/dashboard/stripe/refresh': typeof AuthenticatedDashboardStripeRefreshRoute
   '/_authenticated/dashboard/stripe/return': typeof AuthenticatedDashboardStripeReturnRoute
@@ -230,6 +240,7 @@ export interface FileRouteTypes {
     | '/dashboard/analytics'
     | '/dashboard/discounts'
     | '/dashboard/referrals'
+    | '/dashboard/settings'
     | '/dashboard/'
     | '/dashboard/stripe/refresh'
     | '/dashboard/stripe/return'
@@ -251,6 +262,7 @@ export interface FileRouteTypes {
     | '/dashboard/analytics'
     | '/dashboard/discounts'
     | '/dashboard/referrals'
+    | '/dashboard/settings'
     | '/dashboard'
     | '/dashboard/stripe/refresh'
     | '/dashboard/stripe/return'
@@ -274,6 +286,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/analytics'
     | '/_authenticated/dashboard/discounts'
     | '/_authenticated/dashboard/referrals'
+    | '/_authenticated/dashboard/settings'
     | '/_authenticated/dashboard/'
     | '/_authenticated/dashboard/stripe/refresh'
     | '/_authenticated/dashboard/stripe/return'
@@ -425,6 +438,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardReferralsRouteImport
       parentRoute: typeof AuthenticatedDashboardRouteRoute
     }
+    '/_authenticated/dashboard/settings': {
+      id: '/_authenticated/dashboard/settings'
+      path: '/settings'
+      fullPath: '/dashboard/settings'
+      preLoaderRoute: typeof AuthenticatedDashboardSettingsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRouteRoute
+    }
     '/_authenticated/dashboard/stripe/refresh': {
       id: '/_authenticated/dashboard/stripe/refresh'
       path: '/stripe/refresh'
@@ -453,6 +473,7 @@ interface AuthenticatedDashboardRouteRouteChildren {
   AuthenticatedDashboardAnalyticsRoute: typeof AuthenticatedDashboardAnalyticsRoute
   AuthenticatedDashboardDiscountsRoute: typeof AuthenticatedDashboardDiscountsRoute
   AuthenticatedDashboardReferralsRoute: typeof AuthenticatedDashboardReferralsRoute
+  AuthenticatedDashboardSettingsRoute: typeof AuthenticatedDashboardSettingsRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedDashboardStripeRefreshRoute: typeof AuthenticatedDashboardStripeRefreshRoute
   AuthenticatedDashboardStripeReturnRoute: typeof AuthenticatedDashboardStripeReturnRoute
@@ -463,6 +484,7 @@ const AuthenticatedDashboardRouteRouteChildren: AuthenticatedDashboardRouteRoute
     AuthenticatedDashboardAnalyticsRoute: AuthenticatedDashboardAnalyticsRoute,
     AuthenticatedDashboardDiscountsRoute: AuthenticatedDashboardDiscountsRoute,
     AuthenticatedDashboardReferralsRoute: AuthenticatedDashboardReferralsRoute,
+    AuthenticatedDashboardSettingsRoute: AuthenticatedDashboardSettingsRoute,
     AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
     AuthenticatedDashboardStripeRefreshRoute:
       AuthenticatedDashboardStripeRefreshRoute,

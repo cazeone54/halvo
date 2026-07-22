@@ -10,6 +10,7 @@ import {
   COMMISSION_PERCENT,
 } from "@/lib/referrals.functions";
 import { getMyPlan } from "@/lib/user-plan.functions";
+import { Users2 } from "lucide-react";
 import { formatCents } from "@/lib/format";
 import { BASE_URL } from "@/lib/site";
 import { Button } from "@/components/ui/button";
@@ -70,7 +71,10 @@ function ReferralsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold font-[family-name:var(--font-display)]">Affiliate program</h1>
+        <h1 className="flex items-center gap-2 text-xl font-semibold font-[family-name:var(--font-display)]">
+          <Users2 className="h-5 w-5 text-muted-foreground" />
+          Affiliate program
+        </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Earn {COMMISSION_PERCENT}% on every sale tracked through your links.
         </p>

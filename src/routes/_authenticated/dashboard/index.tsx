@@ -12,17 +12,21 @@ import {
   Plus,
   Trash2,
   ExternalLink,
+  Pencil,
+  ImagePlus,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile, updateMyHandle } from "@/lib/profile.functions";
 import {
   listMyProducts,
   createProduct,
+  updateProduct,
   deleteProduct,
   listMyProductFiles,
   checkCanUploadFile,
   attachProductFile,
   removeProductFile,
+  setProductImage,
 } from "@/lib/products.functions";
 import { startStripeConnectOnboarding, getStripeConnectStatus } from "@/lib/stripe-connect.functions";
 import { listMySales } from "@/lib/sales.functions";
@@ -112,9 +116,17 @@ function DashboardHome() {
       qc.invalidateQueries({ queryKey: ["my-products"] });
     },
   });
+  const [deleteNotice, setDeleteNotice] = useState<string | null>(null);
   const deleteMut = useMutation({
     mutationFn: (productId: string) => deleteProductFn({ data: { productId } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["my-products"] }),
+    onSuccess: (res) => {
+      setDeleteNotice(
+        res.unpublishedInstead
+          ? "This product has sales on record, so it was unpublished instead of deleted — its history is preserved."
+          : null,
+      );
+      qc.invalidateQueries({ queryKey: ["my-products"] });
+    },
   });
 
   const connectMut = useMutation({
@@ -290,6 +302,8 @@ function DashboardHome() {
         </Card>
       ) : null}
 
+      {deleteNotice ? <p className="text-sm text-muted-foreground">{deleteNotice}</p> : null}
+
       <div className="flex flex-col gap-3">
         {(productsQ.data ?? []).map((product) => (
           <ProductRow key={product.id} product={product} onDelete={() => deleteMut.mutate(product.id)} />
@@ -349,18 +363,30 @@ function EmptyState({ icon: Icon, message }: { icon: typeof Package; message: st
   );
 }
 
-function ProductRow({
-  product,
-  onDelete,
-}: {
-  product: { id: string; name: string; price_cents: number; url_slug: string | null };
-  onDelete: () => void;
-}) {
+type ProductRowData = {
+  id: string;
+  name: string;
+  description: string | null;
+  price_cents: number;
+  category: string | null;
+  url_slug: string | null;
+  imageUrl: string | null;
+};
+
+function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: () => void }) {
   const qc = useQueryClient();
   const filesFn = useServerFn(listMyProductFiles);
   const checkCanUploadFn = useServerFn(checkCanUploadFile);
   const attachFn = useServerFn(attachProductFile);
   const removeFn = useServerFn(removeProductFile);
+  const setImageFn = useServerFn(setProductImage);
+  const updateProductFn = useServerFn(updateProduct);
+
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState(product.name);
+  const [editDescription, setEditDescription] = useState(product.description ?? "");
+  const [editPrice, setEditPrice] = useState((product.price_cents / 100).toFixed(2));
+  const [editCategory, setEditCategory] = useState(product.category ?? "");
 
   const filesQ = useQuery({
     queryKey: ["product-files", product.id],
@@ -393,14 +419,62 @@ function ProductRow({
     onSuccess: () => qc.invalidateQueries({ queryKey: ["product-files", product.id] }),
   });
 
+  const imageMut = useMutation({
+    mutationFn: async (file: File) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not signed in");
+      const path = `${user.id}/${product.id}/cover-${Date.now()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage.from("digital-assets").upload(path, file);
+      if (uploadError) throw uploadError;
+      await setImageFn({ data: { productId: product.id, storageFilePath: path, sizeBytes: file.size } });
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["my-products"] }),
+  });
+
+  const updateMut = useMutation({
+    mutationFn: () =>
+      updateProductFn({
+        data: {
+          productId: product.id,
+          name: editName,
+          description: editDescription,
+          priceCents: Math.round(Number(editPrice) * 100),
+          category: editCategory,
+        },
+      }),
+    onSuccess: () => {
+      setEditing(false);
+      qc.invalidateQueries({ queryKey: ["my-products"] });
+    },
+  });
+
   return (
     <Card className="card-hover">
       <CardContent className="flex flex-col gap-2 pt-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-              <Package className="h-4 w-4" />
-            </div>
+            <label className="group relative flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-md bg-primary/10 text-primary">
+              {product.imageUrl ? (
+                <img src={product.imageUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <Package className="h-5 w-5" />
+              )}
+              <span className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                <ImagePlus className="h-4 w-4 text-white" />
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) imageMut.mutate(file);
+                  e.target.value = "";
+                }}
+              />
+            </label>
             <div>
               <p className="font-medium">{product.name}</p>
               <p className="text-sm text-muted-foreground">${(product.price_cents / 100).toFixed(2)}</p>
@@ -414,11 +488,44 @@ function ProductRow({
                 </a>
               </Button>
             ) : null}
+            <Button variant="outline" size="sm" onClick={() => setEditing((v) => !v)}>
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
             <Button variant="destructive" size="sm" onClick={onDelete}>
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
+        {imageMut.error ? <p className="text-sm text-destructive">{(imageMut.error as Error).message}</p> : null}
+
+        {editing ? (
+          <div className="flex flex-col gap-3 rounded-md border p-3">
+            <div>
+              <Label>Name</Label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+            </div>
+            <div>
+              <Label>Description</Label>
+              <Input value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
+            </div>
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <Label>Price (USD)</Label>
+                <Input type="number" min="0" step="0.01" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} />
+              </div>
+              <div className="flex-1">
+                <Label>Category</Label>
+                <Input value={editCategory} onChange={(e) => setEditCategory(e.target.value)} placeholder="e.g. templates" />
+              </div>
+            </div>
+            <Button size="sm" className="self-start" onClick={() => updateMut.mutate()} disabled={updateMut.isPending}>
+              Save changes
+            </Button>
+            {updateMut.error ? (
+              <p className="text-sm text-destructive">{(updateMut.error as Error).message}</p>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="flex flex-col gap-1 border-t pt-2">
           {(filesQ.data ?? []).map((f) => (

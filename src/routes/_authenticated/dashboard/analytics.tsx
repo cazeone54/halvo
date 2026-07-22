@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
+import { BarChart3 } from "lucide-react";
 import { getMyAnalytics } from "@/lib/analytics.functions";
 import { formatCents } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +19,10 @@ function AnalyticsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-xl font-semibold font-[family-name:var(--font-display)]">Analytics</h1>
+      <h1 className="flex items-center gap-2 text-xl font-semibold font-[family-name:var(--font-display)]">
+        <BarChart3 className="h-5 w-5 text-muted-foreground" />
+        Analytics
+      </h1>
 
       <div className="grid grid-cols-2 gap-3">
         <Card>

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { Tag, Ticket } from "lucide-react";
 import { listMyCoupons, createCoupon, setCouponActive, deleteCoupon } from "@/lib/coupons.functions";
 import { getMyPlan } from "@/lib/user-plan.functions";
 import { Button } from "@/components/ui/button";
@@ -62,7 +63,10 @@ function DiscountsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-xl font-semibold font-[family-name:var(--font-display)]">Discounts</h1>
+      <h1 className="flex items-center gap-2 text-xl font-semibold font-[family-name:var(--font-display)]">
+        <Tag className="h-5 w-5 text-muted-foreground" />
+        Discounts
+      </h1>
 
       <Card>
         <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-end">
@@ -91,15 +95,20 @@ function DiscountsPage() {
 
       <div className="flex flex-col gap-2">
         {(couponsQ.data ?? []).map((coupon) => (
-          <Card key={coupon.id}>
+          <Card key={coupon.id} className="card-hover">
             <CardContent className="flex items-center justify-between pt-6">
-              <div>
-                <p className="font-medium">{coupon.code}</p>
-                <p className="text-sm text-muted-foreground">
-                  {coupon.percent_off ? `${coupon.percent_off}% off` : `$${(coupon.amount_off_cents! / 100).toFixed(2)} off`}
-                  {" · "}
-                  {coupon.redemptions} used
-                </p>
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <Ticket className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="font-medium">{coupon.code}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {coupon.percent_off ? `${coupon.percent_off}% off` : `$${(coupon.amount_off_cents! / 100).toFixed(2)} off`}
+                    {" · "}
+                    {coupon.redemptions} used
+                  </p>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant={coupon.active ? "default" : "secondary"}>
@@ -119,7 +128,12 @@ function DiscountsPage() {
             </CardContent>
           </Card>
         ))}
-        {couponsQ.data?.length === 0 ? <p className="text-sm text-muted-foreground">No coupons yet.</p> : null}
+        {couponsQ.data?.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-10 text-center">
+            <Tag className="h-8 w-8 text-muted-foreground/50" />
+            <p className="text-sm text-muted-foreground">No coupons yet.</p>
+          </div>
+        ) : null}
       </div>
     </div>
   );
