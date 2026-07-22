@@ -2,6 +2,7 @@
 // without mocking Stripe/Supabase modules.
 import { MIN_CHARGE_CENTS } from "@/lib/fees";
 import { calcPlatformFeeCents, type PlanTier } from "@/lib/plans";
+import { applyCouponDiscount, type CouponDiscount } from "@/lib/coupon-math";
 
 export type ProductPricing = {
   price_cents: number;
@@ -23,6 +24,18 @@ export function isAboveMinimumCharge(amountCents: number): boolean {
 // as a valid purchase for this product.
 export function enforcedMinCents(product: ProductPricing): number {
   return product.pay_what_you_want ? MIN_CHARGE_CENTS : product.price_cents;
+}
+
+// The actual fix vs. Kitsly's coupon verification: Kitsly only re-checked a
+// coupon-discounted purchase against the flat $0.50 floor, not the real
+// expected discounted price — so a buyer could apply a valid coupon client-
+// side, then quietly pay less than the coupon's actual discount allowed
+// (still above $0.50) and it would be accepted. Here the exact discounted
+// minimum is recomputed server-side and enforced.
+export function computeRequiredMinCents(product: ProductPricing, coupon: CouponDiscount | null): number {
+  const base = enforcedMinCents(product);
+  if (!coupon) return base;
+  return applyCouponDiscount(base, coupon);
 }
 
 export type DestinationChargeParams = {

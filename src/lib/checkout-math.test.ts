@@ -3,6 +3,7 @@ import {
   computeChargeAmountCents,
   isAboveMinimumCharge,
   enforcedMinCents,
+  computeRequiredMinCents,
   buildDestinationChargeParams,
 } from "@/lib/checkout-math";
 import { MIN_CHARGE_CENTS } from "@/lib/fees";
@@ -41,6 +42,29 @@ describe("isAboveMinimumCharge / enforcedMinCents", () => {
 
   it("enforces only the Stripe floor for PWYW products", () => {
     expect(enforcedMinCents({ price_cents: 2000, pay_what_you_want: true })).toBe(MIN_CHARGE_CENTS);
+  });
+});
+
+describe("computeRequiredMinCents", () => {
+  it("equals enforcedMinCents when no coupon is present", () => {
+    const product = { price_cents: 2000, pay_what_you_want: false };
+    expect(computeRequiredMinCents(product, null)).toBe(2000);
+  });
+
+  it("recomputes the real discounted minimum when a coupon is present — the actual Kitsly fix", () => {
+    // Kitsly only re-checked a coupon-discounted purchase against the flat
+    // $0.50 floor, not the coupon's real discount — so a buyer could pay
+    // less than the coupon actually allowed and still pass. Here, a 50%-off
+    // coupon on a $20 product must require at least $10, not just $0.50.
+    const product = { price_cents: 2000, pay_what_you_want: false };
+    const coupon = { percent_off: 50, amount_off_cents: null };
+    expect(computeRequiredMinCents(product, coupon)).toBe(1000);
+  });
+
+  it("still floors at the Stripe minimum for a near-100% coupon", () => {
+    const product = { price_cents: 2000, pay_what_you_want: false };
+    const coupon = { percent_off: 100, amount_off_cents: null };
+    expect(computeRequiredMinCents(product, coupon)).toBe(MIN_CHARGE_CENTS);
   });
 });
 

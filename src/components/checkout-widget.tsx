@@ -9,6 +9,8 @@ import {
 } from "@stripe/react-stripe-js";
 import { getStripe } from "@/lib/stripe";
 import { createProductPaymentIntent, recordSuccessfulTransaction } from "@/lib/checkout.functions";
+import { applyCouponPreview } from "@/lib/coupons.functions";
+import { getActiveReferralCode } from "@/lib/referral-attribution";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,21 +24,45 @@ type Product = {
 
 export function CheckoutWidget({ product }: { product: Product }) {
   const [amountCents, setAmountCents] = useState(product.priceCents);
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountedAmountCents: number } | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const createIntentFn = useServerFn(createProductPaymentIntent);
+  const previewCouponFn = useServerFn(applyCouponPreview);
 
   useEffect(() => {
     setClientSecret(null);
     setError(null);
-    createIntentFn({ data: { productId: product.id, amountCents } })
+    createIntentFn({ data: { productId: product.id, amountCents, couponCode: appliedCoupon?.code } })
       .then((res) => setClientSecret(res.clientSecret ?? null))
       .catch((e: Error) => setError(e.message));
-    // Recreate the intent whenever the pay-what-you-want amount changes.
+    // Recreate the intent whenever the pay-what-you-want amount or applied coupon changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product.id, amountCents]);
+  }, [product.id, amountCents, appliedCoupon?.code]);
+
+  const applyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setCouponLoading(true);
+    setCouponError(null);
+    try {
+      const res = await previewCouponFn({
+        data: { code: couponCode.trim(), productId: product.id, amountCents },
+      });
+      setAppliedCoupon({ code: couponCode.trim(), discountedAmountCents: res.discountedAmountCents });
+    } catch (e) {
+      setCouponError(e instanceof Error ? e.message : "Invalid coupon");
+      setAppliedCoupon(null);
+    } finally {
+      setCouponLoading(false);
+    }
+  };
 
   if (error) return <p className="text-sm text-destructive">{error}</p>;
+
+  const displayAmountCents = appliedCoupon?.discountedAmountCents ?? amountCents;
 
   return (
     <div className="flex flex-col gap-4">
@@ -55,6 +81,40 @@ export function CheckoutWidget({ product }: { product: Product }) {
           />
         </div>
       ) : null}
+
+      <div>
+        <Label>Coupon code</Label>
+        <div className="flex gap-2">
+          <Input
+            value={couponCode}
+            onChange={(e) => setCouponCode(e.target.value)}
+            placeholder="Optional"
+            disabled={!!appliedCoupon}
+          />
+          {appliedCoupon ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setAppliedCoupon(null);
+                setCouponCode("");
+              }}
+            >
+              Remove
+            </Button>
+          ) : (
+            <Button type="button" variant="outline" onClick={applyCoupon} disabled={couponLoading}>
+              Apply
+            </Button>
+          )}
+        </div>
+        {couponError ? <p className="mt-1 text-sm text-destructive">{couponError}</p> : null}
+        {appliedCoupon ? (
+          <p className="mt-1 text-sm text-muted-foreground">
+            New total: <span className="font-medium text-foreground">${(displayAmountCents / 100).toFixed(2)}</span>
+          </p>
+        ) : null}
+      </div>
 
       {clientSecret ? (
         <Elements stripe={getStripe()} options={{ clientSecret, appearance: { theme: "stripe" } }}>
@@ -101,7 +161,12 @@ function PaymentForm({ productId }: { productId: string }) {
 
     try {
       const { transactionId } = await recordFn({
-        data: { paymentIntentId: paymentIntent.id, productId, buyerEmail: email },
+        data: {
+          paymentIntentId: paymentIntent.id,
+          productId,
+          buyerEmail: email,
+          referralCode: getActiveReferralCode() ?? undefined,
+        },
       });
       navigate({ to: "/success", search: { id: transactionId } });
     } catch (e) {

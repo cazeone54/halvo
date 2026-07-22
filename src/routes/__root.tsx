@@ -4,10 +4,12 @@ import {
   Outlet,
   Scripts,
 } from "@tanstack/react-router";
+import { useEffect } from "react";
 import type { QueryClient } from "@tanstack/react-query";
 import { QueryClientProvider } from "@tanstack/react-query";
 import appCss from "../styles.css?url";
 import { BRAND_NAME } from "@/lib/site";
+import { captureReferralFromUrl } from "@/lib/referral-attribution";
 
 // Applies system dark-mode preference before hydration to avoid a flash of
 // the wrong theme. A manual light/dark/system toggle is Phase 6 polish.
@@ -61,6 +63,11 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    captureReferralFromUrl();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />

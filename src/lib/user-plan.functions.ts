@@ -47,3 +47,12 @@ export const getMyPlan = createServerFn({ method: "GET" })
     const tier = await resolveUserTier(context.supabase, context.userId);
     return { tier, limits: PLAN_LIMITS[tier] };
   });
+
+// Coupons and the affiliate program are Creator/Pro perks — Free sellers
+// can't run discounts or recruit affiliates, matching Kitsly's own gating.
+export async function requireCreatorTier(supabase: SupabaseClient<Database>, userId: string): Promise<void> {
+  const tier = await resolveUserTier(supabase, userId);
+  if (tier === "free") {
+    throw new Error("This feature requires the Creator or Pro plan.");
+  }
+}

@@ -150,6 +150,7 @@ export type Database = {
           amount_paid_cents: number;
           stripe_payment_intent_id: string | null;
           refunded_at: string | null;
+          coupon_code: string | null;
           created_at: string;
         };
         Insert: {
@@ -162,6 +163,7 @@ export type Database = {
           amount_paid_cents: number;
           stripe_payment_intent_id?: string | null;
           refunded_at?: string | null;
+          coupon_code?: string | null;
           created_at?: string;
         };
         Update: {
@@ -174,6 +176,7 @@ export type Database = {
           amount_paid_cents?: number;
           stripe_payment_intent_id?: string | null;
           refunded_at?: string | null;
+          coupon_code?: string | null;
           created_at?: string;
         };
         Relationships: [
@@ -228,10 +231,117 @@ export type Database = {
         };
         Relationships: [];
       };
+      coupons: {
+        Row: {
+          id: string;
+          owner_id: string;
+          product_id: string | null;
+          code: string;
+          percent_off: number | null;
+          amount_off_cents: number | null;
+          max_redemptions: number | null;
+          redemptions: number;
+          active: boolean;
+          expires_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          product_id?: string | null;
+          code: string;
+          percent_off?: number | null;
+          amount_off_cents?: number | null;
+          max_redemptions?: number | null;
+          redemptions?: number;
+          active?: boolean;
+          expires_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          owner_id?: string;
+          product_id?: string | null;
+          code?: string;
+          percent_off?: number | null;
+          amount_off_cents?: number | null;
+          max_redemptions?: number | null;
+          redemptions?: number;
+          active?: boolean;
+          expires_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      referral_codes: {
+        Row: {
+          id: string;
+          user_id: string;
+          code: string;
+          kind: "platform" | "product";
+          product_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          code: string;
+          kind: "platform" | "product";
+          product_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          code?: string;
+          kind?: "platform" | "product";
+          product_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      commissions: {
+        Row: {
+          id: string;
+          referral_code_id: string;
+          referrer_user_id: string;
+          transaction_id: string;
+          kind: "platform" | "product";
+          amount_cents: number;
+          status: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          referral_code_id: string;
+          referrer_user_id: string;
+          transaction_id: string;
+          kind: "platform" | "product";
+          amount_cents: number;
+          status?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          referral_code_id?: string;
+          referrer_user_id?: string;
+          transaction_id?: string;
+          kind?: "platform" | "product";
+          amount_cents?: number;
+          status?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {};
     Functions: {};
-    Enums: {};
+    Enums: {
+      referral_kind: "platform" | "product";
+    };
     CompositeTypes: {};
   };
 };

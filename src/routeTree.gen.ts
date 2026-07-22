@@ -11,12 +11,16 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SuccessRouteImport } from './routes/success'
 import { Route as AuthenticatedDashboardRouteRouteImport } from './routes/_authenticated/dashboard/route'
 import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
+import { Route as AuthenticatedDashboardAnalyticsRouteImport } from './routes/_authenticated/dashboard/analytics'
+import { Route as AuthenticatedDashboardDiscountsRouteImport } from './routes/_authenticated/dashboard/discounts'
+import { Route as AuthenticatedDashboardReferralsRouteImport } from './routes/_authenticated/dashboard/referrals'
 import { Route as AuthenticatedDashboardStripeRefreshRouteImport } from './routes/_authenticated/dashboard/stripe.refresh'
 import { Route as AuthenticatedDashboardStripeReturnRouteImport } from './routes/_authenticated/dashboard/stripe.return'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
@@ -28,6 +32,11 @@ const IndexRoute = IndexRouteImport.update({
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DiscoverRoute = DiscoverRouteImport.update({
+  id: '/discover',
+  path: '/discover',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -62,6 +71,24 @@ const AuthenticatedDashboardIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedDashboardRouteRoute,
   } as any)
+const AuthenticatedDashboardAnalyticsRoute =
+  AuthenticatedDashboardAnalyticsRouteImport.update({
+    id: '/analytics',
+    path: '/analytics',
+    getParentRoute: () => AuthenticatedDashboardRouteRoute,
+  } as any)
+const AuthenticatedDashboardDiscountsRoute =
+  AuthenticatedDashboardDiscountsRouteImport.update({
+    id: '/discounts',
+    path: '/discounts',
+    getParentRoute: () => AuthenticatedDashboardRouteRoute,
+  } as any)
+const AuthenticatedDashboardReferralsRoute =
+  AuthenticatedDashboardReferralsRouteImport.update({
+    id: '/referrals',
+    path: '/referrals',
+    getParentRoute: () => AuthenticatedDashboardRouteRoute,
+  } as any)
 const AuthenticatedDashboardStripeRefreshRoute =
   AuthenticatedDashboardStripeRefreshRouteImport.update({
     id: '/stripe/refresh',
@@ -83,11 +110,15 @@ const ApiPublicPaymentsWebhookRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/discover': typeof DiscoverRoute
   '/login': typeof LoginRoute
   '/success': typeof SuccessRoute
   '/dashboard': typeof AuthenticatedDashboardRouteRouteWithChildren
   '/p/$slug': typeof PSlugRoute
   '/u/$handle': typeof UHandleRoute
+  '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
+  '/dashboard/discounts': typeof AuthenticatedDashboardDiscountsRoute
+  '/dashboard/referrals': typeof AuthenticatedDashboardReferralsRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/stripe/refresh': typeof AuthenticatedDashboardStripeRefreshRoute
   '/dashboard/stripe/return': typeof AuthenticatedDashboardStripeReturnRoute
@@ -95,10 +126,14 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/discover': typeof DiscoverRoute
   '/login': typeof LoginRoute
   '/success': typeof SuccessRoute
   '/p/$slug': typeof PSlugRoute
   '/u/$handle': typeof UHandleRoute
+  '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
+  '/dashboard/discounts': typeof AuthenticatedDashboardDiscountsRoute
+  '/dashboard/referrals': typeof AuthenticatedDashboardReferralsRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/stripe/refresh': typeof AuthenticatedDashboardStripeRefreshRoute
   '/dashboard/stripe/return': typeof AuthenticatedDashboardStripeReturnRoute
@@ -108,11 +143,15 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/discover': typeof DiscoverRoute
   '/login': typeof LoginRoute
   '/success': typeof SuccessRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteRouteWithChildren
   '/p/$slug': typeof PSlugRoute
   '/u/$handle': typeof UHandleRoute
+  '/_authenticated/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
+  '/_authenticated/dashboard/discounts': typeof AuthenticatedDashboardDiscountsRoute
+  '/_authenticated/dashboard/referrals': typeof AuthenticatedDashboardReferralsRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/dashboard/stripe/refresh': typeof AuthenticatedDashboardStripeRefreshRoute
   '/_authenticated/dashboard/stripe/return': typeof AuthenticatedDashboardStripeReturnRoute
@@ -122,11 +161,15 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/discover'
     | '/login'
     | '/success'
     | '/dashboard'
     | '/p/$slug'
     | '/u/$handle'
+    | '/dashboard/analytics'
+    | '/dashboard/discounts'
+    | '/dashboard/referrals'
     | '/dashboard/'
     | '/dashboard/stripe/refresh'
     | '/dashboard/stripe/return'
@@ -134,10 +177,14 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/discover'
     | '/login'
     | '/success'
     | '/p/$slug'
     | '/u/$handle'
+    | '/dashboard/analytics'
+    | '/dashboard/discounts'
+    | '/dashboard/referrals'
     | '/dashboard'
     | '/dashboard/stripe/refresh'
     | '/dashboard/stripe/return'
@@ -146,11 +193,15 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/discover'
     | '/login'
     | '/success'
     | '/_authenticated/dashboard'
     | '/p/$slug'
     | '/u/$handle'
+    | '/_authenticated/dashboard/analytics'
+    | '/_authenticated/dashboard/discounts'
+    | '/_authenticated/dashboard/referrals'
     | '/_authenticated/dashboard/'
     | '/_authenticated/dashboard/stripe/refresh'
     | '/_authenticated/dashboard/stripe/return'
@@ -160,6 +211,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  DiscoverRoute: typeof DiscoverRoute
   LoginRoute: typeof LoginRoute
   SuccessRoute: typeof SuccessRoute
   PSlugRoute: typeof PSlugRoute
@@ -181,6 +233,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/discover': {
+      id: '/discover'
+      path: '/discover'
+      fullPath: '/discover'
+      preLoaderRoute: typeof DiscoverRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -225,6 +284,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardIndexRouteImport
       parentRoute: typeof AuthenticatedDashboardRouteRoute
     }
+    '/_authenticated/dashboard/analytics': {
+      id: '/_authenticated/dashboard/analytics'
+      path: '/analytics'
+      fullPath: '/dashboard/analytics'
+      preLoaderRoute: typeof AuthenticatedDashboardAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRouteRoute
+    }
+    '/_authenticated/dashboard/discounts': {
+      id: '/_authenticated/dashboard/discounts'
+      path: '/discounts'
+      fullPath: '/dashboard/discounts'
+      preLoaderRoute: typeof AuthenticatedDashboardDiscountsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRouteRoute
+    }
+    '/_authenticated/dashboard/referrals': {
+      id: '/_authenticated/dashboard/referrals'
+      path: '/referrals'
+      fullPath: '/dashboard/referrals'
+      preLoaderRoute: typeof AuthenticatedDashboardReferralsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRouteRoute
+    }
     '/_authenticated/dashboard/stripe/refresh': {
       id: '/_authenticated/dashboard/stripe/refresh'
       path: '/stripe/refresh'
@@ -250,6 +330,9 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedDashboardRouteRouteChildren {
+  AuthenticatedDashboardAnalyticsRoute: typeof AuthenticatedDashboardAnalyticsRoute
+  AuthenticatedDashboardDiscountsRoute: typeof AuthenticatedDashboardDiscountsRoute
+  AuthenticatedDashboardReferralsRoute: typeof AuthenticatedDashboardReferralsRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedDashboardStripeRefreshRoute: typeof AuthenticatedDashboardStripeRefreshRoute
   AuthenticatedDashboardStripeReturnRoute: typeof AuthenticatedDashboardStripeReturnRoute
@@ -257,6 +340,9 @@ interface AuthenticatedDashboardRouteRouteChildren {
 
 const AuthenticatedDashboardRouteRouteChildren: AuthenticatedDashboardRouteRouteChildren =
   {
+    AuthenticatedDashboardAnalyticsRoute: AuthenticatedDashboardAnalyticsRoute,
+    AuthenticatedDashboardDiscountsRoute: AuthenticatedDashboardDiscountsRoute,
+    AuthenticatedDashboardReferralsRoute: AuthenticatedDashboardReferralsRoute,
     AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
     AuthenticatedDashboardStripeRefreshRoute:
       AuthenticatedDashboardStripeRefreshRoute,
@@ -284,6 +370,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  DiscoverRoute: DiscoverRoute,
   LoginRoute: LoginRoute,
   SuccessRoute: SuccessRoute,
   PSlugRoute: PSlugRoute,

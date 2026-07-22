@@ -3,10 +3,13 @@ import { z } from "zod";
 import { getStripeClient, getStripeErrorMessage } from "@/lib/stripe.server";
 import { resolveOptionalUserId } from "@/lib/optional-auth.server";
 import { resolveUserTier } from "@/lib/user-plan.functions";
+import { findValidCoupon } from "@/lib/coupons.functions";
+import { applyCouponDiscount } from "@/lib/coupon-math";
+import { resolveReferralCode, insertCommissionForTransaction } from "@/lib/referrals.functions";
 import {
   computeChargeAmountCents,
   isAboveMinimumCharge,
-  enforcedMinCents,
+  computeRequiredMinCents,
   buildDestinationChargeParams,
 } from "@/lib/checkout-math";
 
@@ -18,6 +21,7 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
       .object({
         productId: z.string().uuid(),
         amountCents: z.number().int().positive().optional(),
+        couponCode: z.string().trim().min(1).optional(),
       })
       .parse(data),
   )
@@ -56,7 +60,13 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
       throw new Error("The seller hasn't finished Stripe onboarding yet.");
     }
 
-    const chargeAmountCents = computeChargeAmountCents(product, data.amountCents);
+    let chargeAmountCents = computeChargeAmountCents(product, data.amountCents);
+
+    if (data.couponCode) {
+      const coupon = await findValidCoupon(supabaseAdmin, data.couponCode, product.id);
+      if (!coupon) throw new Error("Invalid or expired coupon code.");
+      chargeAmountCents = applyCouponDiscount(chargeAmountCents, coupon);
+    }
 
     if (!isAboveMinimumCharge(chargeAmountCents)) {
       throw new Error("The charge amount is below the minimum allowed.");
@@ -68,7 +78,11 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
       const intent = await stripe.paymentIntents.create({
         currency: "usd",
         automatic_payment_methods: { enabled: true },
-        metadata: { productId: product.id, product_name: product.name },
+        metadata: {
+          productId: product.id,
+          product_name: product.name,
+          ...(data.couponCode ? { coupon_code: data.couponCode.toUpperCase() } : {}),
+        },
         ...buildDestinationChargeParams(chargeAmountCents, sellerProfile.stripe_connect_id, sellerTier),
       });
       return { clientSecret: intent.client_secret };
@@ -86,6 +100,7 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
         paymentIntentId: z.string().min(1),
         productId: z.string().uuid(),
         buyerEmail: z.string().email(),
+        referralCode: z.string().trim().min(1).optional(),
       })
       .parse(data),
   )
@@ -115,7 +130,13 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
       .single();
     if (productError || !product) throw new Error("Product not found");
 
-    if (intent.amount_received < enforcedMinCents(product)) {
+    const couponCode = intent.metadata.coupon_code as string | undefined;
+    let coupon = null;
+    if (couponCode) {
+      coupon = await findValidCoupon(supabaseAdmin, couponCode, product.id);
+    }
+
+    if (intent.amount_received < computeRequiredMinCents(product, coupon)) {
       throw new Error("Payment amount is below the required minimum for this product.");
     }
 
@@ -131,10 +152,39 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
         status: "success",
         amount_paid_cents: intent.amount_received,
         stripe_payment_intent_id: intent.id,
+        coupon_code: couponCode ?? null,
       })
       .select("id")
       .single();
     if (insertError || !transaction) throw new Error(insertError?.message ?? "Could not record purchase");
+
+    if (couponCode) {
+      const { data: couponRow } = await supabaseAdmin
+        .from("coupons")
+        .select("id, redemptions")
+        .eq("code", couponCode)
+        .eq("owner_id", product.owner_id ?? "")
+        .maybeSingle();
+      if (couponRow) {
+        await supabaseAdmin
+          .from("coupons")
+          .update({ redemptions: couponRow.redemptions + 1 })
+          .eq("id", couponRow.id);
+      }
+    }
+
+    if (data.referralCode) {
+      const referral = await resolveReferralCode(supabaseAdmin, data.referralCode, product.id);
+      if (referral && referral.userId !== product.owner_id) {
+        await insertCommissionForTransaction(supabaseAdmin, {
+          referralCodeId: referral.id,
+          referrerUserId: referral.userId,
+          transactionId: transaction.id,
+          kind: referral.kind,
+          amountPaidCents: intent.amount_received,
+        });
+      }
+    }
 
     return { transactionId: transaction.id };
   });
