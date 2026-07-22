@@ -14,6 +14,7 @@ import {
   ExternalLink,
   Pencil,
   ImagePlus,
+  Share2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile, updateMyHandle } from "@/lib/profile.functions";
@@ -37,6 +38,8 @@ import { generateProductCopy } from "@/lib/ai-copywriter.functions";
 import { PLAN_LABELS, PLAN_PRICE_USD, type PlanTier } from "@/lib/plans";
 import { StripeEmbeddedCheckoutView } from "@/components/stripe-embedded-checkout";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
+import { CopySnippet } from "@/components/copy-snippet";
+import { buildProductLink, buildButtonSnippet, buildIframeSnippet } from "@/lib/share-snippets";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -383,6 +386,7 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
   const updateProductFn = useServerFn(updateProduct);
 
   const [editing, setEditing] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [editName, setEditName] = useState(product.name);
   const [editDescription, setEditDescription] = useState(product.description ?? "");
   const [editPrice, setEditPrice] = useState((product.price_cents / 100).toFixed(2));
@@ -482,11 +486,16 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
           </div>
           <div className="flex gap-2">
             {product.url_slug ? (
-              <Button asChild variant="outline" size="sm">
-                <a href={`/p/${product.url_slug}`} target="_blank" rel="noreferrer">
-                  <ExternalLink className="h-3.5 w-3.5" /> View
-                </a>
-              </Button>
+              <>
+                <Button asChild variant="outline" size="sm">
+                  <a href={`/p/${product.url_slug}`} target="_blank" rel="noreferrer">
+                    <ExternalLink className="h-3.5 w-3.5" /> View
+                  </a>
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setSharing((v) => !v)}>
+                  <Share2 className="h-3.5 w-3.5" />
+                </Button>
+              </>
             ) : null}
             <Button variant="outline" size="sm" onClick={() => setEditing((v) => !v)}>
               <Pencil className="h-3.5 w-3.5" />
@@ -524,6 +533,23 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
             {updateMut.error ? (
               <p className="text-sm text-destructive">{(updateMut.error as Error).message}</p>
             ) : null}
+          </div>
+        ) : null}
+
+        {sharing && product.url_slug ? (
+          <div className="flex flex-col gap-3 rounded-md border p-3">
+            <CopySnippet
+              label="Direct link"
+              value={buildProductLink(BASE_URL, { slug: product.url_slug, name: product.name, priceCents: product.price_cents })}
+            />
+            <CopySnippet
+              label="Buy button (paste into any website)"
+              value={buildButtonSnippet(BASE_URL, { slug: product.url_slug, name: product.name, priceCents: product.price_cents })}
+            />
+            <CopySnippet
+              label="Embed checkout (iframe)"
+              value={buildIframeSnippet(BASE_URL, { slug: product.url_slug, name: product.name, priceCents: product.price_cents })}
+            />
           </div>
         ) : null}
 

@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { verifyStripeWebhook } from "@/lib/stripe.server";
+import { sendPurchaseConfirmationEmail } from "@/lib/email.server";
 import type Stripe from "stripe";
 
 // Reconciliation fallback: purchases are normally recorded synchronously by
@@ -23,7 +24,7 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
 
   const { data: product } = await supabaseAdmin
     .from("products")
-    .select("id, owner_id")
+    .select("id, name, owner_id")
     .eq("id", productId)
     .single();
   if (!product) return;
@@ -38,15 +39,31 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
   // it runs after this insert wins the race. Preserving coupon_code here too
   // just avoids losing it entirely in the rare case the client never calls
   // back at all (e.g. the browser closed immediately after payment).
-  await supabaseAdmin.from("transactions").insert({
-    product_id: product.id,
-    seller_id: product.owner_id,
-    buyer_email: buyerEmail.toLowerCase(),
-    status: "success",
-    amount_paid_cents: intent.amount_received,
-    stripe_payment_intent_id: intent.id,
-    coupon_code: couponCode,
-  });
+  const { data: inserted } = await supabaseAdmin
+    .from("transactions")
+    .insert({
+      product_id: product.id,
+      seller_id: product.owner_id,
+      buyer_email: buyerEmail.toLowerCase(),
+      status: "success",
+      amount_paid_cents: intent.amount_received,
+      stripe_payment_intent_id: intent.id,
+      coupon_code: couponCode,
+    })
+    .select("id")
+    .single();
+
+  // Same "whoever inserted fresh sends the email" rule as
+  // recordSuccessfulTransaction — this only fires when this webhook path is
+  // the one that actually created the row (the `if (existing) return;` above
+  // already excludes the case where the client beat it to the insert).
+  if (inserted) {
+    await sendPurchaseConfirmationEmail({
+      buyerEmail: buyerEmail.toLowerCase(),
+      productName: product.name,
+      transactionId: inserted.id,
+    });
+  }
 }
 
 // The subscriptions table is the single source of truth for plan tier —

@@ -8,6 +8,7 @@ import { applyCouponDiscount } from "@/lib/coupon-math";
 import { resolveReferralCode } from "@/lib/referrals.functions";
 import { calcCommissionCents } from "@/lib/commission-math";
 import { computeTransactionBackfill } from "@/lib/transaction-race";
+import { sendPurchaseConfirmationEmail } from "@/lib/email.server";
 import {
   computeChargeAmountCents,
   isAboveMinimumCharge,
@@ -120,7 +121,7 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
 
     const { data: product, error: productError } = await supabaseAdmin
       .from("products")
-      .select("id, price_cents, pay_what_you_want, owner_id")
+      .select("id, name, price_cents, pay_what_you_want, owner_id")
       .eq("id", data.productId)
       .single();
     if (productError || !product) throw new Error("Product not found");
@@ -180,6 +181,14 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
     } else {
       if (!inserted) throw new Error("Could not record purchase");
       transactionId = inserted.id;
+      // Only the writer that actually created the row sends the email —
+      // same "whoever inserted fresh" rule as coupon redemption counting,
+      // so a race with the webhook fallback can't send a duplicate email.
+      await sendPurchaseConfirmationEmail({
+        buyerEmail: data.buyerEmail,
+        productName: product.name,
+        transactionId,
+      });
     }
 
     // coupon_redemptions has a unique constraint on transaction_id, so this
