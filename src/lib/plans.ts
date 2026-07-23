@@ -11,6 +11,7 @@ export type PlanLimits = {
   filesPerProduct: number;
   maxFileMb: number;
   totalStorageMb: number;
+  monthlyBandwidthGb: number; // soft cap — surfaced + nudges upgrade, never blocks a paid download
   platformFeePct: number;
   aiGenerationsPerMonth: number;
 };
@@ -21,6 +22,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     filesPerProduct: 1,
     maxFileMb: 100,
     totalStorageMb: 500,
+    monthlyBandwidthGb: 5,
     platformFeePct: 0.05,
     aiGenerationsPerMonth: 10,
   },
@@ -29,6 +31,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     filesPerProduct: 10,
     maxFileMb: 2048,
     totalStorageMb: 20480,
+    monthlyBandwidthGb: 150,
     platformFeePct: 0,
     aiGenerationsPerMonth: 100,
   },
@@ -37,6 +40,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     filesPerProduct: 50,
     maxFileMb: 10240,
     totalStorageMb: 204800,
+    monthlyBandwidthGb: 1024,
     platformFeePct: 0,
     aiGenerationsPerMonth: 300,
   },

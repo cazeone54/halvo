@@ -44,6 +44,7 @@ function PricingPage() {
                 `${formatLimit(limits.productsMax)} products`,
                 `${limits.filesPerProduct} file${limits.filesPerProduct === 1 ? "" : "s"} per product`,
                 `${formatMb(limits.totalStorageMb)} storage`,
+                `${limits.monthlyBandwidthGb} GB downloads/mo`,
                 `${limits.aiGenerationsPerMonth} AI generations/mo`,
               ];
               return (

@@ -36,6 +36,7 @@ import { startStripeConnectOnboarding, getStripeConnectStatus } from "@/lib/stri
 import { listMySales } from "@/lib/sales.functions";
 import { refundTransaction } from "@/lib/refunds.functions";
 import { getMyPlan } from "@/lib/user-plan.functions";
+import { getMyBandwidthUsage } from "@/lib/bandwidth.functions";
 import { createSubscriptionCheckout, createPortalSession } from "@/lib/payments.functions";
 import { generateProductCopy } from "@/lib/ai-copywriter.functions";
 import { PLAN_LABELS, PLAN_PRICE_USD, type PlanTier } from "@/lib/plans";
@@ -50,6 +51,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BASE_URL } from "@/lib/site";
 import { formatCents } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/dashboard/")({
   component: DashboardHome,
@@ -76,6 +78,8 @@ function DashboardHome() {
   const connectQ = useQuery({ queryKey: ["stripe-connect-status"], queryFn: () => connectStatusFn() });
   const salesQ = useQuery({ queryKey: ["my-sales"], queryFn: () => salesFn() });
   const planQ = useQuery({ queryKey: ["my-plan"], queryFn: () => planFn() });
+  const bandwidthFn = useServerFn(getMyBandwidthUsage);
+  const bandwidthQ = useQuery({ queryKey: ["my-bandwidth"], queryFn: () => bandwidthFn() });
 
   const [checkoutTier, setCheckoutTier] = useState<PlanTier | null>(null);
   const portalMut = useMutation({
@@ -219,6 +223,36 @@ function DashboardHome() {
               </Button>
             ) : null}
           </div>
+
+          {bandwidthQ.data ? (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Downloads this month</span>
+                <span className={bandwidthQ.data.level === "over" ? "font-medium text-destructive" : "font-medium"}>
+                  {bandwidthQ.data.usedGb.toFixed(1)} / {bandwidthQ.data.limitGb} GB
+                </span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className={cn(
+                    "h-full rounded-full transition-all",
+                    bandwidthQ.data.level === "over"
+                      ? "bg-destructive"
+                      : bandwidthQ.data.level === "warning"
+                        ? "bg-amber-500"
+                        : "bg-primary",
+                  )}
+                  style={{ width: `${Math.min(100, bandwidthQ.data.percent)}%` }}
+                />
+              </div>
+              {bandwidthQ.data.level !== "ok" && bandwidthQ.data.tier !== "pro" ? (
+                <p className="text-xs text-muted-foreground">
+                  You’re {bandwidthQ.data.level === "over" ? "over" : "near"} your plan’s monthly download bandwidth —
+                  upgrade for more headroom. Your buyers are never blocked.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
 
           {planQ.data?.tier === "free" ? (
             <div className="flex gap-2">

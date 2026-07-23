@@ -4,19 +4,28 @@ import { z } from "zod";
 
 const SIGNED_URL_TTL_SECONDS = 60 * 10; // 10 minutes
 
-// Best-effort access log — this is the evidence a seller submits to win a
-// "I never received the file" dispute. Wrapped so a logging failure can never
-// block the buyer from actually getting their download.
-async function logDownloadAccess(transactionId: string): Promise<void> {
+// Best-effort access log — doubles as dispute evidence (who downloaded, when)
+// and as the raw data for a seller's monthly bandwidth usage (bytes served,
+// denormalized seller_id). Wrapped so a logging failure can never block the
+// buyer from actually getting their download.
+async function logDownloadAccess(args: {
+  transactionId: string;
+  sellerId: string | null;
+  bytes: number;
+}): Promise<void> {
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const request = getRequest();
     const forwarded = request?.headers.get("x-forwarded-for");
     const ip = forwarded?.split(",")[0]?.trim() || request?.headers.get("x-real-ip") || null;
     const userAgent = request?.headers.get("user-agent") ?? null;
-    await supabaseAdmin
-      .from("download_events")
-      .insert({ transaction_id: transactionId, ip_address: ip, user_agent: userAgent });
+    await supabaseAdmin.from("download_events").insert({
+      transaction_id: args.transactionId,
+      seller_id: args.sellerId,
+      bytes: args.bytes,
+      ip_address: ip,
+      user_agent: userAgent,
+    });
   } catch {
     // Never let logging break the download.
   }
@@ -31,7 +40,7 @@ export const getDownloadUrlForTransaction = createServerFn({ method: "GET" })
 
     const { data: transaction, error } = await supabaseAdmin
       .from("transactions")
-      .select("id, status, refunded_at, disputed_at, product_id")
+      .select("id, status, refunded_at, disputed_at, product_id, seller_id")
       .eq("id", data.transactionId)
       .single();
     if (
@@ -44,15 +53,19 @@ export const getDownloadUrlForTransaction = createServerFn({ method: "GET" })
       throw new Error("This purchase could not be verified.");
     }
 
-    // Record that the buyer accessed their download — evidence for the seller
-    // if this purchase is ever disputed. Best-effort; never blocks the download.
-    await logDownloadAccess(transaction.id);
-
     const { data: files, error: filesError } = await supabaseAdmin
       .from("product_files")
-      .select("id, file_name, storage_file_path")
+      .select("id, file_name, storage_file_path, size_bytes")
       .eq("product_id", transaction.product_id);
     if (filesError) throw new Error(filesError.message);
+
+    // Record the access — evidence if disputed, and the bytes/seller for
+    // monthly bandwidth. We count the whole product's size (an honest upper
+    // bound, since the signed URL is pulled directly and we can't see which
+    // files the buyer actually fetched). Best-effort; never blocks the download.
+    const totalBytes = (files ?? []).reduce((sum, f) => sum + (f.size_bytes ?? 0), 0);
+    await logDownloadAccess({ transactionId: transaction.id, sellerId: transaction.seller_id, bytes: totalBytes });
+
     if (!files || files.length === 0) {
       return { files: [] as Array<{ id: string; fileName: string | null; url: string }> };
     }

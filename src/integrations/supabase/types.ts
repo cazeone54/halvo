@@ -202,6 +202,8 @@ export type Database = {
           product_file_id: string | null;
           ip_address: string | null;
           user_agent: string | null;
+          bytes: number;
+          seller_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -210,6 +212,8 @@ export type Database = {
           product_file_id?: string | null;
           ip_address?: string | null;
           user_agent?: string | null;
+          bytes?: number;
+          seller_id?: string | null;
           created_at?: string;
         };
         Update: {
@@ -218,6 +222,8 @@ export type Database = {
           product_file_id?: string | null;
           ip_address?: string | null;
           user_agent?: string | null;
+          bytes?: number;
+          seller_id?: string | null;
           created_at?: string;
         };
         Relationships: [
