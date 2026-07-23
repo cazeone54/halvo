@@ -67,9 +67,9 @@ function AnalyticsPage() {
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
           {(data?.topProducts ?? []).map((p) => (
-            <div key={p.name} className="flex items-center justify-between text-sm">
-              <span>{p.name}</span>
-              <span>
+            <div key={p.name} className="flex items-center justify-between gap-3 text-sm">
+              <span className="min-w-0 truncate">{p.name}</span>
+              <span className="shrink-0 whitespace-nowrap text-muted-foreground">
                 {formatCents(p.revenueCents)} · {p.sales} sale{p.sales === 1 ? "" : "s"}
               </span>
             </div>

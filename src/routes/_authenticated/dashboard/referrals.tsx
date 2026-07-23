@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   getMyReferralData,
   ensurePlatformCode,
@@ -36,11 +37,19 @@ function ReferralsPage() {
   const [selectedProductId, setSelectedProductId] = useState("");
   const ensureMut = useMutation({
     mutationFn: () => ensurePlatformFn(),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["my-referrals"] }),
+    onSuccess: () => {
+      toast.success("Platform link generated.");
+      qc.invalidateQueries({ queryKey: ["my-referrals"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
   const createProductMut = useMutation({
     mutationFn: (productId: string) => createProductFn({ data: { productId } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["my-referrals"] }),
+    onSuccess: () => {
+      toast.success("Product link created.");
+      qc.invalidateQueries({ queryKey: ["my-referrals"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   if (planQ.data && planQ.data.tier === "free") {
@@ -101,7 +110,7 @@ function ReferralsPage() {
         </CardHeader>
         <CardContent>
           {platformCode ? (
-            <code className="text-sm">{linkFor(platformCode.code)}</code>
+            <code className="block break-all text-sm">{linkFor(platformCode.code)}</code>
           ) : (
             <Button size="sm" onClick={() => ensureMut.mutate()} disabled={ensureMut.isPending}>
               Generate link
@@ -116,7 +125,7 @@ function ReferralsPage() {
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {availableProducts.length > 0 ? (
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <Select value={selectedProductId} onValueChange={setSelectedProductId}>
                 <SelectTrigger className="flex-1">
                   <SelectValue placeholder="Pick a product…" />
@@ -145,8 +154,10 @@ function ReferralsPage() {
             const product = products.find((p) => p.id === c.product_id);
             return (
               <div key={c.id} className="text-sm">
-                <span className="font-medium">{product?.name ?? "Unknown"}</span>{" "}
-                <code>{linkFor(c.code, product?.url_slug ?? undefined)}</code>
+                <span className="font-medium">{product?.name ?? "Unknown"}</span>
+                <code className="block break-all text-muted-foreground">
+                  {linkFor(c.code, product?.url_slug ?? undefined)}
+                </code>
               </div>
             );
           })}

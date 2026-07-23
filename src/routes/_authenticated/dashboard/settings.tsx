@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile, updateMySettings, setMyAvatar } from "@/lib/profile.functions";
@@ -40,7 +41,11 @@ function SettingsPage() {
       updateSettingsFn({
         data: { displayName, bio, supportEmail, refundPolicy },
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["my-profile-settings"] }),
+    onSuccess: () => {
+      toast.success("Settings saved.");
+      qc.invalidateQueries({ queryKey: ["my-profile-settings"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const avatarMut = useMutation({
@@ -54,7 +59,11 @@ function SettingsPage() {
       if (uploadError) throw uploadError;
       await setAvatarFn({ data: { storageFilePath: path, sizeBytes: file.size } });
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["my-profile-settings"] }),
+    onSuccess: () => {
+      toast.success("Avatar updated.");
+      qc.invalidateQueries({ queryKey: ["my-profile-settings"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return (
@@ -126,7 +135,6 @@ function SettingsPage() {
             Save
           </Button>
           {saveMut.error ? <p className="text-sm text-destructive">{(saveMut.error as Error).message}</p> : null}
-          {saveMut.isSuccess ? <p className="text-sm text-primary">Saved.</p> : null}
         </CardContent>
       </Card>
     </div>

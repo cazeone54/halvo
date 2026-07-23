@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   CreditCard,
   Wallet,
@@ -84,13 +85,21 @@ function DashboardHome() {
 
   const refundMut = useMutation({
     mutationFn: (transactionId: string) => refundFn({ data: { transactionId } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["my-sales"] }),
+    onSuccess: () => {
+      toast.success("Refund issued — the buyer has been refunded through Stripe.");
+      qc.invalidateQueries({ queryKey: ["my-sales"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const [handle, setHandle] = useState("");
   const handleMut = useMutation({
     mutationFn: (h: string) => updateHandleFn({ data: { handle: h } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["my-profile"] }),
+    onSuccess: () => {
+      toast.success("Storefront handle saved.");
+      qc.invalidateQueries({ queryKey: ["my-profile"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const [showNewProduct, setShowNewProduct] = useState(false);
@@ -104,7 +113,9 @@ function DashboardHome() {
     onSuccess: (res) => {
       setName(res.name);
       setDescription(res.description);
+      toast.success("AI draft applied — feel free to edit before creating.");
     },
+    onError: (e: Error) => toast.error(e.message),
   });
   const createMut = useMutation({
     mutationFn: () =>
@@ -116,20 +127,27 @@ function DashboardHome() {
       setDescription("");
       setPrice("");
       setShowNewProduct(false);
+      toast.success("Product created.");
       qc.invalidateQueries({ queryKey: ["my-products"] });
     },
+    onError: (e: Error) => toast.error(e.message),
   });
   const [deleteNotice, setDeleteNotice] = useState<string | null>(null);
   const deleteMut = useMutation({
     mutationFn: (productId: string) => deleteProductFn({ data: { productId } }),
     onSuccess: (res) => {
-      setDeleteNotice(
-        res.unpublishedInstead
-          ? "This product has sales on record, so it was unpublished instead of deleted — its history is preserved."
-          : null,
-      );
+      if (res.unpublishedInstead) {
+        const msg =
+          "This product has sales on record, so it was unpublished instead of deleted — its history is preserved.";
+        setDeleteNotice(msg);
+        toast.info(msg);
+      } else {
+        setDeleteNotice(null);
+        toast.success("Product deleted.");
+      }
       qc.invalidateQueries({ queryKey: ["my-products"] });
     },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const connectMut = useMutation({
@@ -324,10 +342,10 @@ function DashboardHome() {
         <div className="mt-3 flex flex-col gap-3">
           {(salesQ.data ?? []).map((sale) => (
             <Card key={sale.id} className="card-hover">
-              <CardContent className="flex items-center justify-between pt-6">
-                <div>
-                  <p className="font-medium">{sale.productName}</p>
-                  <p className="text-sm text-muted-foreground">
+              <CardContent className="flex flex-col gap-2 pt-6 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{sale.productName}</p>
+                  <p className="truncate text-sm text-muted-foreground">
                     {sale.buyerEmail} · {formatCents(sale.amountPaidCents)}
                   </p>
                 </div>
@@ -415,7 +433,11 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
         data: { productId: product.id, storageFilePath: path, fileName: file.name, sizeBytes: file.size },
       });
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["product-files", product.id] }),
+    onSuccess: () => {
+      toast.success("File attached.");
+      qc.invalidateQueries({ queryKey: ["product-files", product.id] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const removeMut = useMutation({
@@ -434,7 +456,11 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
       if (uploadError) throw uploadError;
       await setImageFn({ data: { productId: product.id, storageFilePath: path, sizeBytes: file.size } });
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["my-products"] }),
+    onSuccess: () => {
+      toast.success("Cover image updated.");
+      qc.invalidateQueries({ queryKey: ["my-products"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const updateMut = useMutation({
@@ -450,14 +476,16 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
       }),
     onSuccess: () => {
       setEditing(false);
+      toast.success("Product updated.");
       qc.invalidateQueries({ queryKey: ["my-products"] });
     },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return (
     <Card className="card-hover">
       <CardContent className="flex flex-col gap-2 pt-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <label className="group relative flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-md bg-primary/10 text-primary">
               {product.imageUrl ? (
@@ -479,12 +507,12 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
                 }}
               />
             </label>
-            <div>
-              <p className="font-medium">{product.name}</p>
+            <div className="min-w-0">
+              <p className="truncate font-medium">{product.name}</p>
               <p className="text-sm text-muted-foreground">${(product.price_cents / 100).toFixed(2)}</p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 sm:justify-end">
             {product.url_slug ? (
               <>
                 <Button asChild variant="outline" size="sm">

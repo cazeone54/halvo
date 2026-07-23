@@ -1,12 +1,28 @@
 import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
+import { Menu } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { BRAND_NAME } from "@/lib/site";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardLayout,
 });
+
+const NAV_LINKS = [
+  { to: "/dashboard", label: "Products", exact: true },
+  { to: "/dashboard/discounts", label: "Discounts" },
+  { to: "/dashboard/referrals", label: "Affiliate" },
+  { to: "/dashboard/analytics", label: "Analytics" },
+  { to: "/discover", label: "Discover" },
+  { to: "/dashboard/settings", label: "Settings" },
+] as const;
 
 function DashboardLayout() {
   const navigate = useNavigate();
@@ -24,28 +40,38 @@ function DashboardLayout() {
             {BRAND_NAME}
           </Link>
           <nav className="hidden gap-4 text-sm text-muted-foreground sm:flex">
-            <Link to="/dashboard" activeOptions={{ exact: true }} activeProps={{ className: "text-foreground" }}>
-              Products
-            </Link>
-            <Link to="/dashboard/discounts" activeProps={{ className: "text-foreground" }}>
-              Discounts
-            </Link>
-            <Link to="/dashboard/referrals" activeProps={{ className: "text-foreground" }}>
-              Affiliate
-            </Link>
-            <Link to="/dashboard/analytics" activeProps={{ className: "text-foreground" }}>
-              Analytics
-            </Link>
-            <Link to="/discover" activeProps={{ className: "text-foreground" }}>
-              Discover
-            </Link>
-            <Link to="/dashboard/settings" activeProps={{ className: "text-foreground" }}>
-              Settings
-            </Link>
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                activeOptions={"exact" in link ? { exact: link.exact } : undefined}
+                activeProps={{ className: "text-foreground" }}
+              >
+                {link.label}
+              </Link>
+            ))}
           </nav>
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
+          {/* Below sm, the nav above is hidden entirely — this is the only
+              way to reach Discounts/Affiliate/Analytics/Discover/Settings
+              from a phone, so it isn't optional polish. */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon-sm" className="sm:hidden">
+                <Menu className="h-4 w-4" />
+                <span className="sr-only">Menu</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {NAV_LINKS.map((link) => (
+                <DropdownMenuItem key={link.to} asChild>
+                  <Link to={link.to}>{link.label}</Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button variant="ghost" size="sm" onClick={signOut}>
             Sign out
           </Button>

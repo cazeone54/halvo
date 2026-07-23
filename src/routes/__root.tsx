@@ -11,6 +11,7 @@ import appCss from "../styles.css?url";
 import { BRAND_NAME, BRAND_KEY } from "@/lib/site";
 import { captureReferralFromUrl } from "@/lib/referral-attribution";
 import { ThemeProvider } from "@/components/theme-provider";
+import { AppToaster } from "@/components/app-toaster";
 
 // Applies the persisted light/dark/system choice before hydration to avoid
 // a flash of the wrong theme.
@@ -79,6 +80,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <Outlet />
+        <AppToaster />
       </ThemeProvider>
     </QueryClientProvider>
   );

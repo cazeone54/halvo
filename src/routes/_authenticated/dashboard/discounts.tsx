@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Tag, Ticket } from "lucide-react";
 import { listMyCoupons, createCoupon, setCouponActive, deleteCoupon } from "@/lib/coupons.functions";
 import { getMyPlan } from "@/lib/user-plan.functions";
@@ -34,16 +35,23 @@ function DiscountsPage() {
     onSuccess: () => {
       setCode("");
       setPercentOff("");
+      toast.success("Coupon created.");
       qc.invalidateQueries({ queryKey: ["my-coupons"] });
     },
+    onError: (e: Error) => toast.error(e.message),
   });
   const toggleMut = useMutation({
     mutationFn: (vars: { couponId: string; active: boolean }) => setActiveFn({ data: vars }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["my-coupons"] }),
+    onError: (e: Error) => toast.error(e.message),
   });
   const deleteMut = useMutation({
     mutationFn: (couponId: string) => deleteFn({ data: { couponId } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["my-coupons"] }),
+    onSuccess: () => {
+      toast.success("Coupon deleted.");
+      qc.invalidateQueries({ queryKey: ["my-coupons"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   if (planQ.data && planQ.data.tier === "free") {
@@ -96,21 +104,21 @@ function DiscountsPage() {
       <div className="flex flex-col gap-2">
         {(couponsQ.data ?? []).map((coupon) => (
           <Card key={coupon.id} className="card-hover">
-            <CardContent className="flex items-center justify-between pt-6">
+            <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
                   <Ticket className="h-4 w-4" />
                 </div>
-                <div>
-                  <p className="font-medium">{coupon.code}</p>
-                  <p className="text-sm text-muted-foreground">
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{coupon.code}</p>
+                  <p className="truncate text-sm text-muted-foreground">
                     {coupon.percent_off ? `${coupon.percent_off}% off` : `$${(coupon.amount_off_cents! / 100).toFixed(2)} off`}
                     {" · "}
                     {coupon.redemptions} used
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Badge variant={coupon.active ? "default" : "secondary"}>
                   {coupon.active ? "Active" : "Inactive"}
                 </Badge>
