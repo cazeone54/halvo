@@ -152,6 +152,7 @@ export type Database = {
           refunded_at: string | null;
           coupon_code: string | null;
           terms_acked_at: string | null;
+          disputed_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -166,6 +167,7 @@ export type Database = {
           refunded_at?: string | null;
           coupon_code?: string | null;
           terms_acked_at?: string | null;
+          disputed_at?: string | null;
           created_at?: string;
         };
         Update: {
@@ -180,6 +182,7 @@ export type Database = {
           refunded_at?: string | null;
           coupon_code?: string | null;
           terms_acked_at?: string | null;
+          disputed_at?: string | null;
           created_at?: string;
         };
         Relationships: [
@@ -220,6 +223,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "download_events_transaction_id_fkey";
+            columns: ["transaction_id"];
+            isOneToOne: false;
+            referencedRelation: "transactions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      disputes: {
+        Row: {
+          id: string;
+          transaction_id: string | null;
+          stripe_dispute_id: string;
+          amount_cents: number;
+          reason: string | null;
+          status: string;
+          transfer_reversed: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          transaction_id?: string | null;
+          stripe_dispute_id: string;
+          amount_cents?: number;
+          reason?: string | null;
+          status: string;
+          transfer_reversed?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          transaction_id?: string | null;
+          stripe_dispute_id?: string;
+          amount_cents?: number;
+          reason?: string | null;
+          status?: string;
+          transfer_reversed?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "disputes_transaction_id_fkey";
             columns: ["transaction_id"];
             isOneToOne: false;
             referencedRelation: "transactions";

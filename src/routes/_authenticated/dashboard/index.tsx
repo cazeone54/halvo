@@ -367,8 +367,9 @@ function DashboardHome() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  {sale.disputed ? <Badge variant="destructive">Disputed</Badge> : null}
                   <Badge variant={sale.status === "refunded" ? "secondary" : "default"}>{sale.status}</Badge>
-                  {sale.status === "success" ? (
+                  {sale.status === "success" && !sale.disputed ? (
                     <Button
                       variant="destructive"
                       size="sm"

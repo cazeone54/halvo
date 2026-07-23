@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { verifyStripeWebhook } from "@/lib/stripe.server";
+import { verifyStripeWebhook, getStripeClient } from "@/lib/stripe.server";
 import { sendPurchaseConfirmationEmail } from "@/lib/email.server";
+import { decideDisputeClose } from "@/lib/dispute-liability";
 import type Stripe from "stripe";
 
 // Reconciliation fallback: purchases are normally recorded synchronously by
@@ -63,6 +64,115 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
       productName: product.name,
       transactionId: inserted.id,
     });
+  }
+}
+
+// Resolve the transaction id + its Payment Intent id from a dispute.
+async function findDisputedTransaction(dispute: Stripe.Dispute) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const paymentIntentId =
+    typeof dispute.payment_intent === "string" ? dispute.payment_intent : (dispute.payment_intent?.id ?? null);
+  if (!paymentIntentId) return null;
+  const { data } = await supabaseAdmin
+    .from("transactions")
+    .select("id, seller_id")
+    .eq("stripe_payment_intent_id", paymentIntentId)
+    .maybeSingle();
+  return data;
+}
+
+// A dispute opened. Record it (idempotent on the Stripe dispute id) and flag
+// the purchase as under dispute — that revokes the buyer's download access and
+// surfaces it on the seller's dashboard. No money moves yet; the seller is only
+// charged for a dispute they actually lose (see handleDisputeClosed).
+async function handleDisputeCreated(dispute: Stripe.Dispute) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const transaction = await findDisputedTransaction(dispute);
+
+  await supabaseAdmin.from("disputes").upsert(
+    {
+      transaction_id: transaction?.id ?? null,
+      stripe_dispute_id: dispute.id,
+      amount_cents: dispute.amount,
+      reason: dispute.reason ?? null,
+      status: dispute.status,
+    },
+    { onConflict: "stripe_dispute_id" },
+  );
+
+  if (transaction?.id) {
+    await supabaseAdmin
+      .from("transactions")
+      .update({ disputed_at: new Date().toISOString() })
+      .eq("id", transaction.id);
+  }
+}
+
+// A dispute resolved. If the seller lost it, claw their payout back by reversing
+// the Connect transfer (the platform is debited by Stripe either way, so this is
+// what makes the seller — not the platform — bear the chargeback). If they won,
+// restore the buyer's access. Idempotent: the transfer is only ever reversed
+// once, guarded by the disputes row's transfer_reversed flag.
+async function handleDisputeClosed(dispute: Stripe.Dispute) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const stripe = getStripeClient();
+  const transaction = await findDisputedTransaction(dispute);
+
+  const { data: existingDispute } = await supabaseAdmin
+    .from("disputes")
+    .select("transfer_reversed")
+    .eq("stripe_dispute_id", dispute.id)
+    .maybeSingle();
+
+  // Resolve the Connect transfer that paid the seller for this charge.
+  let transferId: string | null = null;
+  const chargeId = typeof dispute.charge === "string" ? dispute.charge : (dispute.charge?.id ?? null);
+  if (chargeId) {
+    try {
+      const charge = await stripe.charges.retrieve(chargeId, { expand: ["transfer"] });
+      transferId = typeof charge.transfer === "string" ? charge.transfer : (charge.transfer?.id ?? null);
+    } catch (error) {
+      console.error("Dispute: could not resolve charge/transfer", dispute.id, error);
+    }
+  }
+
+  const decision = decideDisputeClose({
+    outcome: dispute.status,
+    transferId,
+    hasSeller: !!transaction?.seller_id,
+    alreadyReversed: !!existingDispute?.transfer_reversed,
+  });
+
+  let transferReversed = !!existingDispute?.transfer_reversed;
+  if (decision.kind === "reverse_transfer") {
+    try {
+      await stripe.transfers.createReversal(decision.transferId, {
+        description: `Halvo: dispute ${dispute.id} lost`,
+      });
+      transferReversed = true;
+    } catch (error) {
+      // Leave transfer_reversed false so a retry can try again; never throw,
+      // so Stripe doesn't keep redelivering the whole event.
+      console.error("Dispute transfer reversal failed:", dispute.id, error);
+    }
+  }
+
+  await supabaseAdmin.from("disputes").upsert(
+    {
+      transaction_id: transaction?.id ?? null,
+      stripe_dispute_id: dispute.id,
+      amount_cents: dispute.amount,
+      reason: dispute.reason ?? null,
+      status: dispute.status,
+      transfer_reversed: transferReversed,
+    },
+    { onConflict: "stripe_dispute_id" },
+  );
+
+  // Won → the seller keeps their money and the buyer keeps access. Lost → leave
+  // disputed_at set so access stays revoked and the badge stays.
+  if (transaction?.id && decision.kind === "restore_access") {
+    await supabaseAdmin.from("transactions").update({ disputed_at: null }).eq("id", transaction.id);
   }
 }
 
@@ -129,6 +239,12 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
           switch (event.type) {
             case "payment_intent.succeeded":
               await handlePaymentIntentSucceeded(event.data.object as Stripe.PaymentIntent);
+              break;
+            case "charge.dispute.created":
+              await handleDisputeCreated(event.data.object as Stripe.Dispute);
+              break;
+            case "charge.dispute.closed":
+              await handleDisputeClosed(event.data.object as Stripe.Dispute);
               break;
             case "customer.subscription.created":
             case "customer.subscription.updated":

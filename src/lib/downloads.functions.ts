@@ -31,10 +31,16 @@ export const getDownloadUrlForTransaction = createServerFn({ method: "GET" })
 
     const { data: transaction, error } = await supabaseAdmin
       .from("transactions")
-      .select("id, status, refunded_at, product_id")
+      .select("id, status, refunded_at, disputed_at, product_id")
       .eq("id", data.transactionId)
       .single();
-    if (error || !transaction || transaction.status !== "success" || transaction.refunded_at) {
+    if (
+      error ||
+      !transaction ||
+      transaction.status !== "success" ||
+      transaction.refunded_at ||
+      transaction.disputed_at
+    ) {
       throw new Error("This purchase could not be verified.");
     }
 

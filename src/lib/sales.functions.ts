@@ -6,7 +6,7 @@ export const listMySales = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("transactions")
-      .select("id, buyer_email, amount_paid_cents, status, created_at, terms_acked_at, products(name)")
+      .select("id, buyer_email, amount_paid_cents, status, created_at, terms_acked_at, disputed_at, products(name)")
       .eq("seller_id", context.userId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
@@ -39,6 +39,7 @@ export const listMySales = createServerFn({ method: "GET" })
       createdAt: t.created_at,
       productName: (t.products as unknown as { name: string } | null)?.name ?? "Unknown product",
       termsAcked: t.terms_acked_at != null,
+      disputed: t.disputed_at != null,
       downloadCount: downloads.get(t.id)?.count ?? 0,
       lastDownloadAt: downloads.get(t.id)?.lastAt ?? null,
     }));
