@@ -89,6 +89,9 @@ export function CheckoutWidget({ product }: { product: Product }) {
             value={couponCode}
             onChange={(e) => setCouponCode(e.target.value)}
             placeholder="Optional"
+            autoCapitalize="characters"
+            autoCorrect="off"
+            spellCheck={false}
             disabled={!!appliedCoupon}
           />
           {appliedCoupon ? (
@@ -181,7 +184,13 @@ function PaymentForm({ productId }: { productId: string }) {
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div>
         <Label>Email</Label>
-        <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+        <Input
+          type="email"
+          autoComplete="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
       </div>
       <PaymentElement />
       <label className="flex items-start gap-2 text-sm text-muted-foreground">

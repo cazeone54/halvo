@@ -108,7 +108,7 @@ function SettingsPage() {
 
           <div>
             <Label>Display name</Label>
-            <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+            <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} autoComplete="name" />
           </div>
           <div>
             <Label>Bio</Label>
@@ -118,6 +118,7 @@ function SettingsPage() {
             <Label>Support email</Label>
             <Input
               type="email"
+              autoComplete="email"
               value={supportEmail}
               onChange={(e) => setSupportEmail(e.target.value)}
               placeholder="Shown to buyers at checkout"

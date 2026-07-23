@@ -174,6 +174,10 @@ function DashboardHome() {
               placeholder="yourname"
               value={handle}
               onChange={(e) => setHandle(e.target.value)}
+              autoCapitalize="none"
+              autoCorrect="off"
+              autoComplete="off"
+              spellCheck={false}
             />
             <Button onClick={() => handleMut.mutate(handle)} disabled={!handle || handleMut.isPending}>
               Save

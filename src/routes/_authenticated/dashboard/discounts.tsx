@@ -80,7 +80,14 @@ function DiscountsPage() {
         <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-end">
           <div className="flex-1">
             <Label>Code</Label>
-            <Input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="SAVE20" />
+            <Input
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              placeholder="SAVE20"
+              autoCapitalize="characters"
+              autoCorrect="off"
+              spellCheck={false}
+            />
           </div>
           <div className="w-32">
             <Label>% off</Label>
