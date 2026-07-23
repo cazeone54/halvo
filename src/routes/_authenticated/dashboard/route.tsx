@@ -2,6 +2,7 @@ import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-rout
 import { Menu, Package, Tag, BarChart3, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
   DropdownMenu,
@@ -9,7 +10,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { BRAND_NAME } from "@/lib/site";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardLayout,
@@ -47,8 +47,8 @@ function DashboardLayout() {
     <div className="min-h-screen">
       <header className="sticky top-0 z-10 flex items-center justify-between border-b bg-background/80 px-4 py-3 backdrop-blur sm:px-6">
         <div className="flex items-center gap-6">
-          <Link to="/dashboard" className="font-[family-name:var(--font-display)] font-semibold">
-            {BRAND_NAME}
+          <Link to="/dashboard">
+            <Logo />
           </Link>
           <nav className="hidden gap-4 text-sm text-muted-foreground sm:flex">
             {NAV_LINKS.map((link) => (

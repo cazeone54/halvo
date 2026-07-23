@@ -1,9 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Logo } from "@/components/logo";
 import { BRAND_NAME } from "@/lib/site";
 
 export const Route = createFileRoute("/login")({
@@ -39,7 +40,10 @@ function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-4">
+      <Link to="/">
+        <Logo markClassName="h-8 w-8" />
+      </Link>
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="font-[family-name:var(--font-display)] text-xl">

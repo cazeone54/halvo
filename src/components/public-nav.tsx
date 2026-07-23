@@ -1,14 +1,14 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { BRAND_NAME } from "@/lib/site";
+import { Logo } from "@/components/logo";
 
 export function PublicNav() {
   return (
     <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
-        <Link to="/" className="font-[family-name:var(--font-display)] text-lg font-semibold">
-          {BRAND_NAME}
+        <Link to="/">
+          <Logo />
         </Link>
         <nav className="hidden items-center gap-6 text-sm text-muted-foreground sm:flex">
           <Link to="/pricing" activeProps={{ className: "text-foreground" }}>

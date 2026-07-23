@@ -2,6 +2,7 @@ import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { ShieldCheck, Mail, CircleCheck, Lock, Zap, CreditCard } from "lucide-react";
 import { getProductPublicView } from "@/lib/product-public.functions";
 import { CheckoutWidget } from "@/components/checkout-widget";
+import { Logo } from "@/components/logo";
 import { BRAND_NAME, BASE_URL } from "@/lib/site";
 
 export const Route = createFileRoute("/p/$slug")({
@@ -52,8 +53,8 @@ function ProductCheckoutPage() {
       {/* Minimal, distraction-free header — no nav on a checkout page, just a
           brand mark and a security cue to build trust. */}
       <header className="mx-auto flex max-w-lg items-center justify-between px-4 py-4 sm:px-6">
-        <Link to="/" className="font-[family-name:var(--font-display)] font-semibold">
-          {BRAND_NAME}
+        <Link to="/">
+          <Logo markClassName="h-6 w-6" />
         </Link>
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Lock className="h-3.5 w-3.5" /> Secure checkout
