@@ -7,6 +7,7 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
+import { Lock } from "lucide-react";
 import { getStripe } from "@/lib/stripe";
 import { createProductPaymentIntent, recordSuccessfulTransaction } from "@/lib/checkout.functions";
 import { applyCouponPreview } from "@/lib/coupons.functions";
@@ -121,7 +122,7 @@ export function CheckoutWidget({ product }: { product: Product }) {
 
       {clientSecret ? (
         <Elements stripe={getStripe()} options={{ clientSecret, appearance: { theme: "stripe" } }}>
-          <PaymentForm productId={product.id} />
+          <PaymentForm productId={product.id} amountCents={displayAmountCents} />
         </Elements>
       ) : (
         <p className="text-sm text-muted-foreground">Loading checkout…</p>
@@ -130,7 +131,7 @@ export function CheckoutWidget({ product }: { product: Product }) {
   );
 }
 
-function PaymentForm({ productId }: { productId: string }) {
+function PaymentForm({ productId, amountCents }: { productId: string; amountCents: number }) {
   const stripe = useStripe();
   const elements = useElements();
   const navigate = useNavigate();
@@ -206,9 +207,12 @@ function PaymentForm({ productId }: { productId: string }) {
         </span>
       </label>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      <Button type="submit" disabled={!stripe || submitting || !acknowledged}>
-        {submitting ? "Processing…" : "Pay"}
+      <Button type="submit" size="lg" disabled={!stripe || submitting || !acknowledged}>
+        {submitting ? "Processing…" : `Pay $${(amountCents / 100).toFixed(2)}`}
       </Button>
+      <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+        <Lock className="h-3 w-3" /> Payments are secure and encrypted
+      </p>
     </form>
   );
 }

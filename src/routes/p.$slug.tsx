@@ -1,5 +1,5 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
-import { ShieldCheck, Mail, CircleCheck } from "lucide-react";
+import { createFileRoute, notFound, Link } from "@tanstack/react-router";
+import { ShieldCheck, Mail, CircleCheck, Lock, Zap, CreditCard } from "lucide-react";
 import { getProductPublicView } from "@/lib/product-public.functions";
 import { CheckoutWidget } from "@/components/checkout-widget";
 import { BRAND_NAME, BASE_URL } from "@/lib/site";
@@ -45,57 +45,101 @@ export const Route = createFileRoute("/p/$slug")({
 
 function ProductCheckoutPage() {
   const product = Route.useLoaderData();
+  const priceLabel = `${product.payWhatYouWant ? "From " : ""}$${(product.priceCents / 100).toFixed(2)}`;
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-lg flex-col gap-6 px-4 py-10">
-      {product.imageUrl ? (
-        <div className="overflow-hidden rounded-2xl border shadow-sm">
-          <img src={product.imageUrl} alt="" className="aspect-video w-full object-cover" />
-        </div>
-      ) : null}
+    <div className="min-h-screen bg-muted/30">
+      {/* Minimal, distraction-free header — no nav on a checkout page, just a
+          brand mark and a security cue to build trust. */}
+      <header className="mx-auto flex max-w-lg items-center justify-between px-4 py-4 sm:px-6">
+        <Link to="/" className="font-[family-name:var(--font-display)] font-semibold">
+          {BRAND_NAME}
+        </Link>
+        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Lock className="h-3.5 w-3.5" /> Secure checkout
+        </span>
+      </header>
 
-      <div>
-        <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold">{product.name}</h1>
-        {product.sellerName ? (
-          <p className="text-sm text-muted-foreground">by {product.sellerName}</p>
-        ) : null}
-        {product.description ? <p className="mt-2 text-sm">{product.description}</p> : null}
-        <p className="mt-2 text-lg font-medium">
-          {product.payWhatYouWant ? "From " : ""}${(product.priceCents / 100).toFixed(2)}
-        </p>
-        {product.salesCount > 0 ? (
-          <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
-            <CircleCheck className="h-4 w-4 text-primary" />
-            {product.salesCount} sold
-          </p>
-        ) : null}
-      </div>
-
-      <CheckoutWidget
-        product={{
-          id: product.id,
-          name: product.name,
-          priceCents: product.priceCents,
-          payWhatYouWant: product.payWhatYouWant,
-        }}
-      />
-
-      {product.refundPolicy || product.supportEmail ? (
-        <div className="flex flex-col gap-2 rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
-          {product.refundPolicy ? (
-            <p className="flex items-start gap-2">
-              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-              {product.refundPolicy}
-            </p>
+      <main className="mx-auto flex max-w-lg flex-col gap-4 px-4 pb-16 sm:px-6">
+        {/* Product card */}
+        <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+          {product.imageUrl ? (
+            <img src={product.imageUrl} alt="" className="aspect-video w-full object-cover" />
           ) : null}
-          {product.supportEmail ? (
-            <p className="flex items-start gap-2">
-              <Mail className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-              Questions? <a href={`mailto:${product.supportEmail}`} className="underline">{product.supportEmail}</a>
-            </p>
-          ) : null}
+          <div className="flex flex-col gap-3 p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h1 className="font-[family-name:var(--font-display)] text-xl font-semibold sm:text-2xl">
+                  {product.name}
+                </h1>
+                {product.sellerName ? (
+                  <p className="text-sm text-muted-foreground">by {product.sellerName}</p>
+                ) : null}
+              </div>
+              <p className="shrink-0 font-[family-name:var(--font-display)] text-xl font-semibold text-primary sm:text-2xl">
+                {priceLabel}
+              </p>
+            </div>
+            {product.description ? (
+              <p className="text-sm text-muted-foreground">{product.description}</p>
+            ) : null}
+            {product.salesCount > 0 ? (
+              <div className="flex w-fit items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-sm text-primary">
+                <CircleCheck className="h-4 w-4" />
+                <span className="font-medium">{product.salesCount}</span> already sold
+              </div>
+            ) : null}
+          </div>
         </div>
-      ) : null}
+
+        {/* Checkout card */}
+        <div className="rounded-2xl border bg-card p-5 shadow-sm">
+          <CheckoutWidget
+            product={{
+              id: product.id,
+              name: product.name,
+              priceCents: product.priceCents,
+              payWhatYouWant: product.payWhatYouWant,
+            }}
+          />
+        </div>
+
+        {/* Trust strip — right where hesitation happens, all statements true */}
+        <div className="grid grid-cols-3 gap-2">
+          <TrustItem icon={Zap} label="Instant download" />
+          <TrustItem icon={Lock} label="Secure checkout" />
+          <TrustItem icon={CreditCard} label="Powered by Stripe" />
+        </div>
+
+        {product.refundPolicy || product.supportEmail ? (
+          <div className="flex flex-col gap-2 rounded-xl border bg-card p-4 text-sm text-muted-foreground">
+            {product.refundPolicy ? (
+              <p className="flex items-start gap-2">
+                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                {product.refundPolicy}
+              </p>
+            ) : null}
+            {product.supportEmail ? (
+              <p className="flex items-start gap-2">
+                <Mail className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                Questions?{" "}
+                <a href={`mailto:${product.supportEmail}`} className="underline underline-offset-2">
+                  {product.supportEmail}
+                </a>
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+      </main>
+    </div>
+  );
+}
+
+function TrustItem({ icon: Icon, label }: { icon: typeof Lock; label: string }) {
+  return (
+    <div className="flex flex-col items-center gap-1 rounded-xl border bg-card px-2 py-3 text-center">
+      <Icon className="h-4 w-4 text-primary" />
+      <span className="text-[11px] leading-tight text-muted-foreground">{label}</span>
     </div>
   );
 }
