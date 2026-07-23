@@ -151,6 +151,7 @@ export type Database = {
           stripe_payment_intent_id: string | null;
           refunded_at: string | null;
           coupon_code: string | null;
+          terms_acked_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -164,6 +165,7 @@ export type Database = {
           stripe_payment_intent_id?: string | null;
           refunded_at?: string | null;
           coupon_code?: string | null;
+          terms_acked_at?: string | null;
           created_at?: string;
         };
         Update: {
@@ -177,6 +179,7 @@ export type Database = {
           stripe_payment_intent_id?: string | null;
           refunded_at?: string | null;
           coupon_code?: string | null;
+          terms_acked_at?: string | null;
           created_at?: string;
         };
         Relationships: [
@@ -185,6 +188,41 @@ export type Database = {
             columns: ["product_id"];
             isOneToOne: false;
             referencedRelation: "products";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      download_events: {
+        Row: {
+          id: string;
+          transaction_id: string;
+          product_file_id: string | null;
+          ip_address: string | null;
+          user_agent: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          transaction_id: string;
+          product_file_id?: string | null;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          transaction_id?: string;
+          product_file_id?: string | null;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "download_events_transaction_id_fkey";
+            columns: ["transaction_id"];
+            isOneToOne: false;
+            referencedRelation: "transactions";
             referencedColumns: ["id"];
           },
         ];

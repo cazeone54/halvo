@@ -1,7 +1,26 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 
 const SIGNED_URL_TTL_SECONDS = 60 * 10; // 10 minutes
+
+// Best-effort access log — this is the evidence a seller submits to win a
+// "I never received the file" dispute. Wrapped so a logging failure can never
+// block the buyer from actually getting their download.
+async function logDownloadAccess(transactionId: string): Promise<void> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const request = getRequest();
+    const forwarded = request?.headers.get("x-forwarded-for");
+    const ip = forwarded?.split(",")[0]?.trim() || request?.headers.get("x-real-ip") || null;
+    const userAgent = request?.headers.get("user-agent") ?? null;
+    await supabaseAdmin
+      .from("download_events")
+      .insert({ transaction_id: transactionId, ip_address: ip, user_agent: userAgent });
+  } catch {
+    // Never let logging break the download.
+  }
+}
 
 // Public — the only gate on file access is a verified, non-refunded
 // transaction. `transactionId` is only ever revealed post-purchase.
@@ -18,6 +37,10 @@ export const getDownloadUrlForTransaction = createServerFn({ method: "GET" })
     if (error || !transaction || transaction.status !== "success" || transaction.refunded_at) {
       throw new Error("This purchase could not be verified.");
     }
+
+    // Record that the buyer accessed their download — evidence for the seller
+    // if this purchase is ever disputed. Best-effort; never blocks the download.
+    await logDownloadAccess(transaction.id);
 
     const { data: files, error: filesError } = await supabaseAdmin
       .from("product_files")

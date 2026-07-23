@@ -104,6 +104,7 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
         productId: z.string().uuid(),
         buyerEmail: z.string().email(),
         referralCode: z.string().trim().min(1).optional(),
+        acknowledgedTerms: z.boolean().optional(),
       })
       .parse(data),
   )
@@ -137,6 +138,9 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
     }
 
     const buyerId = await resolveOptionalUserId();
+    // The buyer ticked the final-sale acknowledgment before paying. Recorded
+    // as a timestamp so it doubles as dispute evidence (see 0006 migration).
+    const termsAckedAt = data.acknowledgedTerms ? new Date().toISOString() : null;
 
     // The webhook's payment_intent.succeeded reconciliation fallback
     // (Phase 1) races this exact insert — both this call and the webhook see
@@ -158,6 +162,7 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
         amount_paid_cents: intent.amount_received,
         stripe_payment_intent_id: intent.id,
         coupon_code: couponCode ?? null,
+        terms_acked_at: termsAckedAt,
       })
       .select("id")
       .single();
@@ -166,7 +171,7 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
       if (insertError.code !== "23505") throw new Error(insertError.message); // not unique_violation
       const { data: existing } = await supabaseAdmin
         .from("transactions")
-        .select("id, buyer_id, coupon_code")
+        .select("id, buyer_id, coupon_code, terms_acked_at")
         .eq("stripe_payment_intent_id", intent.id)
         .single();
       if (!existing) throw new Error("Could not record purchase");
@@ -174,7 +179,11 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
 
       // Backfill fields the winning writer (the webhook fallback) doesn't
       // know how to set itself.
-      const backfill = computeTransactionBackfill(existing, { buyerId, couponCode: couponCode ?? null });
+      const backfill = computeTransactionBackfill(existing, {
+        buyerId,
+        couponCode: couponCode ?? null,
+        termsAckedAt,
+      });
       if (Object.keys(backfill).length > 0) {
         await supabaseAdmin.from("transactions").update(backfill).eq("id", transactionId);
       }

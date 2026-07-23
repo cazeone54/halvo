@@ -133,12 +133,13 @@ function PaymentForm({ productId }: { productId: string }) {
   const navigate = useNavigate();
   const recordFn = useServerFn(recordSuccessfulTransaction);
   const [email, setEmail] = useState("");
+  const [acknowledged, setAcknowledged] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!stripe || !elements) return;
+    if (!stripe || !elements || !acknowledged) return;
     setSubmitting(true);
     setError(null);
 
@@ -166,6 +167,7 @@ function PaymentForm({ productId }: { productId: string }) {
           productId,
           buyerEmail: email,
           referralCode: getActiveReferralCode() ?? undefined,
+          acknowledgedTerms: acknowledged,
         },
       });
       navigate({ to: "/success", search: { id: transactionId } });
@@ -182,8 +184,20 @@ function PaymentForm({ productId }: { productId: string }) {
         <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
       </div>
       <PaymentElement />
+      <label className="flex items-start gap-2 text-sm text-muted-foreground">
+        <input
+          type="checkbox"
+          className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+          checked={acknowledged}
+          onChange={(e) => setAcknowledged(e.target.checked)}
+        />
+        <span>
+          I understand this is a digital product delivered instantly, and I agree that all sales are final once
+          I download it.
+        </span>
+      </label>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      <Button type="submit" disabled={!stripe || submitting}>
+      <Button type="submit" disabled={!stripe || submitting || !acknowledged}>
         {submitting ? "Processing…" : "Pay"}
       </Button>
     </form>

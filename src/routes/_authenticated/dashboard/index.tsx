@@ -16,6 +16,8 @@ import {
   Pencil,
   ImagePlus,
   Share2,
+  ShieldCheck,
+  Download,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile, updateMyHandle } from "@/lib/profile.functions";
@@ -348,6 +350,21 @@ function DashboardHome() {
                   <p className="truncate text-sm text-muted-foreground">
                     {sale.buyerEmail} · {formatCents(sale.amountPaidCents)}
                   </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                    {sale.termsAcked ? (
+                      <span className="flex items-center gap-1 text-primary">
+                        <ShieldCheck className="h-3 w-3" /> Agreed final sale
+                      </span>
+                    ) : null}
+                    <span className="flex items-center gap-1">
+                      <Download className="h-3 w-3" />
+                      {sale.downloadCount === 0
+                        ? "Not downloaded"
+                        : `Downloaded ${sale.downloadCount}×${
+                            sale.lastDownloadAt ? ` · last ${new Date(sale.lastDownloadAt).toLocaleDateString()}` : ""
+                          }`}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant={sale.status === "refunded" ? "secondary" : "default"}>{sale.status}</Badge>
