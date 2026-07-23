@@ -166,8 +166,42 @@ function DashboardHome() {
   const profile = profileQ.data;
   const connect = connectQ.data;
 
+  const sales = salesQ.data ?? [];
+  const paidSales = sales.filter((s) => s.status === "success" && !s.disputed);
+  const revenueCents = paidSales.reduce((sum, s) => sum + s.amountPaidCents, 0);
+  const productCount = productsQ.data?.length ?? 0;
+  const storefrontUrl = profile?.handle ? `${BASE_URL}/u/${profile.handle}` : null;
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
+      {/* Page header */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold tracking-tight">Dashboard</h1>
+          {storefrontUrl ? (
+            <a
+              href={storefrontUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-0.5 inline-flex max-w-full items-center gap-1 truncate text-sm text-muted-foreground hover:text-foreground"
+            >
+              <span className="truncate">{storefrontUrl.replace(/^https?:\/\//, "")}</span>
+              <ExternalLink className="h-3 w-3 shrink-0" />
+            </a>
+          ) : (
+            <p className="mt-0.5 text-sm text-muted-foreground">Pick a handle below to open your storefront.</p>
+          )}
+        </div>
+        {storefrontUrl ? (
+          <Button asChild variant="outline" size="sm" className="shrink-0">
+            <a href={storefrontUrl} target="_blank" rel="noreferrer">
+              View storefront
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          </Button>
+        ) : null}
+      </div>
+
       {profile && !profile.handle ? (
         <Card>
           <CardHeader>
@@ -191,10 +225,6 @@ function DashboardHome() {
             <p className="px-6 pb-4 text-sm text-destructive">{(handleMut.error as Error).message}</p>
           ) : null}
         </Card>
-      ) : profile?.handle ? (
-        <p className="text-sm text-muted-foreground">
-          Your storefront: <code>{BASE_URL}/u/{profile.handle}</code>
-        </p>
       ) : null}
 
       <OnboardingChecklist
@@ -205,114 +235,28 @@ function DashboardHome() {
         onConnectStripe={() => connectMut.mutate()}
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-            Plan
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <p className="text-sm">
-              Current plan: <Badge>{PLAN_LABELS[planQ.data?.tier ?? "free"]}</Badge>
-            </p>
-            {planQ.data && planQ.data.tier !== "free" ? (
-              <Button size="sm" variant="outline" onClick={() => portalMut.mutate()} disabled={portalMut.isPending}>
-                Manage billing
-              </Button>
-            ) : null}
-          </div>
-
-          {bandwidthQ.data ? (
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Downloads this month</span>
-                <span className={bandwidthQ.data.level === "over" ? "font-medium text-destructive" : "font-medium"}>
-                  {bandwidthQ.data.usedGb.toFixed(1)} / {bandwidthQ.data.limitGb} GB
-                </span>
-              </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                <div
-                  className={cn(
-                    "h-full rounded-full transition-all",
-                    bandwidthQ.data.level === "over"
-                      ? "bg-destructive"
-                      : bandwidthQ.data.level === "warning"
-                        ? "bg-amber-500"
-                        : "bg-primary",
-                  )}
-                  style={{ width: `${Math.min(100, bandwidthQ.data.percent)}%` }}
-                />
-              </div>
-              {bandwidthQ.data.level !== "ok" && bandwidthQ.data.tier !== "pro" ? (
-                <p className="text-xs text-muted-foreground">
-                  You’re {bandwidthQ.data.level === "over" ? "over" : "near"} your plan’s monthly download bandwidth —
-                  upgrade for more headroom. Your buyers are never blocked.
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-
-          {planQ.data?.tier === "free" ? (
-            <div className="flex gap-2">
-              <Button size="sm" onClick={() => setCheckoutTier(checkoutTier === "creator" ? null : "creator")}>
-                Upgrade to Creator (${PLAN_PRICE_USD.creator}/mo)
-              </Button>
-              <Button size="sm" onClick={() => setCheckoutTier(checkoutTier === "pro" ? null : "pro")}>
-                Upgrade to Pro (${PLAN_PRICE_USD.pro}/mo)
-              </Button>
-            </div>
-          ) : null}
-
-          {checkoutTier ? (
-            <StripeEmbeddedCheckoutView
-              fetchClientSecret={async () => {
-                const res = await subscriptionCheckoutFn({ data: { tier: checkoutTier } });
-                if (!res.clientSecret) throw new Error("Could not start checkout");
-                return res.clientSecret;
-              }}
-            />
-          ) : null}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Wallet className="h-4 w-4 text-muted-foreground" />
-            Payouts
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {connect?.chargesEnabled ? (
-            <Badge>Stripe connected</Badge>
-          ) : (
-            <div className="flex items-center gap-3">
-              <p className="text-sm text-muted-foreground">
-                Connect Stripe to receive payouts from sales.
-              </p>
-              <Button size="sm" onClick={() => connectMut.mutate()} disabled={connectMut.isPending}>
-                Connect Stripe
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <div className="flex items-center justify-between">
-        <h1 className="flex items-center gap-2 text-xl font-semibold font-[family-name:var(--font-display)]">
-          <Package className="h-5 w-5 text-muted-foreground" />
-          Products
-        </h1>
-        <Button size="sm" onClick={() => setShowNewProduct((v) => !v)}>
-          {showNewProduct ? "Cancel" : (
-            <>
-              <Plus className="h-4 w-4" /> New product
-            </>
-          )}
-        </Button>
+      {/* KPI overview */}
+      <div className="grid grid-cols-3 gap-3">
+        <StatCard icon={Wallet} label="Revenue" value={formatCents(revenueCents)} />
+        <StatCard icon={ShoppingBag} label="Sales" value={String(paidSales.length)} />
+        <StatCard icon={Package} label="Products" value={String(productCount)} />
       </div>
+
+      {/* Products */}
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-lg font-semibold font-[family-name:var(--font-display)]">
+            <Package className="h-5 w-5 text-muted-foreground" />
+            Products
+          </h2>
+          <Button size="sm" onClick={() => setShowNewProduct((v) => !v)}>
+            {showNewProduct ? "Cancel" : (
+              <>
+                <Plus className="h-4 w-4" /> New product
+              </>
+            )}
+          </Button>
+        </div>
 
       {showNewProduct ? (
         <Card>
@@ -365,21 +309,23 @@ function DashboardHome() {
 
       {deleteNotice ? <p className="text-sm text-muted-foreground">{deleteNotice}</p> : null}
 
-      <div className="flex flex-col gap-3">
-        {(productsQ.data ?? []).map((product) => (
-          <ProductRow key={product.id} product={product} onDelete={() => deleteMut.mutate(product.id)} />
-        ))}
-        {productsQ.data?.length === 0 ? (
-          <EmptyState icon={Package} message="No products yet — create your first one above." />
-        ) : null}
-      </div>
+        <div className="flex flex-col gap-3">
+          {(productsQ.data ?? []).map((product) => (
+            <ProductRow key={product.id} product={product} onDelete={() => deleteMut.mutate(product.id)} />
+          ))}
+          {productsQ.data?.length === 0 ? (
+            <EmptyState icon={Package} message="No products yet — create your first one above." />
+          ) : null}
+        </div>
+      </section>
 
-      <div>
-        <h2 className="flex items-center gap-2 text-xl font-semibold font-[family-name:var(--font-display)]">
+      {/* Recent sales */}
+      <section className="flex flex-col gap-3">
+        <h2 className="flex items-center gap-2 text-lg font-semibold font-[family-name:var(--font-display)]">
           <ShoppingBag className="h-5 w-5 text-muted-foreground" />
           Sales
         </h2>
-        <div className="mt-3 flex flex-col gap-3">
+        <div className="flex flex-col gap-3">
           {(salesQ.data ?? []).map((sale) => (
             <Card key={sale.id} className="card-hover">
               <CardContent className="flex flex-col gap-2 pt-6 sm:flex-row sm:items-center sm:justify-between">
@@ -426,7 +372,103 @@ function DashboardHome() {
             <p className="text-sm text-destructive">{(refundMut.error as Error).message}</p>
           ) : null}
         </div>
-      </div>
+      </section>
+
+      {/* Account: plan + payouts */}
+      <section className="grid gap-3 sm:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
+              Plan
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm">
+                Current plan: <Badge>{PLAN_LABELS[planQ.data?.tier ?? "free"]}</Badge>
+              </p>
+              {planQ.data && planQ.data.tier !== "free" ? (
+                <Button size="sm" variant="outline" onClick={() => portalMut.mutate()} disabled={portalMut.isPending}>
+                  Manage billing
+                </Button>
+              ) : null}
+            </div>
+
+            {bandwidthQ.data ? (
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Downloads this month</span>
+                  <span className={bandwidthQ.data.level === "over" ? "font-medium text-destructive" : "font-medium"}>
+                    {bandwidthQ.data.usedGb.toFixed(1)} / {bandwidthQ.data.limitGb} GB
+                  </span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className={cn(
+                      "h-full rounded-full transition-all",
+                      bandwidthQ.data.level === "over"
+                        ? "bg-destructive"
+                        : bandwidthQ.data.level === "warning"
+                          ? "bg-amber-500"
+                          : "bg-primary",
+                    )}
+                    style={{ width: `${Math.min(100, bandwidthQ.data.percent)}%` }}
+                  />
+                </div>
+                {bandwidthQ.data.level !== "ok" && bandwidthQ.data.tier !== "pro" ? (
+                  <p className="text-xs text-muted-foreground">
+                    You’re {bandwidthQ.data.level === "over" ? "over" : "near"} your plan’s monthly download bandwidth —
+                    upgrade for more headroom. Your buyers are never blocked.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+
+            {planQ.data?.tier === "free" ? (
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" onClick={() => setCheckoutTier(checkoutTier === "creator" ? null : "creator")}>
+                  Upgrade to Creator (${PLAN_PRICE_USD.creator}/mo)
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setCheckoutTier(checkoutTier === "pro" ? null : "pro")}>
+                  Upgrade to Pro (${PLAN_PRICE_USD.pro}/mo)
+                </Button>
+              </div>
+            ) : null}
+
+            {checkoutTier ? (
+              <StripeEmbeddedCheckoutView
+                fetchClientSecret={async () => {
+                  const res = await subscriptionCheckoutFn({ data: { tier: checkoutTier } });
+                  if (!res.clientSecret) throw new Error("Could not start checkout");
+                  return res.clientSecret;
+                }}
+              />
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Wallet className="h-4 w-4 text-muted-foreground" />
+              Payouts
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {connect?.chargesEnabled ? (
+              <Badge>Stripe connected</Badge>
+            ) : (
+              <div className="flex flex-col items-start gap-3">
+                <p className="text-sm text-muted-foreground">Connect Stripe to receive payouts from sales.</p>
+                <Button size="sm" onClick={() => connectMut.mutate()} disabled={connectMut.isPending}>
+                  Connect Stripe
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </section>
     </div>
   );
 }
@@ -437,6 +479,22 @@ function EmptyState({ icon: Icon, message }: { icon: typeof Package; message: st
       <Icon className="h-8 w-8 text-muted-foreground/50" />
       <p className="text-sm text-muted-foreground">{message}</p>
     </div>
+  );
+}
+
+function StatCard({ icon: Icon, label, value }: { icon: typeof Package; label: string; value: string }) {
+  return (
+    <Card>
+      <CardContent className="flex flex-col gap-1 p-4 sm:p-5">
+        <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <Icon className="h-3.5 w-3.5" />
+          <span className="truncate">{label}</span>
+        </div>
+        <p className="truncate font-[family-name:var(--font-display)] text-xl font-semibold tracking-tight sm:text-2xl">
+          {value}
+        </p>
+      </CardContent>
+    </Card>
   );
 }
 
