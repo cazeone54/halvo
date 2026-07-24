@@ -2,7 +2,7 @@ import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { ShieldCheck, Mail, CircleCheck, Lock, Zap, CreditCard } from "lucide-react";
 import { getProductPublicView } from "@/lib/product-public.functions";
 import { CheckoutWidget } from "@/components/checkout-widget";
-import { Logo } from "@/components/logo";
+import { Logo, LogoMark } from "@/components/logo";
 import { BRAND_NAME, BASE_URL } from "@/lib/site";
 
 export const Route = createFileRoute("/p/$slug")({
@@ -111,6 +111,18 @@ function ProductCheckoutPage() {
           <TrustItem icon={Lock} label="Secure checkout" />
           <TrustItem icon={CreditCard} label="Powered by Stripe" />
         </div>
+
+        {/* Every checkout quietly advertises the platform — the Calendly loop.
+            Understated on purpose: it must never compete with the seller's own
+            brand or distract from the buy button. */}
+        <Link
+          to="/"
+          className="mx-auto flex w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+        >
+          Powered by
+          <LogoMark className="h-3.5 w-3.5" />
+          <span className="font-medium">{BRAND_NAME}</span>
+        </Link>
 
         {product.refundPolicy || product.supportEmail ? (
           <div className="flex flex-col gap-2 rounded-xl border bg-card p-4 text-sm text-muted-foreground">

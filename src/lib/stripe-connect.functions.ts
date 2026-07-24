@@ -66,20 +66,39 @@ export const getStripeConnectStatus = createServerFn({ method: "GET" })
       .single();
 
     if (!profile?.stripe_connect_id) {
-      return { connected: false, chargesEnabled: false, detailsSubmitted: false, payoutsEnabled: false };
+      return {
+        connected: false,
+        chargesEnabled: false,
+        detailsSubmitted: false,
+        payoutsEnabled: false,
+        requirementsDue: [] as string[],
+      };
     }
 
     try {
       const account = await stripe.accounts.retrieve(profile.stripe_connect_id);
+      // `currently_due` is what Stripe is blocking on right now; `past_due` is
+      // the overdue subset. Both are things the seller has to supply, so they
+      // get surfaced together — see stripe-requirements.ts.
+      const requirementsDue = Array.from(
+        new Set([...(account.requirements?.currently_due ?? []), ...(account.requirements?.past_due ?? [])]),
+      );
       return {
         connected: true,
         chargesEnabled: !!account.charges_enabled,
         detailsSubmitted: !!account.details_submitted,
         payoutsEnabled: !!account.payouts_enabled,
+        requirementsDue,
       };
     } catch {
       // Stale/foreign account id — self-heal by clearing it.
       await context.supabase.from("profiles").update({ stripe_connect_id: null }).eq("id", context.userId);
-      return { connected: false, chargesEnabled: false, detailsSubmitted: false, payoutsEnabled: false };
+      return {
+        connected: false,
+        chargesEnabled: false,
+        detailsSubmitted: false,
+        payoutsEnabled: false,
+        requirementsDue: [] as string[],
+      };
     }
   });

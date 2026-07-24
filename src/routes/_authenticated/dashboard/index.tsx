@@ -40,6 +40,7 @@ import { refundTransaction } from "@/lib/refunds.functions";
 import { getMyPlan } from "@/lib/user-plan.functions";
 import { getMyBandwidthUsage } from "@/lib/bandwidth.functions";
 import { getServerFeatures } from "@/lib/server-features.functions";
+import { describeConnectStatus } from "@/lib/stripe-requirements";
 import { createSubscriptionCheckout, createPortalSession } from "@/lib/payments.functions";
 import { generateProductCopy } from "@/lib/ai-copywriter.functions";
 import { PLAN_LABELS, PLAN_PRICE_USD, type PlanTier } from "@/lib/plans";
@@ -206,6 +207,12 @@ function DashboardHome() {
 
   const profile = profileQ.data;
   const connect = connectQ.data;
+  const connectStatus = describeConnectStatus({
+    connected: !!connect?.connected,
+    chargesEnabled: !!connect?.chargesEnabled,
+    detailsSubmitted: !!connect?.detailsSubmitted,
+    requirementsDue: connect?.requirementsDue ?? [],
+  });
 
   // The first sale is the moment that decides whether someone stays. Mark it
   // once, locally, so it's a celebration rather than a permanent banner.
@@ -578,6 +585,24 @@ function DashboardHome() {
           <CardContent>
             {connect?.chargesEnabled ? (
               <Badge>Stripe connected</Badge>
+            ) : connect?.connected ? (
+              // Mid-onboarding: say precisely what Stripe is waiting for rather
+              // than leaving the seller staring at a disabled checkout.
+              <div className="flex flex-col items-start gap-3">
+                <p className="text-sm">{connectStatus.headline}</p>
+                {connectStatus.items.length > 0 ? (
+                  <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
+                    {connectStatus.items.map((item) => (
+                      <li key={item}>· {item}</li>
+                    ))}
+                  </ul>
+                ) : null}
+                {connectStatus.state === "in_review" ? null : (
+                  <Button size="sm" onClick={() => connectMut.mutate()} disabled={connectMut.isPending}>
+                    {connectMut.isPending ? "Opening Stripe…" : "Finish setup"}
+                  </Button>
+                )}
+              </div>
             ) : (
               // Most of the friction here is uncertainty, not clicks — so say
               // up front how long it takes, what's needed, and where the money
