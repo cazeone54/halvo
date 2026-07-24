@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getStripeClient, getStripeErrorMessage } from "@/lib/stripe.server";
-import { performRefund } from "@/lib/refund-flow";
+import { performRefund, buildRefundParams } from "@/lib/refund-flow";
 
 export const refundTransaction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -23,7 +23,7 @@ export const refundTransaction = createServerFn({ method: "POST" })
     return performRefund(transaction, {
       createStripeRefund: async (paymentIntentId) => {
         try {
-          await stripe.refunds.create({ payment_intent: paymentIntentId });
+          await stripe.refunds.create(buildRefundParams(paymentIntentId));
         } catch (stripeError) {
           throw new Error(getStripeErrorMessage(stripeError));
         }
