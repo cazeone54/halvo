@@ -1,25 +1,19 @@
 import { COMMISSION_PERCENT } from "@/lib/commission-math";
 import { BRAND_NAME } from "@/lib/site";
+import type { ContentBlock } from "@/content/blocks";
 
-// Guide content lives here as structured blocks rather than markdown so it
-// stays typed and needs no extra build pipeline. The `pricing` block renders
-// the live PricingTiers component, so fee documentation can never drift away
-// from plans.ts — the single source of truth.
-export type GuideBlock =
-  | { type: "p"; text: string }
-  | { type: "h2"; text: string }
-  | { type: "steps"; items: string[] }
-  | { type: "ul"; items: string[] }
-  | { type: "note"; text: string }
-  | { type: "pricing" };
-
+// Guides are documentation for people already using the product. Content is
+// structured blocks (see content/blocks.ts) rather than markdown so it stays
+// typed and needs no extra build pipeline. The `pricing` block renders the live
+// PricingTiers component, so fee documentation can never drift away from
+// plans.ts — the single source of truth.
 export type Guide = {
   slug: string;
   title: string;
   description: string;
   minutes: number;
   category: "Getting started" | "Getting paid" | "Growing sales";
-  body: GuideBlock[];
+  body: ContentBlock[];
 };
 
 export const GUIDES: Guide[] = [
