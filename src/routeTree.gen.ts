@@ -23,6 +23,7 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedDashboardRouteRouteImport } from './routes/_authenticated/dashboard/route'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as ForSlugRouteImport } from './routes/for.$slug'
 import { Route as GuidesIndexRouteImport } from './routes/guides.index'
 import { Route as GuidesSlugRouteImport } from './routes/guides.$slug'
 import { Route as PSlugRouteImport } from './routes/p.$slug'
@@ -106,6 +107,11 @@ const BlogIndexRoute = BlogIndexRouteImport.update({
 const BlogSlugRoute = BlogSlugRouteImport.update({
   id: '/blog/$slug',
   path: '/blog/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForSlugRoute = ForSlugRouteImport.update({
+  id: '/for/$slug',
+  path: '/for/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GuidesIndexRoute = GuidesIndexRouteImport.update({
@@ -200,6 +206,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/dashboard': typeof AuthenticatedDashboardRouteRouteWithChildren
   '/blog/$slug': typeof BlogSlugRoute
+  '/for/$slug': typeof ForSlugRoute
   '/guides/$slug': typeof GuidesSlugRoute
   '/p/$slug': typeof PSlugRoute
   '/u/$handle': typeof UHandleRoute
@@ -228,6 +235,7 @@ export interface FileRoutesByTo {
   '/success': typeof SuccessRoute
   '/terms': typeof TermsRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/for/$slug': typeof ForSlugRoute
   '/guides/$slug': typeof GuidesSlugRoute
   '/p/$slug': typeof PSlugRoute
   '/u/$handle': typeof UHandleRoute
@@ -259,6 +267,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteRouteWithChildren
   '/blog/$slug': typeof BlogSlugRoute
+  '/for/$slug': typeof ForSlugRoute
   '/guides/$slug': typeof GuidesSlugRoute
   '/p/$slug': typeof PSlugRoute
   '/u/$handle': typeof UHandleRoute
@@ -290,6 +299,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/dashboard'
     | '/blog/$slug'
+    | '/for/$slug'
     | '/guides/$slug'
     | '/p/$slug'
     | '/u/$handle'
@@ -318,6 +328,7 @@ export interface FileRouteTypes {
     | '/success'
     | '/terms'
     | '/blog/$slug'
+    | '/for/$slug'
     | '/guides/$slug'
     | '/p/$slug'
     | '/u/$handle'
@@ -348,6 +359,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/_authenticated/dashboard'
     | '/blog/$slug'
+    | '/for/$slug'
     | '/guides/$slug'
     | '/p/$slug'
     | '/u/$handle'
@@ -378,6 +390,7 @@ export interface RootRouteChildren {
   SuccessRoute: typeof SuccessRoute
   TermsRoute: typeof TermsRoute
   BlogSlugRoute: typeof BlogSlugRoute
+  ForSlugRoute: typeof ForSlugRoute
   GuidesSlugRoute: typeof GuidesSlugRoute
   PSlugRoute: typeof PSlugRoute
   UHandleRoute: typeof UHandleRoute
@@ -486,6 +499,13 @@ declare module '@tanstack/react-router' {
       path: '/blog/$slug'
       fullPath: '/blog/$slug'
       preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/for/$slug': {
+      id: '/for/$slug'
+      path: '/for/$slug'
+      fullPath: '/for/$slug'
+      preLoaderRoute: typeof ForSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/guides/': {
@@ -642,6 +662,7 @@ const rootRouteChildren: RootRouteChildren = {
   SuccessRoute: SuccessRoute,
   TermsRoute: TermsRoute,
   BlogSlugRoute: BlogSlugRoute,
+  ForSlugRoute: ForSlugRoute,
   GuidesSlugRoute: GuidesSlugRoute,
   PSlugRoute: PSlugRoute,
   UHandleRoute: UHandleRoute,
