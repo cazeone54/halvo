@@ -52,13 +52,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BASE_URL } from "@/lib/site";
+import { BASE_URL, BRAND_KEY } from "@/lib/site";
 import { formatCents } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/dashboard/")({
   component: DashboardHome,
 });
+
+const FIRST_SALE_KEY = `${BRAND_KEY}:first-sale-celebrated`;
 
 function DashboardHome() {
   const qc = useQueryClient();
@@ -205,6 +207,12 @@ function DashboardHome() {
   const profile = profileQ.data;
   const connect = connectQ.data;
 
+  // The first sale is the moment that decides whether someone stays. Mark it
+  // once, locally, so it's a celebration rather than a permanent banner.
+  const [firstSaleSeen, setFirstSaleSeen] = useState(
+    () => typeof window !== "undefined" && window.localStorage.getItem(FIRST_SALE_KEY) === "1",
+  );
+
   const sales = salesQ.data ?? [];
   const paidSales = sales.filter((s) => s.status === "success" && !s.disputed);
   const revenueCents = paidSales.reduce((sum, s) => sum + s.amountPaidCents, 0);
@@ -263,6 +271,33 @@ function DashboardHome() {
           {handleMut.error ? (
             <p className="px-6 pb-4 text-sm text-destructive">{(handleMut.error as Error).message}</p>
           ) : null}
+        </Card>
+      ) : null}
+
+      {paidSales.length > 0 && !firstSaleSeen ? (
+        <Card className="border-primary bg-primary/5">
+          <CardContent className="flex flex-col gap-3 p-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="font-[family-name:var(--font-display)] text-lg font-bold tracking-tight">
+                🎉 You made your first sale
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {formatCents(paidSales[0].amountPaidCents)} for {paidSales[0].productName}. The loop works — now
+                share your link again and do it a second time.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              onClick={() => {
+                window.localStorage.setItem(FIRST_SALE_KEY, "1");
+                setFirstSaleSeen(true);
+              }}
+            >
+              Nice
+            </Button>
+          </CardContent>
         </Card>
       ) : null}
 

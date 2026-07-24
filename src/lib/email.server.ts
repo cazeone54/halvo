@@ -1,4 +1,5 @@
 import { buildPurchaseEmail } from "@/lib/purchase-email";
+import { buildSaleNotificationEmail } from "@/lib/sale-email";
 import { BASE_URL, BRAND_NAME } from "@/lib/site";
 
 // Direct fetch to Resend's REST API — no SDK dependency, same pattern as
@@ -51,4 +52,22 @@ export async function sendPurchaseConfirmationEmail(params: {
     downloadPageUrl: `${BASE_URL}/success?id=${params.transactionId}`,
   });
   await sendEmail({ to: params.buyerEmail, subject, html, text });
+}
+
+// Tells the seller they earned money, at the moment they earned it. This is the
+// retention half of a sale — the dashboard row only works if they happen to be
+// looking at it.
+export async function sendSaleNotificationEmail(params: {
+  sellerEmail: string;
+  productName: string;
+  amountCents: number;
+  isFirstSale: boolean;
+}): Promise<void> {
+  const { subject, html, text } = buildSaleNotificationEmail({
+    productName: params.productName,
+    amountCents: params.amountCents,
+    isFirstSale: params.isFirstSale,
+    dashboardUrl: `${BASE_URL}/dashboard`,
+  });
+  await sendEmail({ to: params.sellerEmail, subject, html, text });
 }
