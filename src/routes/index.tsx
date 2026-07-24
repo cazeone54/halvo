@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { PersonaMarquee } from "@/components/persona-marquee";
+import { ExplainerAnimation } from "@/components/explainer-animation";
 import { BRAND_NAME } from "@/lib/site";
 import { PLAN_LABELS, PLAN_PRICE_USD } from "@/lib/plans";
 
@@ -77,8 +78,8 @@ function HomePage() {
             See how it works
           </h2>
           <p className="mt-2 text-center text-muted-foreground">30 seconds: list a product, get paid.</p>
-          <div className="mt-6 overflow-hidden rounded-2xl border border-border/60 shadow-xl">
-            <video className="w-full" src="/explainer.mp4" controls preload="metadata" />
+          <div className="mt-6">
+            <ExplainerAnimation />
           </div>
         </section>
 
