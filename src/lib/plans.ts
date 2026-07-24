@@ -12,7 +12,12 @@ export type PlanLimits = {
   maxFileMb: number;
   totalStorageMb: number;
   monthlyBandwidthGb: number; // soft cap — surfaced + nudges upgrade, never blocks a paid download
+  // Platform fee is a percentage PLUS a fixed amount. The fixed part exists
+  // because Stripe's cost has a flat 30c component that no percentage can cover
+  // on small sales (5% of a $5 sale is 25c against a ~45c cost). The percentage
+  // must also stay above Stripe's 2.9% or high-value sales lose money too.
   platformFeePct: number;
+  platformFeeFixedCents: number;
   aiGenerationsPerMonth: number;
 };
 
@@ -23,7 +28,8 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxFileMb: 100,
     totalStorageMb: 500,
     monthlyBandwidthGb: 5,
-    platformFeePct: 0.05,
+    platformFeePct: 0.08,
+    platformFeeFixedCents: 30,
     aiGenerationsPerMonth: 10,
   },
   creator: {
@@ -32,7 +38,8 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxFileMb: 2048,
     totalStorageMb: 20480,
     monthlyBandwidthGb: 150,
-    platformFeePct: 0,
+    platformFeePct: 0.05,
+    platformFeeFixedCents: 30,
     aiGenerationsPerMonth: 100,
   },
   pro: {
@@ -41,7 +48,8 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxFileMb: 10240,
     totalStorageMb: 204800,
     monthlyBandwidthGb: 1024,
-    platformFeePct: 0,
+    platformFeePct: 0.04,
+    platformFeeFixedCents: 30,
     aiGenerationsPerMonth: 300,
   },
 };
@@ -74,7 +82,13 @@ export function tierFromPriceId(priceId: string | null | undefined): PlanTier {
   return "free";
 }
 
+// Percentage + fixed. Every tier pays something, because every sale costs the
+// platform Stripe's ~2.9% + 30c on a destination charge. Higher tiers pay a
+// lower rate (that's the upgrade incentive), never zero.
 export function calcPlatformFeeCents(tier: PlanTier, amountCents: number): number {
   if (amountCents <= 0) return 0;
-  return Math.round(amountCents * PLAN_LIMITS[tier].platformFeePct);
+  const limits = PLAN_LIMITS[tier];
+  const fee = Math.round(amountCents * limits.platformFeePct) + limits.platformFeeFixedCents;
+  // Safety: never take more than the sale itself on a near-minimum charge.
+  return Math.min(fee, amountCents);
 }

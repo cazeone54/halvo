@@ -9,8 +9,9 @@ import { PLAN_LIMITS, PLAN_LABELS, PLAN_PRICE_USD, type PlanTier } from "@/lib/p
 // everything is derived from plans.ts, the single source of truth for limits.
 const TIERS: PlanTier[] = ["free", "creator", "pro"];
 
-function formatFee(pct: number): string {
-  return pct === 0 ? "0% platform fee" : `${Math.round(pct * 100)}% platform fee`;
+function formatFee(pct: number, fixedCents: number): string {
+  const rate = `${Math.round(pct * 100)}%`;
+  return fixedCents === 0 ? `${rate} per sale` : `${rate} + ${fixedCents}¢ per sale`;
 }
 
 function formatLimit(n: number): string {
@@ -29,7 +30,7 @@ export function PricingTiers() {
         const price = tier === "free" ? 0 : PLAN_PRICE_USD[tier];
         const isFeatured = tier === "creator";
         const rows = [
-          formatFee(limits.platformFeePct),
+          formatFee(limits.platformFeePct, limits.platformFeeFixedCents),
           `${formatLimit(limits.productsMax)} products`,
           `${limits.filesPerProduct} file${limits.filesPerProduct === 1 ? "" : "s"} per product`,
           `${formatMb(limits.totalStorageMb)} storage`,
