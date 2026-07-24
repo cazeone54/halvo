@@ -31,6 +31,22 @@ export const listMySales = createServerFn({ method: "GET" })
       }
     }
 
+    // Affiliate commissions withheld from these sales. Read with the service
+    // role, scoped to transaction ids we've already confirmed belong to this
+    // seller — the commissions RLS policy only exposes rows to the *referrer*,
+    // not to the seller whose sale funded them.
+    const affiliateFees = new Map<string, number>();
+    if (txIds.length > 0) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: commissions } = await supabaseAdmin
+        .from("commissions")
+        .select("transaction_id, amount_cents")
+        .in("transaction_id", txIds);
+      for (const c of commissions ?? []) {
+        affiliateFees.set(c.transaction_id, (affiliateFees.get(c.transaction_id) ?? 0) + c.amount_cents);
+      }
+    }
+
     return rows.map((t) => ({
       id: t.id,
       buyerEmail: t.buyer_email,
@@ -40,6 +56,7 @@ export const listMySales = createServerFn({ method: "GET" })
       productName: (t.products as unknown as { name: string } | null)?.name ?? "Unknown product",
       termsAcked: t.terms_acked_at != null,
       disputed: t.disputed_at != null,
+      affiliateFeeCents: affiliateFees.get(t.id) ?? 0,
       downloadCount: downloads.get(t.id)?.count ?? 0,
       lastDownloadAt: downloads.get(t.id)?.lastAt ?? null,
     }));

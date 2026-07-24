@@ -18,6 +18,7 @@ import {
   Share2,
   ShieldCheck,
   Download,
+  Users2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile, updateMyHandle } from "@/lib/profile.functions";
@@ -348,6 +349,11 @@ function DashboardHome() {
                             sale.lastDownloadAt ? ` · last ${new Date(sale.lastDownloadAt).toLocaleDateString()}` : ""
                           }`}
                     </span>
+                    {sale.affiliateFeeCents > 0 ? (
+                      <span className="flex items-center gap-1" title="This sale came through an affiliate link">
+                        <Users2 className="h-3 w-3" />−{formatCents(sale.affiliateFeeCents)} to affiliate
+                      </span>
+                    ) : null}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

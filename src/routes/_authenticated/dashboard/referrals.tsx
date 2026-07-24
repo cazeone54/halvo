@@ -89,6 +89,18 @@ function ReferralsPage() {
         </p>
       </div>
 
+      {/* Both sides of the deal, stated plainly — a seller should never be
+          surprised by a commission coming out of one of their payouts. */}
+      <div className="rounded-lg border border-dashed bg-muted/40 p-4">
+        <p className="text-sm font-medium">How commissions are funded</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          The {COMMISSION_PERCENT}% commission is taken out of the sale itself at checkout — the same way any
+          affiliate program works. So you earn {COMMISSION_PERCENT}% on sales you refer, and when one of your own
+          products sells through someone else&apos;s affiliate link, {COMMISSION_PERCENT}% of that sale goes to
+          them and the rest is paid out to you. Affected sales are marked on your dashboard.
+        </p>
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
         <Card>
           <CardContent className="pt-6">
