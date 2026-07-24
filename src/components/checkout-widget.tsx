@@ -70,7 +70,16 @@ export function CheckoutWidget({ product }: { product: Product }) {
     }
   };
 
-  if (error) return <p className="text-sm text-destructive">{error}</p>;
+  // A buyer landing on a not-yet-ready product should see a calm notice, not a
+  // raw red error string where the payment form belongs.
+  if (error) {
+    return (
+      <div className="rounded-lg border border-dashed p-5 text-center">
+        <p className="text-sm font-medium">{error}</p>
+        <p className="mt-1 text-xs text-muted-foreground">Check back soon.</p>
+      </div>
+    );
+  }
 
   const displayAmountCents = appliedCoupon?.discountedAmountCents ?? amountCents;
 

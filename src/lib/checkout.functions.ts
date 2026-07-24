@@ -16,6 +16,10 @@ import {
   buildDestinationChargeParams,
 } from "@/lib/checkout-math";
 
+// Shown to a *buyer*, so it never leaks the seller's setup state (missing file,
+// unfinished Stripe onboarding). They only need to know it can't be bought yet.
+const UNAVAILABLE_MESSAGE = "This product isn't available for purchase yet.";
+
 // Public — buyers may be signed out. Server recomputes the charge amount
 // itself; never trusts a client-sent price.
 export const createProductPaymentIntent = createServerFn({ method: "POST" })
@@ -44,13 +48,25 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
       throw new Error("This product has no seller and can't be purchased.");
     }
 
+    // Belt-and-braces against the worst possible outcome on a digital-goods
+    // platform: a buyer paying for a product with nothing to download. Products
+    // are only published once they have a file (see attachProductFile), but this
+    // re-checks at the point money would actually move.
+    const { count: fileCount } = await supabaseAdmin
+      .from("product_files")
+      .select("id", { count: "exact", head: true })
+      .eq("product_id", product.id);
+    if (!fileCount) {
+      throw new Error(UNAVAILABLE_MESSAGE);
+    }
+
     const { data: sellerProfile } = await supabaseAdmin
       .from("profiles")
       .select("stripe_connect_id")
       .eq("id", product.owner_id)
       .single();
     if (!sellerProfile?.stripe_connect_id) {
-      throw new Error("The seller hasn't finished connecting Stripe yet.");
+      throw new Error(UNAVAILABLE_MESSAGE);
     }
 
     const stripe = getStripeClient();
@@ -58,10 +74,10 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
     try {
       sellerAccount = await stripe.accounts.retrieve(sellerProfile.stripe_connect_id);
     } catch {
-      throw new Error("The seller's Stripe account isn't available right now.");
+      throw new Error(UNAVAILABLE_MESSAGE);
     }
     if (!sellerAccount.charges_enabled) {
-      throw new Error("The seller hasn't finished Stripe onboarding yet.");
+      throw new Error(UNAVAILABLE_MESSAGE);
     }
 
     let chargeAmountCents = computeChargeAmountCents(product, data.amountCents);

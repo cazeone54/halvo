@@ -134,7 +134,7 @@ function DashboardHome() {
       setDescription("");
       setPrice("");
       setShowNewProduct(false);
-      toast.success("Product created.");
+      toast.success("Product created — add a file to publish it.");
       qc.invalidateQueries({ queryKey: ["my-products"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -549,13 +549,22 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
       const path = `${user.id}/${product.id}/${Date.now()}-${file.name}`;
       const { error: uploadError } = await supabase.storage.from("digital-assets").upload(path, file);
       if (uploadError) throw uploadError;
-      await attachFn({
+      return await attachFn({
         data: { productId: product.id, storageFilePath: path, fileName: file.name, sizeBytes: file.size },
       });
     },
-    onSuccess: () => {
-      toast.success("File attached.");
+    onSuccess: (res) => {
+      // Attaching the first file is what publishes the product, so this is the
+      // moment to hand the seller their link — sharing it is what actually
+      // produces a sale, and it used to be hidden behind an unlabelled icon.
+      if (res?.published) {
+        toast.success("Your product is live — share the link to make your first sale.");
+        setSharing(true);
+      } else {
+        toast.success("File attached.");
+      }
       qc.invalidateQueries({ queryKey: ["product-files", product.id] });
+      qc.invalidateQueries({ queryKey: ["my-products"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -628,8 +637,14 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
               />
             </label>
             <div className="min-w-0">
-              <p className="truncate font-medium">{product.name}</p>
-              <p className="text-sm text-muted-foreground">${(product.price_cents / 100).toFixed(2)}</p>
+              <div className="flex items-center gap-2">
+                <p className="truncate font-medium">{product.name}</p>
+                {!product.url_slug ? <Badge variant="secondary">Draft</Badge> : null}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                ${(product.price_cents / 100).toFixed(2)}
+                {!product.url_slug ? " · add a file below to publish" : null}
+              </p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2 sm:justify-end">

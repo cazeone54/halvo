@@ -68,7 +68,11 @@ export const createProduct = createServerFn({ method: "POST" })
       );
     }
 
-    const slug = slugify(data.name, Math.random().toString(36).slice(2, 8));
+    // Created as a draft (url_slug null) on purpose. A product only becomes
+    // publicly linkable once it actually has a deliverable attached — see
+    // attachProductFile. Previously a product went live the moment it was
+    // created, so a seller could share a link to a product with no file and a
+    // buyer would pay and receive nothing.
     const { data: product, error } = await context.supabase
       .from("products")
       .insert({
@@ -78,7 +82,7 @@ export const createProduct = createServerFn({ method: "POST" })
         price_cents: data.priceCents,
         pay_what_you_want: data.payWhatYouWant ?? false,
         category: data.category ?? null,
-        url_slug: slug,
+        url_slug: null,
       })
       .select("id, url_slug")
       .single();
@@ -256,7 +260,7 @@ export const attachProductFile = createServerFn({ method: "POST" })
     // Verify the caller actually owns the product before attaching the file.
     const { data: product } = await context.supabase
       .from("products")
-      .select("id")
+      .select("id, name, url_slug")
       .eq("id", data.productId)
       .eq("owner_id", context.userId)
       .single();
@@ -278,7 +282,23 @@ export const attachProductFile = createServerFn({ method: "POST" })
       size_bytes: data.sizeBytes,
     });
     if (error) throw new Error(error.message);
-    return { ok: true };
+
+    // Attaching the first file is what publishes the product — that's the
+    // moment it has something to actually deliver. Until now it was a draft
+    // with no public URL.
+    const wasDraft = product.url_slug === null;
+    let urlSlug = product.url_slug;
+    if (wasDraft) {
+      urlSlug = slugify(product.name, Math.random().toString(36).slice(2, 8));
+      const { error: publishError } = await context.supabase
+        .from("products")
+        .update({ url_slug: urlSlug })
+        .eq("id", data.productId)
+        .eq("owner_id", context.userId);
+      if (publishError) throw new Error(publishError.message);
+    }
+
+    return { ok: true, published: wasDraft, urlSlug };
   });
 
 export const removeProductFile = createServerFn({ method: "POST" })
