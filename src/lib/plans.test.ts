@@ -6,7 +6,7 @@ import {
   PLAN_LIMITS,
   type PlanTier,
 } from "@/lib/plans";
-import { MIN_CHARGE_CENTS, estimateStripeFeeCents } from "@/lib/fees";
+import { MIN_CHARGE_CENTS, estimateStripeFeeCents, STRIPE_FIXED_FEE_CENTS } from "@/lib/fees";
 
 describe("tierFromPriceId", () => {
   it("maps known price IDs to their exact tier", () => {
@@ -53,6 +53,17 @@ describe("calcPlatformFeeCents", () => {
 
   it("never takes more than the sale itself on a minimum-size charge", () => {
     expect(calcPlatformFeeCents("free", MIN_CHARGE_CENTS)).toBeLessThanOrEqual(MIN_CHARGE_CENTS);
+  });
+
+  it("prices in expected chargeback cost above Stripe's own fixed fee", () => {
+    // Stripe's $15 dispute fee is billed to the platform and isn't returned
+    // even when the dispute is won, and it can't be clawed back from the
+    // disputed sale (a transfer reversal can't exceed the original transfer).
+    // So a few cents of it is priced into every sale instead.
+    const tiers: PlanTier[] = ["free", "creator", "pro"];
+    for (const tier of tiers) {
+      expect(PLAN_LIMITS[tier].platformFeeFixedCents).toBeGreaterThan(STRIPE_FIXED_FEE_CENTS);
+    }
   });
 
   it("always clears Stripe's processing cost — the platform must never lose money on a sale", () => {

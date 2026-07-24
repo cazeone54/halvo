@@ -16,6 +16,10 @@ export type PlanLimits = {
   // because Stripe's cost has a flat 30c component that no percentage can cover
   // on small sales (5% of a $5 sale is 25c against a ~45c cost). The percentage
   // must also stay above Stripe's 2.9% or high-value sales lose money too.
+  // The fixed part sits a few cents ABOVE Stripe's 30c to price in the expected
+  // cost of chargebacks: Stripe's $15 dispute fee is billed to the platform and
+  // never returned, and it can't be recovered from the disputed sale because a
+  // transfer reversal can't exceed the original transfer.
   platformFeePct: number;
   platformFeeFixedCents: number;
   aiGenerationsPerMonth: number;
@@ -29,7 +33,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     totalStorageMb: 500,
     monthlyBandwidthGb: 5,
     platformFeePct: 0.08,
-    platformFeeFixedCents: 30,
+    platformFeeFixedCents: 35,
     aiGenerationsPerMonth: 10,
   },
   creator: {
@@ -39,7 +43,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     totalStorageMb: 20480,
     monthlyBandwidthGb: 150,
     platformFeePct: 0.05,
-    platformFeeFixedCents: 30,
+    platformFeeFixedCents: 35,
     aiGenerationsPerMonth: 100,
   },
   pro: {
@@ -49,7 +53,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     totalStorageMb: 204800,
     monthlyBandwidthGb: 1024,
     platformFeePct: 0.04,
-    platformFeeFixedCents: 30,
+    platformFeeFixedCents: 35,
     aiGenerationsPerMonth: 300,
   },
 };

@@ -11,6 +11,14 @@ export const MIN_CHARGE_CENTS = 50;
 export const STRIPE_PERCENT_FEE = 0.029;
 export const STRIPE_FIXED_FEE_CENTS = 30;
 
+// Stripe's chargeback fee. It is billed to the PLATFORM on a destination charge
+// and is NOT returned even when the dispute is won. A transfer reversal can
+// never exceed the original transfer, so this cost can't be clawed back from
+// the disputed sale itself — instead a slice of it is priced into every sale's
+// fixed fee component (see platformFeeFixedCents in plans.ts). Per-seller
+// recoupment becomes worthwhile only at volume.
+export const DISPUTE_FEE_CENTS = 1500;
+
 export function estimateStripeFeeCents(amountCents: number): number {
   if (amountCents <= 0) return 0;
   return Math.round(amountCents * STRIPE_PERCENT_FEE) + STRIPE_FIXED_FEE_CENTS;
