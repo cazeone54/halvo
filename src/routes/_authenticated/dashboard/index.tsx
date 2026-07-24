@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Download,
   Users2,
+  Upload,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile, updateMyHandle } from "@/lib/profile.functions";
@@ -116,6 +117,12 @@ function DashboardHome() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  // The deliverable is chosen here rather than in a second step on the product
+  // row — creating a product and attaching its file used to be two separate
+  // journeys, and stopping between them left a permanently unsellable draft.
+  const [newFile, setNewFile] = useState<File | null>(null);
+  const createCheckUploadFn = useServerFn(checkCanUploadFile);
+  const createAttachFn = useServerFn(attachProductFile);
   const [pitch, setPitch] = useState("");
   const generateCopyFn = useServerFn(generateProductCopy);
   const aiMut = useMutation({
@@ -128,16 +135,44 @@ function DashboardHome() {
     onError: (e: Error) => toast.error(e.message),
   });
   const createMut = useMutation({
-    mutationFn: () =>
-      createProductFn({
+    // Create and publish in one go: the product is made, then its file is
+    // uploaded and attached, which is what takes it out of draft. A failure
+    // part-way still leaves a recoverable draft on the dashboard.
+    mutationFn: async () => {
+      const product = await createProductFn({
         data: { name, description: description || undefined, priceCents: Math.round(Number(price) * 100) },
-      }),
-    onSuccess: () => {
+      });
+      if (!newFile) return { published: false };
+
+      await createCheckUploadFn({ data: { productId: product.id, sizeBytes: newFile.size } });
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not signed in");
+      const path = `${user.id}/${product.id}/${Date.now()}-${newFile.name}`;
+      const { error: uploadError } = await supabase.storage.from("digital-assets").upload(path, newFile);
+      if (uploadError) throw uploadError;
+      await createAttachFn({
+        data: {
+          productId: product.id,
+          storageFilePath: path,
+          fileName: newFile.name,
+          sizeBytes: newFile.size,
+        },
+      });
+      return { published: true };
+    },
+    onSuccess: (res) => {
       setName("");
       setDescription("");
       setPrice("");
+      setNewFile(null);
       setShowNewProduct(false);
-      toast.success("Product created — add a file to publish it.");
+      toast.success(
+        res.published
+          ? "Your product is live — share the link to make your first sale."
+          : "Product created — add a file to publish it.",
+      );
       qc.invalidateQueries({ queryKey: ["my-products"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -309,8 +344,41 @@ function DashboardHome() {
               <Label>Price (USD)</Label>
               <Input type="number" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} />
             </div>
+
+            <div>
+              <Label>File buyers receive</Label>
+              <label
+                className="mt-1 flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed px-4 py-6 text-center transition-colors hover:border-primary/50 hover:bg-primary/5"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const dropped = e.dataTransfer.files?.[0];
+                  if (dropped) setNewFile(dropped);
+                }}
+              >
+                <Upload className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                {newFile ? (
+                  <span className="max-w-full truncate text-sm font-medium">{newFile.name}</span>
+                ) : (
+                  <span className="text-sm font-medium">Drop a file here, or click to choose</span>
+                )}
+                <span className="text-xs text-muted-foreground">
+                  {newFile ? "Click to replace" : "This is what your buyer downloads — it publishes the product"}
+                </span>
+                <input
+                  type="file"
+                  className="hidden"
+                  onChange={(e) => {
+                    const chosen = e.target.files?.[0];
+                    if (chosen) setNewFile(chosen);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            </div>
+
             <Button onClick={() => createMut.mutate()} disabled={!name || !price || createMut.isPending}>
-              Create product
+              {createMut.isPending ? "Publishing…" : newFile ? "Create & publish" : "Create as draft"}
             </Button>
             {createMut.error ? (
               <p className="text-sm text-destructive">{(createMut.error as Error).message}</p>
@@ -476,11 +544,31 @@ function DashboardHome() {
             {connect?.chargesEnabled ? (
               <Badge>Stripe connected</Badge>
             ) : (
+              // Most of the friction here is uncertainty, not clicks — so say
+              // up front how long it takes, what's needed, and where the money
+              // actually goes, rather than presenting a bare button.
               <div className="flex flex-col items-start gap-3">
-                <p className="text-sm text-muted-foreground">Connect Stripe to receive payouts from sales.</p>
-                <Button size="sm" onClick={() => connectMut.mutate()} disabled={connectMut.isPending}>
-                  Connect Stripe
-                </Button>
+                <p className="text-sm text-muted-foreground">
+                  Connect Stripe when you're ready to take payments. Your share goes straight to your own Stripe
+                  account — we never hold it.
+                </p>
+                <ul className="flex flex-col gap-1 text-xs text-muted-foreground">
+                  <li>· About 5 minutes</li>
+                  <li>· Photo ID and your bank details</li>
+                  <li>· Required by law for card payments, not by us</li>
+                </ul>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button size="sm" onClick={() => connectMut.mutate()} disabled={connectMut.isPending}>
+                    {connectMut.isPending ? "Opening Stripe…" : "Connect Stripe"}
+                  </Button>
+                  <Link
+                    to="/blog/$slug"
+                    params={{ slug: "connect-stripe-to-halvo" }}
+                    className="text-xs text-primary underline underline-offset-4"
+                  >
+                    Read the walkthrough first
+                  </Link>
+                </div>
               </div>
             )}
           </CardContent>
