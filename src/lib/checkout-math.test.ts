@@ -92,4 +92,24 @@ describe("buildDestinationChargeParams", () => {
     const params = buildDestinationChargeParams(0, "acct_123", "free");
     expect(params.application_fee_amount).toBe(0);
   });
+
+  it("withholds an affiliate commission on top of the platform fee", () => {
+    // The actual money leak this fixes: the commission used to be written to a
+    // ledger *after* the seller had already received the full transfer, so the
+    // platform paid the affiliate out of a margin smaller than the commission.
+    const commission = 100;
+    const params = buildDestinationChargeParams(10_00, "acct_123", "creator", commission);
+    expect(params.application_fee_amount).toBe(calcPlatformFeeCents("creator", 10_00) + commission);
+  });
+
+  it("leaves the fee untouched when there is no affiliate", () => {
+    expect(buildDestinationChargeParams(10_00, "acct_123", "creator", 0).application_fee_amount).toBe(
+      calcPlatformFeeCents("creator", 10_00),
+    );
+  });
+
+  it("never withholds more than the charge itself", () => {
+    const params = buildDestinationChargeParams(100, "acct_123", "free", 100_00);
+    expect(params.application_fee_amount).toBeLessThanOrEqual(100);
+  });
 });

@@ -37,7 +37,16 @@ export function CheckoutWidget({ product }: { product: Product }) {
   useEffect(() => {
     setClientSecret(null);
     setError(null);
-    createIntentFn({ data: { productId: product.id, amountCents, couponCode: appliedCoupon?.code } })
+    // The referral code must go in at intent time — that's where the affiliate
+    // commission is withheld from the sale.
+    createIntentFn({
+      data: {
+        productId: product.id,
+        amountCents,
+        couponCode: appliedCoupon?.code,
+        referralCode: getActiveReferralCode() ?? undefined,
+      },
+    })
       .then((res) => setClientSecret(res.clientSecret ?? null))
       .catch((e: Error) => setError(e.message));
     // Recreate the intent whenever the pay-what-you-want amount or applied coupon changes.

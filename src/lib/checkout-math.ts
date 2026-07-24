@@ -49,14 +49,26 @@ export type DestinationChargeParams = {
 // actually collects its cut — instead of a plain platform-account charge
 // with no Connect routing at all. The fee percentage depends on the
 // *seller's* plan tier (Free pays a platform fee; Creator/Pro don't).
+// `commissionCents` is an affiliate payout withheld on top of the platform fee.
+// It has to be held back *here*, at charge time, so it comes out of the sale —
+// i.e. the seller funds their affiliate, exactly as in any affiliate program.
+// Previously the commission was only written to a ledger after the fact while
+// the seller still received the full transfer, so the platform paid it out of a
+// margin far smaller than the commission itself, losing money on every
+// referred sale.
 export function buildDestinationChargeParams(
   amountCents: number,
   connectedAccountId: string,
   sellerTier: PlanTier,
+  commissionCents = 0,
 ): DestinationChargeParams {
+  const safeAmount = Math.max(0, amountCents);
+  const platformFee = calcPlatformFeeCents(sellerTier, safeAmount);
+  const withheld = platformFee + Math.max(0, commissionCents);
   return {
     amount: amountCents,
-    application_fee_amount: calcPlatformFeeCents(sellerTier, amountCents),
+    // Stripe requires the application fee to not exceed the charge itself.
+    application_fee_amount: Math.min(withheld, safeAmount),
     transfer_data: { destination: connectedAccountId },
   };
 }

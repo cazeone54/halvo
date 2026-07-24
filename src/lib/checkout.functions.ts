@@ -25,6 +25,7 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
         productId: z.string().uuid(),
         amountCents: z.number().int().positive().optional(),
         couponCode: z.string().trim().min(1).optional(),
+        referralCode: z.string().trim().min(1).optional(),
       })
       .parse(data),
   )
@@ -77,6 +78,21 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
 
     const sellerTier = await resolveUserTier(supabaseAdmin, product.owner_id);
 
+    // Resolve the affiliate here, at charge time, so the commission can be
+    // withheld from the sale rather than paid out of the platform's margin.
+    // The code is stamped into metadata and that becomes the source of truth
+    // when the commission is recorded — we only ever pay a commission we
+    // actually held money back for.
+    let commissionCents = 0;
+    let referralCodeForMetadata: string | null = null;
+    if (data.referralCode) {
+      const referral = await resolveReferralCode(supabaseAdmin, data.referralCode, product.id);
+      if (referral && referral.userId !== product.owner_id) {
+        commissionCents = calcCommissionCents(chargeAmountCents);
+        referralCodeForMetadata = data.referralCode;
+      }
+    }
+
     try {
       const intent = await stripe.paymentIntents.create({
         currency: "usd",
@@ -85,8 +101,14 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
           productId: product.id,
           product_name: product.name,
           ...(data.couponCode ? { coupon_code: data.couponCode.toUpperCase() } : {}),
+          ...(referralCodeForMetadata ? { referral_code: referralCodeForMetadata } : {}),
         },
-        ...buildDestinationChargeParams(chargeAmountCents, sellerProfile.stripe_connect_id, sellerTier),
+        ...buildDestinationChargeParams(
+          chargeAmountCents,
+          sellerProfile.stripe_connect_id,
+          sellerTier,
+          commissionCents,
+        ),
       });
       return { clientSecret: intent.client_secret };
     } catch (error) {
@@ -214,11 +236,14 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
     }
 
     // Commissions have a unique constraint on transaction_id, so this is
-    // naturally idempotent regardless of which side won the row-insert race
-    // — the referral code is only ever known here (client-side), never by
-    // the webhook fallback, so this is the only place it can be created.
-    if (data.referralCode) {
-      const referral = await resolveReferralCode(supabaseAdmin, data.referralCode, product.id);
+    // naturally idempotent regardless of which side won the row-insert race.
+    // The referral comes from the PaymentIntent metadata, not the client —
+    // that's the code we actually withheld the commission for at charge time,
+    // so a client can't cause a payout the sale didn't fund (same discipline
+    // as coupon_code above).
+    const referralCode = (intent.metadata?.referral_code as string | undefined) ?? undefined;
+    if (referralCode) {
+      const referral = await resolveReferralCode(supabaseAdmin, referralCode, product.id);
       if (referral && referral.userId !== product.owner_id) {
         const { error: commissionError } = await supabaseAdmin.from("commissions").insert({
           referral_code_id: referral.id,
