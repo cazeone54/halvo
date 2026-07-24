@@ -236,6 +236,38 @@ export type Database = {
           },
         ];
       };
+      bundle_items: {
+        Row: {
+          id: string;
+          bundle_product_id: string;
+          item_product_id: string;
+          owner_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          bundle_product_id: string;
+          item_product_id: string;
+          owner_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          bundle_product_id?: string;
+          item_product_id?: string;
+          owner_id?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "bundle_items_bundle_product_id_fkey";
+            columns: ["bundle_product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       reviews: {
         Row: {
           id: string;

@@ -20,6 +20,7 @@ import {
   Download,
   Users2,
   Upload,
+  Layers,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile, updateMyHandle } from "@/lib/profile.functions";
@@ -41,6 +42,8 @@ import { getMyPlan } from "@/lib/user-plan.functions";
 import { getMyBandwidthUsage } from "@/lib/bandwidth.functions";
 import { getServerFeatures } from "@/lib/server-features.functions";
 import { describeConnectStatus } from "@/lib/stripe-requirements";
+import { getBundleEditor, addBundleItem, removeBundleItem } from "@/lib/bundles.functions";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createSubscriptionCheckout, createPortalSession } from "@/lib/payments.functions";
 import { generateProductCopy } from "@/lib/ai-copywriter.functions";
 import { PLAN_LABELS, PLAN_PRICE_USD, type PlanTier } from "@/lib/plans";
@@ -690,6 +693,7 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
 
   const [editing, setEditing] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [bundling, setBundling] = useState(false);
   const [editName, setEditName] = useState(product.name);
   const [editDescription, setEditDescription] = useState(product.description ?? "");
   const [editPrice, setEditPrice] = useState((product.price_cents / 100).toFixed(2));
@@ -698,6 +702,34 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
   const filesQ = useQuery({
     queryKey: ["product-files", product.id],
     queryFn: () => filesFn({ data: { productId: product.id } }),
+  });
+
+  const bundleEditorFn = useServerFn(getBundleEditor);
+  const addBundleFn = useServerFn(addBundleItem);
+  const removeBundleFn = useServerFn(removeBundleItem);
+  const [bundlePick, setBundlePick] = useState("");
+  const bundleQ = useQuery({
+    queryKey: ["bundle", product.id],
+    queryFn: () => bundleEditorFn({ data: { productId: product.id } }),
+    enabled: bundling,
+  });
+  const addBundleMut = useMutation({
+    mutationFn: (itemProductId: string) =>
+      addBundleFn({ data: { bundleProductId: product.id, itemProductId } }),
+    onSuccess: (res) => {
+      toast.success(res.published ? "Bundle is live — share the link." : "Added to bundle.");
+      qc.invalidateQueries({ queryKey: ["bundle", product.id] });
+      qc.invalidateQueries({ queryKey: ["my-products"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const removeBundleMut = useMutation({
+    mutationFn: (itemId: string) => removeBundleFn({ data: { itemId } }),
+    onSuccess: () => {
+      toast.success("Removed from bundle.");
+      qc.invalidateQueries({ queryKey: ["bundle", product.id] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const attachMut = useMutation({
@@ -828,6 +860,14 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
             <Button variant="outline" size="sm" onClick={() => setEditing((v) => !v)}>
               <Pencil className="h-3.5 w-3.5" />
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setBundling((v) => !v)}
+              title="Bundle other products into this one"
+            >
+              <Layers className="h-3.5 w-3.5" />
+            </Button>
             <Button variant="destructive" size="sm" onClick={onDelete}>
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
@@ -861,6 +901,67 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
             {updateMut.error ? (
               <p className="text-sm text-destructive">{(updateMut.error as Error).message}</p>
             ) : null}
+          </div>
+        ) : null}
+
+        {bundling ? (
+          <div className="flex flex-col gap-3 rounded-md border p-3">
+            <div>
+              <p className="text-sm font-medium">Bundle</p>
+              <p className="text-xs text-muted-foreground">
+                Buyers of this product also receive the files from anything you add here.
+              </p>
+            </div>
+
+            {(bundleQ.data?.included.length ?? 0) > 0 ? (
+              <div className="flex flex-col gap-1.5">
+                {bundleQ.data?.included.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between gap-2 text-sm">
+                    <span className="min-w-0 truncate">{item.name}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeBundleMut.mutate(item.id)}
+                      disabled={removeBundleMut.isPending}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Nothing bundled yet.</p>
+            )}
+
+            {(bundleQ.data?.available.length ?? 0) > 0 ? (
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Select value={bundlePick} onValueChange={setBundlePick}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Add one of your products…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {bundleQ.data?.available.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  disabled={!bundlePick || addBundleMut.isPending}
+                  onClick={() => {
+                    if (bundlePick) addBundleMut.mutate(bundlePick);
+                    setBundlePick("");
+                  }}
+                >
+                  Add
+                </Button>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Create another product first, then you can bundle it in here.
+              </p>
+            )}
           </div>
         ) : null}
 

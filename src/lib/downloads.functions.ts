@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
+import { resolveDeliverableProductIds } from "@/lib/bundle.server";
 
 const SIGNED_URL_TTL_SECONDS = 60 * 10; // 10 minutes
 
@@ -53,10 +54,13 @@ export const getDownloadUrlForTransaction = createServerFn({ method: "GET" })
       throw new Error("This purchase could not be verified.");
     }
 
+    // Includes anything bundled into this product, so a bundle purchase
+    // delivers every file the buyer paid for.
+    const deliverableIds = await resolveDeliverableProductIds(supabaseAdmin, transaction.product_id);
     const { data: files, error: filesError } = await supabaseAdmin
       .from("product_files")
       .select("id, file_name, storage_file_path, size_bytes")
-      .eq("product_id", transaction.product_id);
+      .in("product_id", deliverableIds);
     if (filesError) throw new Error(filesError.message);
 
     // Record the access — evidence if disputed, and the bytes/seller for

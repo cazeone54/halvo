@@ -4,6 +4,7 @@ import { resolveOptionalUserId } from "@/lib/optional-auth.server";
 import { isFreeProduct } from "@/lib/checkout-math";
 import { sendPurchaseConfirmationEmail } from "@/lib/email.server";
 import { recordSaleSource } from "@/lib/record-source.server";
+import { countDeliverableFiles } from "@/lib/bundle.server";
 
 // Claiming a free product (a lead magnet) deliberately never touches Stripe.
 // There is nothing to charge, so there is no PaymentIntent, no destination
@@ -40,11 +41,7 @@ export const claimFreeProduct = createServerFn({ method: "POST" })
     }
 
     // Same rule as paid checkout — never hand over a product with nothing in it.
-    const { count: fileCount } = await supabaseAdmin
-      .from("product_files")
-      .select("id", { count: "exact", head: true })
-      .eq("product_id", product.id);
-    if (!fileCount) {
+    if ((await countDeliverableFiles(supabaseAdmin, product.id)) === 0) {
       throw new Error("This product isn't available yet.");
     }
 

@@ -10,6 +10,7 @@ import { calcCommissionCents } from "@/lib/commission-math";
 import { computeTransactionBackfill } from "@/lib/transaction-race";
 import { sendPurchaseConfirmationEmail, sendSaleNotificationEmail } from "@/lib/email.server";
 import { recordSaleSource } from "@/lib/record-source.server";
+import { countDeliverableFiles } from "@/lib/bundle.server";
 import {
   computeChargeAmountCents,
   isAboveMinimumCharge,
@@ -93,11 +94,9 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
     // platform: a buyer paying for a product with nothing to download. Products
     // are only published once they have a file (see attachProductFile), but this
     // re-checks at the point money would actually move.
-    const { count: fileCount } = await supabaseAdmin
-      .from("product_files")
-      .select("id", { count: "exact", head: true })
-      .eq("product_id", product.id);
-    if (!fileCount) {
+    // Counts bundled products too, so a bundle whose own file list is empty
+    // still qualifies as long as it delivers something.
+    if ((await countDeliverableFiles(supabaseAdmin, product.id)) === 0) {
       throw new Error(UNAVAILABLE_MESSAGE);
     }
 
