@@ -1,12 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Zap, Wallet, Percent, Sparkles, ArrowRight } from "lucide-react";
+import { Zap, Wallet, Percent, Sparkles, ArrowRight, Quote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { PersonaMarquee } from "@/components/persona-marquee";
 import { ExplainerAnimation } from "@/components/explainer-animation";
-import { BRAND_NAME } from "@/lib/site";
 import { PLAN_LABELS, PLAN_PRICE_USD } from "@/lib/plans";
 
 export const Route = createFileRoute("/")({
@@ -36,26 +35,63 @@ const FEATURES = [
   },
 ];
 
+// Factual product claims rather than invented usage numbers — these are true
+// today and safe to ship. Swap in real traction stats once you have them.
+const PROOF_STATS = [
+  { value: "~5 min", label: "Signup to first product live" },
+  { value: "Instant", label: "Checkout to download" },
+  { value: "Your own", label: "Stripe account for payouts" },
+  { value: "24/7", label: "Sells while you sleep" },
+];
+
+// Deliberately written as unfilled slots, NOT invented reviews — replace each
+// with a real customer quote before launch.
+const TESTIMONIALS = [
+  {
+    quote: "Add a real customer quote here — ideally what changed for them after switching to Halvo.",
+    name: "Customer name",
+    role: "What they sell",
+  },
+  {
+    quote: "A second quote lands best when it names a concrete outcome — a first sale, or hours saved.",
+    name: "Customer name",
+    role: "What they sell",
+  },
+  {
+    quote: "Keep the third one short. One specific sentence, in their own words.",
+    name: "Customer name",
+    role: "What they sell",
+  },
+];
+
 function HomePage() {
   return (
     <div className="flex min-h-screen flex-col">
       <PublicNav />
       <main className="flex-1">
         <section className="relative overflow-hidden bg-hero-glow">
-          <div className="mx-auto flex max-w-3xl flex-col items-center gap-6 px-4 py-24 text-center sm:px-6 sm:py-32">
+          {/* Decorative depth — layered teal glows so the hero isn't a flat wash. */}
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+            <div className="absolute left-1/2 top-[-8rem] h-72 w-[40rem] max-w-[120vw] -translate-x-1/2 rounded-full bg-primary/20 blur-3xl" />
+            <div className="absolute right-[-5rem] top-40 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
+            <div className="absolute bottom-4 left-[-5rem] h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
+          </div>
+
+          <div className="relative mx-auto flex max-w-3xl flex-col items-center gap-5 px-4 py-20 text-center sm:px-6 sm:py-28">
             <span className="rounded-full border border-border/60 bg-card px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm">
               Now in early access
             </span>
-            <h1 className="font-[family-name:var(--font-display)] text-5xl font-semibold tracking-tight text-gradient sm:text-7xl">
-              {BRAND_NAME}
+            <h1 className="font-[family-name:var(--font-display)] text-4xl font-bold tracking-tight sm:text-6xl">
+              Sell digital products <span className="text-gradient">in minutes</span>.
             </h1>
-            <p className="max-w-md text-lg text-muted-foreground">
-              Sell digital products in minutes. Instant checkout, instant delivery, real payouts.
+            <p className="max-w-xl text-lg text-muted-foreground">
+              Instant Stripe checkout, instant delivery, and payouts straight to your own account. No store to
+              build, no code to write.
             </p>
             <div className="flex flex-wrap justify-center gap-3">
               <Button asChild size="lg">
                 <Link to="/login">
-                  Get started
+                  Start free
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
@@ -63,9 +99,16 @@ function HomePage() {
                 <Link to="/pricing">See pricing</Link>
               </Button>
             </div>
+            <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              <span>Free to start</span>
+              <span aria-hidden="true">·</span>
+              <span>No code</span>
+              <span aria-hidden="true">·</span>
+              <span>Paid out to your own Stripe</span>
+            </p>
           </div>
 
-          <div className="pb-16">
+          <div className="relative pb-16">
             <p className="mb-4 text-center text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Built for creators selling
             </p>
@@ -80,6 +123,41 @@ function HomePage() {
           <p className="mt-2 text-center text-muted-foreground">30 seconds: list a product, get paid.</p>
           <div className="mt-6">
             <ExplainerAnimation />
+          </div>
+        </section>
+
+        {/* Social proof */}
+        <section className="border-y bg-muted/30">
+          <div className="mx-auto max-w-4xl px-4 py-14 sm:px-6">
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-4">
+              {PROOF_STATS.map((stat) => (
+                <div key={stat.label} className="text-center">
+                  <dt className="sr-only">{stat.label}</dt>
+                  <dd className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight text-primary sm:text-3xl">
+                    {stat.value}
+                  </dd>
+                  <p className="mt-1 text-xs text-muted-foreground sm:text-sm">{stat.label}</p>
+                </div>
+              ))}
+            </dl>
+
+            <h2 className="mt-14 text-center font-[family-name:var(--font-display)] text-2xl font-semibold sm:text-3xl">
+              What creators say
+            </h2>
+            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+              {TESTIMONIALS.map((t) => (
+                <Card key={t.quote} className="card-hover">
+                  <CardContent className="flex h-full flex-col gap-3 pt-6">
+                    <Quote className="h-5 w-5 shrink-0 text-primary/60" aria-hidden="true" />
+                    <p className="flex-1 text-sm text-muted-foreground">{t.quote}</p>
+                    <div>
+                      <p className="text-sm font-medium">{t.name}</p>
+                      <p className="text-xs text-muted-foreground">{t.role}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         </section>
 

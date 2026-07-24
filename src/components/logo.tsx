@@ -1,9 +1,9 @@
 import { cn } from "@/lib/utils";
 import { BRAND_NAME } from "@/lib/site";
 
-// The Halvo mark — the rounded teal tile with a bold "slab" H: heavier, flatter
-// posts and a solid crossbar, for a serious, payments-grade feel. Refined teal
-// gradient for more depth/contrast.
+// The compact mark — a simple, grid-based "H" monogram in teal, no container.
+// Follows current best practice: the logo is wordmark-primary (see Logo below),
+// with a minimal geometric icon kept only for favicon / tight-space use.
 export function LogoMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 100 100" className={className} role="img" aria-label={BRAND_NAME}>
@@ -13,21 +13,27 @@ export function LogoMark({ className }: { className?: string }) {
           <stop offset="1" stopColor="#0f6163" />
         </linearGradient>
       </defs>
-      <rect x="4" y="4" width="92" height="92" rx="24" fill="url(#halvo-mark-teal)" />
-      <rect x="24" y="24" width="15" height="52" rx="4" fill="#fff" />
-      <rect x="61" y="24" width="15" height="52" rx="4" fill="#fff" />
-      <rect x="39" y="42" width="22" height="16" rx="3" fill="#fff" />
+      <rect x="18" y="14" width="16" height="72" rx="6" fill="url(#halvo-mark-teal)" />
+      <rect x="66" y="14" width="16" height="72" rx="6" fill="url(#halvo-mark-teal)" />
+      <rect x="30" y="42" width="40" height="16" rx="5" fill="url(#halvo-mark-teal)" />
     </svg>
   );
 }
 
-// Mark + wordmark lockup. Use `markClassName` to size the mark; the wordmark
-// tracks the display font already loaded by the app.
-export function Logo({ className, markClassName }: { className?: string; markClassName?: string }) {
+// Primary logo — a wordmark, which is 2026's dominant and most durable logo
+// form (more memorable + scalable than a busy mark, and it ages better). Set in
+// Manrope, extra-bold, tightly tracked; the leading "H" carries the brand teal
+// (a restrained "warm-minimalist" accent) while the rest stays high-contrast in
+// both light and dark. `markClassName` is accepted for call-site compatibility.
+export function Logo({ className }: { className?: string; markClassName?: string }) {
   return (
-    <span className={cn("inline-flex items-center gap-2", className)}>
-      <LogoMark className={cn("h-7 w-7", markClassName)} />
-      <span className="font-[family-name:var(--font-display)] text-lg font-bold tracking-[-0.03em]">{BRAND_NAME}</span>
+    <span
+      className={cn(
+        "font-[family-name:var(--font-display)] text-xl font-extrabold tracking-[-0.04em]",
+        className,
+      )}
+    >
+      <span className="text-primary">H</span>alvo
     </span>
   );
 }
