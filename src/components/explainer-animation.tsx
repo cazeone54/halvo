@@ -51,6 +51,14 @@ const STYLES = `
 .hx-word{font-size:clamp(28px,6vw,52px);font-weight:800;letter-spacing:-.04em;}
 .hx-url{margin-top:18px;font-size:clamp(13px,2vw,18px);color:rgba(234,252,251,.8);}
 .hx-btn{margin-top:16px;background:#6ff2f2;color:#071615;font-weight:800;padding:12px 28px;border-radius:12px;font-size:clamp(13px,2vw,17px);}
+/* A 16:9 stage is only ~210px tall on a 375px phone, which crushes the
+   headline, step pills and visual together. Give it more vertical room. */
+@media (max-width:640px){
+  .hx-stage{aspect-ratio:4/3;}
+  .hx-visual{height:clamp(64px,20vw,110px);}
+  .hx-steps{margin-bottom:16px;gap:6px;}
+  .hx-scene{padding:5% 6%;}
+}
 @media (prefers-reduced-motion:reduce){
   .hx-scene{transition:opacity .2s linear;}
   .hx-notif,.hx-lock,.hx-old,.hx-chip,.hx-pbar{animation:none;opacity:1;transform:none;}

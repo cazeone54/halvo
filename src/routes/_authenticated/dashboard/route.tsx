@@ -82,9 +82,12 @@ function DashboardLayout() {
                   <Link to={link.to}>{link.label}</Link>
                 </DropdownMenuItem>
               ))}
+              {/* Sign out lives in here on mobile so the header doesn't run out
+                  of room next to the wordmark, theme toggle and menu. */}
+              <DropdownMenuItem onSelect={signOut}>Sign out</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button variant="ghost" size="sm" onClick={signOut}>
+          <Button variant="ghost" size="sm" onClick={signOut} className="hidden sm:inline-flex">
             Sign out
           </Button>
         </div>

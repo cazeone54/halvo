@@ -507,7 +507,9 @@ function StatCard({ icon: Icon, label, value }: { icon: typeof Package; label: s
           <Icon className="h-3.5 w-3.5" />
           <span className="truncate">{label}</span>
         </div>
-        <p className="truncate font-[family-name:var(--font-display)] text-xl font-semibold tracking-tight sm:text-2xl">
+        {/* Smaller on phones: three cards across a 375px screen otherwise
+            truncates a value like $1,234.56 into uselessness. */}
+        <p className="truncate font-[family-name:var(--font-display)] text-base font-semibold tabular-nums tracking-tight sm:text-2xl">
           {value}
         </p>
       </CardContent>
@@ -739,9 +741,12 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
               </Button>
             </div>
           ))}
+          {/* w-full + min-w-0 so a long filename can't push the card wider
+              than the phone screen; styled file button so it isn't a raw
+              browser control sitting in an otherwise designed card. */}
           <input
             type="file"
-            className="text-sm"
+            className="w-full min-w-0 text-sm text-muted-foreground file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-secondary-foreground hover:file:bg-secondary/80"
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) attachMut.mutate(file);
