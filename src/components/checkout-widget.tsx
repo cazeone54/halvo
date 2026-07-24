@@ -10,6 +10,8 @@ import {
 import { Lock } from "lucide-react";
 import { getStripe } from "@/lib/stripe";
 import { createProductPaymentIntent, recordSuccessfulTransaction } from "@/lib/checkout.functions";
+import { claimFreeProduct } from "@/lib/free-claim.functions";
+import { isFreeProduct } from "@/lib/checkout-math";
 import { applyCouponPreview } from "@/lib/coupons.functions";
 import { getActiveReferralCode } from "@/lib/referral-attribution";
 import { Button } from "@/components/ui/button";
@@ -23,6 +25,49 @@ type Product = {
   payWhatYouWant: boolean;
 };
 
+// A free product skips Stripe entirely — no payment form, no card, and the
+// seller doesn't need Connect onboarding finished for it to work.
+function FreeClaimForm({ productId }: { productId: string }) {
+  const navigate = useNavigate();
+  const claimFn = useServerFn(claimFreeProduct);
+  const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+    try {
+      const { transactionId } = await claimFn({ data: { productId, buyerEmail: email } });
+      navigate({ to: "/success", search: { id: transactionId } });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not get your download");
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <div>
+        <Label>Email</Label>
+        <Input
+          type="email"
+          autoComplete="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <p className="mt-1 text-xs text-muted-foreground">We'll send your download link here too.</p>
+      </div>
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      <Button type="submit" size="lg" disabled={submitting}>
+        {submitting ? "Getting it…" : "Get it free"}
+      </Button>
+    </form>
+  );
+}
+
 export function CheckoutWidget({ product }: { product: Product }) {
   const [amountCents, setAmountCents] = useState(product.priceCents);
   const [couponCode, setCouponCode] = useState("");
@@ -33,8 +78,10 @@ export function CheckoutWidget({ product }: { product: Product }) {
   const [error, setError] = useState<string | null>(null);
   const createIntentFn = useServerFn(createProductPaymentIntent);
   const previewCouponFn = useServerFn(applyCouponPreview);
+  const free = isFreeProduct({ price_cents: product.priceCents, pay_what_you_want: product.payWhatYouWant });
 
   useEffect(() => {
+    if (free) return; // nothing to charge, so never create a PaymentIntent
     setClientSecret(null);
     setError(null);
     // The referral code must go in at intent time — that's where the affiliate
@@ -51,7 +98,9 @@ export function CheckoutWidget({ product }: { product: Product }) {
       .catch((e: Error) => setError(e.message));
     // Recreate the intent whenever the pay-what-you-want amount or applied coupon changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product.id, amountCents, appliedCoupon?.code]);
+  }, [product.id, amountCents, appliedCoupon?.code, free]);
+
+  if (free) return <FreeClaimForm productId={product.id} />;
 
   const applyCoupon = async () => {
     if (!couponCode.trim()) return;

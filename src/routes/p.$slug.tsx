@@ -46,7 +46,10 @@ export const Route = createFileRoute("/p/$slug")({
 
 function ProductCheckoutPage() {
   const product = Route.useLoaderData();
-  const priceLabel = `${product.payWhatYouWant ? "From " : ""}$${(product.priceCents / 100).toFixed(2)}`;
+  const isFree = !product.payWhatYouWant && product.priceCents === 0;
+  const priceLabel = isFree
+    ? "Free"
+    : `${product.payWhatYouWant ? "From " : ""}$${(product.priceCents / 100).toFixed(2)}`;
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -108,8 +111,8 @@ function ProductCheckoutPage() {
         {/* Trust strip — right where hesitation happens, all statements true */}
         <div className="grid grid-cols-3 gap-2">
           <TrustItem icon={Zap} label="Instant download" />
-          <TrustItem icon={Lock} label="Secure checkout" />
-          <TrustItem icon={CreditCard} label="Powered by Stripe" />
+          <TrustItem icon={Lock} label={isFree ? "No card needed" : "Secure checkout"} />
+          <TrustItem icon={CreditCard} label={isFree ? "No payment" : "Powered by Stripe"} />
         </div>
 
         {/* Every checkout quietly advertises the platform — the Calendly loop.

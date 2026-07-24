@@ -20,6 +20,14 @@ export function isAboveMinimumCharge(amountCents: number): boolean {
   return amountCents >= MIN_CHARGE_CENTS;
 }
 
+// A free product (lead magnet) is delivered without any payment at all — no
+// Stripe charge, and crucially no Connect onboarding required of the seller,
+// so someone can give a file away in exchange for an email before they've done
+// any KYC. Pay-what-you-want is never free: it has a floor and takes payment.
+export function isFreeProduct(product: ProductPricing): boolean {
+  return !product.pay_what_you_want && product.price_cents === 0;
+}
+
 // The minimum amount a completed payment must have reached to be accepted
 // as a valid purchase for this product.
 export function enforcedMinCents(product: ProductPricing): number {

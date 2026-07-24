@@ -5,6 +5,7 @@ import {
   enforcedMinCents,
   computeRequiredMinCents,
   buildDestinationChargeParams,
+  isFreeProduct,
 } from "@/lib/checkout-math";
 import { MIN_CHARGE_CENTS } from "@/lib/fees";
 import { calcPlatformFeeCents } from "@/lib/plans";
@@ -27,6 +28,21 @@ describe("computeChargeAmountCents", () => {
     // A client trying to lowball a PWYW product must be floored at price_cents.
     expect(computeChargeAmountCents(product, 1)).toBe(500);
     expect(computeChargeAmountCents(product, undefined)).toBe(500);
+  });
+});
+
+describe("isFreeProduct", () => {
+  it("treats a zero-priced fixed product as free", () => {
+    expect(isFreeProduct({ price_cents: 0, pay_what_you_want: false })).toBe(true);
+  });
+
+  it("never treats pay-what-you-want as free — it has a floor and takes payment", () => {
+    expect(isFreeProduct({ price_cents: 0, pay_what_you_want: true })).toBe(false);
+  });
+
+  it("is false for anything with a price", () => {
+    expect(isFreeProduct({ price_cents: 1, pay_what_you_want: false })).toBe(false);
+    expect(isFreeProduct({ price_cents: 2000, pay_what_you_want: false })).toBe(false);
   });
 });
 

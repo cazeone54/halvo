@@ -385,6 +385,10 @@ function DashboardHome() {
             <div>
               <Label>Price (USD)</Label>
               <Input type="number" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Set <span className="font-medium">0</span> to give it away as a free lead magnet — buyers just
+                leave an email, and you don&apos;t need Stripe connected for it.
+              </p>
             </div>
 
             <div>

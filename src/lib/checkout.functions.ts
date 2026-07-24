@@ -14,6 +14,7 @@ import {
   isAboveMinimumCharge,
   computeRequiredMinCents,
   buildDestinationChargeParams,
+  isFreeProduct,
 } from "@/lib/checkout-math";
 
 // Shown to a *buyer*, so it never leaks the seller's setup state (missing file,
@@ -80,6 +81,11 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
     }
     if (!product.owner_id) {
       throw new Error("This product has no seller and can't be purchased.");
+    }
+    // Free products are delivered through claimFreeProduct — there's nothing to
+    // charge, and Stripe rejects a zero-amount PaymentIntent outright.
+    if (isFreeProduct(product)) {
+      throw new Error("This product is free — no payment is needed.");
     }
 
     // Belt-and-braces against the worst possible outcome on a digital-goods
