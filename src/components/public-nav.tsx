@@ -14,6 +14,9 @@ export function PublicNav() {
           <Link to="/pricing" activeProps={{ className: "text-foreground" }}>
             Pricing
           </Link>
+          <Link to="/guides" activeProps={{ className: "text-foreground" }}>
+            Guides
+          </Link>
           <Link to="/faq" activeProps={{ className: "text-foreground" }}>
             FAQ
           </Link>

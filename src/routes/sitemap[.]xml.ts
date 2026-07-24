@@ -1,7 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { BASE_URL } from "@/lib/site";
+import { GUIDES } from "@/content/guides";
 
-const STATIC_PATHS = ["/", "/pricing", "/faq", "/discover", "/terms", "/privacy", "/refund-policy"];
+const STATIC_PATHS = [
+  "/",
+  "/pricing",
+  "/guides",
+  "/faq",
+  "/discover",
+  "/terms",
+  "/privacy",
+  "/refund-policy",
+  // Guides are a real organic-search surface, so each one needs its own entry.
+  ...GUIDES.map((guide) => `/guides/${guide.slug}`),
+];
 
 export const Route = createFileRoute("/sitemap.xml")({
   server: {

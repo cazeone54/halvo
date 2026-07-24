@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as FaqRouteImport } from './routes/faq'
+import { Route as GuidesRouteImport } from './routes/guides'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -21,6 +22,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SuccessRouteImport } from './routes/success'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedDashboardRouteRouteImport } from './routes/_authenticated/dashboard/route'
+import { Route as GuidesSlugRouteImport } from './routes/guides.$slug'
 import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
@@ -51,6 +53,11 @@ const DiscoverRoute = DiscoverRouteImport.update({
 const FaqRoute = FaqRouteImport.update({
   id: '/faq',
   path: '/faq',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuidesRoute = GuidesRouteImport.update({
+  id: '/guides',
+  path: '/guides',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -94,6 +101,11 @@ const AuthenticatedDashboardRouteRoute =
     path: '/dashboard',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const GuidesSlugRoute = GuidesSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => GuidesRoute,
+} as any)
 const PSlugRoute = PSlugRouteImport.update({
   id: '/p/$slug',
   path: '/p/$slug',
@@ -167,6 +179,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/discover': typeof DiscoverRoute
   '/faq': typeof FaqRoute
+  '/guides': typeof GuidesRouteWithChildren
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
@@ -175,6 +188,7 @@ export interface FileRoutesByFullPath {
   '/success': typeof SuccessRoute
   '/terms': typeof TermsRoute
   '/dashboard': typeof AuthenticatedDashboardRouteRouteWithChildren
+  '/guides/$slug': typeof GuidesSlugRoute
   '/p/$slug': typeof PSlugRoute
   '/u/$handle': typeof UHandleRoute
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
@@ -192,6 +206,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/discover': typeof DiscoverRoute
   '/faq': typeof FaqRoute
+  '/guides': typeof GuidesRouteWithChildren
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
@@ -199,6 +214,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/success': typeof SuccessRoute
   '/terms': typeof TermsRoute
+  '/guides/$slug': typeof GuidesSlugRoute
   '/p/$slug': typeof PSlugRoute
   '/u/$handle': typeof UHandleRoute
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
@@ -218,6 +234,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/discover': typeof DiscoverRoute
   '/faq': typeof FaqRoute
+  '/guides': typeof GuidesRouteWithChildren
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
@@ -226,6 +243,7 @@ export interface FileRoutesById {
   '/success': typeof SuccessRoute
   '/terms': typeof TermsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteRouteWithChildren
+  '/guides/$slug': typeof GuidesSlugRoute
   '/p/$slug': typeof PSlugRoute
   '/u/$handle': typeof UHandleRoute
   '/_authenticated/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
@@ -245,6 +263,7 @@ export interface FileRouteTypes {
     | '/'
     | '/discover'
     | '/faq'
+    | '/guides'
     | '/login'
     | '/pricing'
     | '/privacy'
@@ -253,6 +272,7 @@ export interface FileRouteTypes {
     | '/success'
     | '/terms'
     | '/dashboard'
+    | '/guides/$slug'
     | '/p/$slug'
     | '/u/$handle'
     | '/dashboard/analytics'
@@ -270,6 +290,7 @@ export interface FileRouteTypes {
     | '/'
     | '/discover'
     | '/faq'
+    | '/guides'
     | '/login'
     | '/pricing'
     | '/privacy'
@@ -277,6 +298,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/success'
     | '/terms'
+    | '/guides/$slug'
     | '/p/$slug'
     | '/u/$handle'
     | '/dashboard/analytics'
@@ -295,6 +317,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/discover'
     | '/faq'
+    | '/guides'
     | '/login'
     | '/pricing'
     | '/privacy'
@@ -303,6 +326,7 @@ export interface FileRouteTypes {
     | '/success'
     | '/terms'
     | '/_authenticated/dashboard'
+    | '/guides/$slug'
     | '/p/$slug'
     | '/u/$handle'
     | '/_authenticated/dashboard/analytics'
@@ -322,6 +346,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   DiscoverRoute: typeof DiscoverRoute
   FaqRoute: typeof FaqRoute
+  GuidesRoute: typeof GuidesRouteWithChildren
   LoginRoute: typeof LoginRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -364,6 +389,13 @@ declare module '@tanstack/react-router' {
       path: '/faq'
       fullPath: '/faq'
       preLoaderRoute: typeof FaqRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guides': {
+      id: '/guides'
+      path: '/guides'
+      fullPath: '/guides'
+      preLoaderRoute: typeof GuidesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -421,6 +453,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/guides/$slug': {
+      id: '/guides/$slug'
+      path: '/$slug'
+      fullPath: '/guides/$slug'
+      preLoaderRoute: typeof GuidesSlugRouteImport
+      parentRoute: typeof GuidesRoute
     }
     '/p/$slug': {
       id: '/p/$slug'
@@ -549,11 +588,23 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface GuidesRouteChildren {
+  GuidesSlugRoute: typeof GuidesSlugRoute
+}
+
+const GuidesRouteChildren: GuidesRouteChildren = {
+  GuidesSlugRoute: GuidesSlugRoute,
+}
+
+const GuidesRouteWithChildren =
+  GuidesRoute._addFileChildren(GuidesRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   DiscoverRoute: DiscoverRoute,
   FaqRoute: FaqRoute,
+  GuidesRoute: GuidesRouteWithChildren,
   LoginRoute: LoginRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,

@@ -11,6 +11,7 @@ export function PublicFooter() {
         </p>
         <nav className="flex flex-wrap gap-4">
           <Link to="/pricing">Pricing</Link>
+          <Link to="/guides">Guides</Link>
           <Link to="/faq">FAQ</Link>
           <Link to="/terms">Terms</Link>
           <Link to="/privacy">Privacy</Link>

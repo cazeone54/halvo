@@ -21,6 +21,7 @@ const NAV_LINKS = [
   { to: "/dashboard/referrals", label: "Affiliate" },
   { to: "/dashboard/analytics", label: "Analytics" },
   { to: "/discover", label: "Discover" },
+  { to: "/guides", label: "Help" },
   { to: "/dashboard/settings", label: "Settings" },
 ] as const;
 

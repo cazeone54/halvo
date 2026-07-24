@@ -38,6 +38,7 @@ import { listMySales } from "@/lib/sales.functions";
 import { refundTransaction } from "@/lib/refunds.functions";
 import { getMyPlan } from "@/lib/user-plan.functions";
 import { getMyBandwidthUsage } from "@/lib/bandwidth.functions";
+import { getServerFeatures } from "@/lib/server-features.functions";
 import { createSubscriptionCheckout, createPortalSession } from "@/lib/payments.functions";
 import { generateProductCopy } from "@/lib/ai-copywriter.functions";
 import { PLAN_LABELS, PLAN_PRICE_USD, type PlanTier } from "@/lib/plans";
@@ -81,6 +82,8 @@ function DashboardHome() {
   const planQ = useQuery({ queryKey: ["my-plan"], queryFn: () => planFn() });
   const bandwidthFn = useServerFn(getMyBandwidthUsage);
   const bandwidthQ = useQuery({ queryKey: ["my-bandwidth"], queryFn: () => bandwidthFn() });
+  const featuresFn = useServerFn(getServerFeatures);
+  const featuresQ = useQuery({ queryKey: ["server-features"], queryFn: () => featuresFn() });
 
   const [checkoutTier, setCheckoutTier] = useState<PlanTier | null>(null);
   const portalMut = useMutation({
@@ -236,12 +239,15 @@ function DashboardHome() {
         onConnectStripe={() => connectMut.mutate()}
       />
 
-      {/* KPI overview */}
-      <div className="grid grid-cols-3 gap-3">
-        <StatCard icon={Wallet} label="Revenue" value={formatCents(revenueCents)} />
-        <StatCard icon={ShoppingBag} label="Sales" value={String(paidSales.length)} />
-        <StatCard icon={Package} label="Products" value={String(productCount)} />
-      </div>
+      {/* KPI overview — hidden until there's something to show. Three zeros and
+          an upgrade pitch is a deflating first screen for a new seller. */}
+      {productCount > 0 ? (
+        <div className="grid grid-cols-3 gap-3">
+          <StatCard icon={Wallet} label="Revenue" value={formatCents(revenueCents)} />
+          <StatCard icon={ShoppingBag} label="Sales" value={String(paidSales.length)} />
+          <StatCard icon={Package} label="Products" value={String(productCount)} />
+        </div>
+      ) : null}
 
       {/* Products */}
       <section className="flex flex-col gap-3">
@@ -262,7 +268,12 @@ function DashboardHome() {
       {showNewProduct ? (
         <Card>
           <CardContent className="flex flex-col gap-3 pt-6">
-            <div className="rounded-md border border-dashed border-primary/40 bg-primary/5 p-3">
+            {/* Only shown when the AI integration is actually configured —
+                otherwise this button is a dead end that errors on click. */}
+            <div
+              className="rounded-md border border-dashed border-primary/40 bg-primary/5 p-3"
+              hidden={featuresQ.data ? !featuresQ.data.ai : true}
+            >
               <Label className="flex items-center gap-1.5">
                 <Sparkles className="h-3.5 w-3.5 text-primary" />
                 AI assist — describe it roughly, get a polished name + description
@@ -401,7 +412,7 @@ function DashboardHome() {
               ) : null}
             </div>
 
-            {bandwidthQ.data ? (
+            {bandwidthQ.data && productCount > 0 ? (
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Downloads this month</span>
@@ -431,7 +442,7 @@ function DashboardHome() {
               </div>
             ) : null}
 
-            {planQ.data?.tier === "free" ? (
+            {planQ.data?.tier === "free" && productCount > 0 ? (
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" onClick={() => setCheckoutTier(checkoutTier === "creator" ? null : "creator")}>
                   Upgrade to Creator (${PLAN_PRICE_USD.creator}/mo)
