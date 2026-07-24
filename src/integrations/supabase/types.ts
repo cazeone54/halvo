@@ -236,6 +236,47 @@ export type Database = {
           },
         ];
       };
+      reviews: {
+        Row: {
+          id: string;
+          product_id: string;
+          transaction_id: string;
+          buyer_email: string;
+          rating: number;
+          body: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          product_id: string;
+          transaction_id: string;
+          buyer_email: string;
+          rating: number;
+          body?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          product_id?: string;
+          transaction_id?: string;
+          buyer_email?: string;
+          rating?: number;
+          body?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "reviews_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       sale_sources: {
         Row: {
           id: string;

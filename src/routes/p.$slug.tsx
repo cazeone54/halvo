@@ -1,6 +1,10 @@
 import { createFileRoute, notFound, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { ShieldCheck, Mail, CircleCheck, Lock, Zap, CreditCard } from "lucide-react";
 import { getProductPublicView } from "@/lib/product-public.functions";
+import { listProductReviews } from "@/lib/reviews.functions";
+import { Stars } from "@/components/stars";
 import { CheckoutWidget } from "@/components/checkout-widget";
 import { Logo, LogoMark } from "@/components/logo";
 import { BRAND_NAME, BASE_URL } from "@/lib/site";
@@ -46,6 +50,12 @@ export const Route = createFileRoute("/p/$slug")({
 
 function ProductCheckoutPage() {
   const product = Route.useLoaderData();
+  const reviewsFn = useServerFn(listProductReviews);
+  const reviewsQ = useQuery({
+    queryKey: ["product-reviews", product.id],
+    queryFn: () => reviewsFn({ data: { productId: product.id } }),
+  });
+  const summary = reviewsQ.data?.summary;
   const isFree = !product.payWhatYouWant && product.priceCents === 0;
   const priceLabel = isFree
     ? "Free"
@@ -87,12 +97,23 @@ function ProductCheckoutPage() {
             {product.description ? (
               <p className="text-sm text-muted-foreground">{product.description}</p>
             ) : null}
-            {product.salesCount > 0 ? (
-              <div className="flex w-fit items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-sm text-primary">
-                <CircleCheck className="h-4 w-4" />
-                <span className="font-medium">{product.salesCount}</span> already sold
-              </div>
-            ) : null}
+            <div className="flex flex-wrap items-center gap-2">
+              {product.salesCount > 0 ? (
+                <div className="flex w-fit items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-sm text-primary">
+                  <CircleCheck className="h-4 w-4" />
+                  <span className="font-medium">{product.salesCount}</span> already sold
+                </div>
+              ) : null}
+              {summary && summary.count > 0 ? (
+                <div className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground">
+                  <Stars value={summary.rounded} />
+                  <span className="font-medium text-foreground">{summary.average}</span>
+                  <span>
+                    ({summary.count} review{summary.count === 1 ? "" : "s"})
+                  </span>
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
 
@@ -114,6 +135,20 @@ function ProductCheckoutPage() {
           <TrustItem icon={Lock} label={isFree ? "No card needed" : "Secure checkout"} />
           <TrustItem icon={CreditCard} label={isFree ? "No payment" : "Powered by Stripe"} />
         </div>
+
+        {reviewsQ.data && reviewsQ.data.reviews.length > 0 ? (
+          <div className="rounded-2xl border bg-card p-5">
+            <p className="font-[family-name:var(--font-display)] font-semibold">What buyers say</p>
+            <div className="mt-4 flex flex-col gap-4">
+              {reviewsQ.data.reviews.slice(0, 5).map((review) => (
+                <div key={review.id} className="border-b pb-4 last:border-b-0 last:pb-0">
+                  <Stars value={review.rating} />
+                  <p className="mt-1.5 text-sm text-muted-foreground">{review.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {/* Every checkout quietly advertises the platform — the Calendly loop.
             Understated on purpose: it must never compete with the seller's own
