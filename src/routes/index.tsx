@@ -6,7 +6,7 @@ import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { PersonaMarquee } from "@/components/persona-marquee";
 import { ExplainerAnimation } from "@/components/explainer-animation";
-import { PLAN_LABELS, PLAN_PRICE_USD } from "@/lib/plans";
+import { PricingTiers } from "@/components/pricing-tiers";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -161,34 +161,64 @@ function HomePage() {
           </div>
         </section>
 
-        <section className="mx-auto grid max-w-4xl grid-cols-1 gap-4 px-4 pb-20 sm:grid-cols-2 sm:px-6">
-          {FEATURES.map((f) => (
-            <Card key={f.title} className="card-hover">
-              <CardContent className="flex gap-4 pt-6">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <f.icon className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="font-[family-name:var(--font-display)] font-semibold">{f.title}</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">{f.body}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        <section className="mx-auto max-w-4xl px-4 py-20 sm:px-6">
+          <div className="text-center">
+            <h2 className="font-[family-name:var(--font-display)] text-2xl font-semibold sm:text-3xl">
+              Everything you need to sell
+            </h2>
+            <p className="mt-2 text-muted-foreground">No plugins, no storefront to build, no code.</p>
+          </div>
+          <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {FEATURES.map((f) => (
+              <Card
+                key={f.title}
+                className="card-hover transition-transform duration-200 hover:-translate-y-1"
+              >
+                <CardContent className="flex gap-4 p-6">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20">
+                    <f.icon className="h-5 w-5" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <h3 className="font-[family-name:var(--font-display)] font-semibold">{f.title}</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">{f.body}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </section>
 
-        <section className="border-t bg-muted/30 py-16">
-          <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
-            <h2 className="font-[family-name:var(--font-display)] text-2xl font-semibold sm:text-3xl">
-              Simple pricing
-            </h2>
-            <p className="mt-2 text-muted-foreground">
-              Start free. Upgrade when you outgrow it — {PLAN_LABELS.creator} is ${PLAN_PRICE_USD.creator}/mo,{" "}
-              {PLAN_LABELS.pro} is ${PLAN_PRICE_USD.pro}/mo.
+        <section className="border-t bg-muted/30 py-20">
+          <div className="mx-auto max-w-4xl px-4 sm:px-6">
+            <div className="text-center">
+              <h2 className="font-[family-name:var(--font-display)] text-2xl font-semibold sm:text-3xl">
+                Simple pricing
+              </h2>
+              <p className="mt-2 text-muted-foreground">Start free. Upgrade when you outgrow it.</p>
+            </div>
+            <div className="mt-12">
+              <PricingTiers />
+            </div>
+            <p className="mt-10 text-center text-sm text-muted-foreground">
+              <Link to="/pricing" className="text-primary underline underline-offset-4">
+                Compare full plans
+              </Link>
             </p>
-            <Button asChild className="mt-5" variant="outline">
-              <Link to="/pricing">
-                Compare plans
+          </div>
+        </section>
+
+        {/* Closing call to action */}
+        <section className="border-t bg-primary text-primary-foreground">
+          <div className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6 sm:py-20">
+            <h2 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight sm:text-4xl">
+              Your first product can be live in five minutes.
+            </h2>
+            <p className="mx-auto mt-3 max-w-md text-primary-foreground/80">
+              Free to start, paid out to your own Stripe, and you can cancel any time.
+            </p>
+            <Button asChild size="lg" variant="secondary" className="mt-7">
+              <Link to="/login">
+                Start free
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
