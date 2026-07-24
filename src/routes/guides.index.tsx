@@ -6,7 +6,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { GUIDES, type Guide } from "@/content/guides";
 import { BRAND_NAME, BASE_URL } from "@/lib/site";
 
-export const Route = createFileRoute("/guides")({
+// Index route (guides.index.tsx), not guides.tsx — see the note in
+// blog.index.tsx. As guides.tsx it silently swallowed guides.$slug.tsx.
+export const Route = createFileRoute("/guides/")({
   head: () => ({
     meta: [
       { title: `Guides — ${BRAND_NAME}` },

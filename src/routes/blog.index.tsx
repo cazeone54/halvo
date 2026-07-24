@@ -6,7 +6,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { BLOG_POSTS } from "@/content/blog";
 import { BRAND_NAME, BASE_URL } from "@/lib/site";
 
-export const Route = createFileRoute("/blog")({
+// Must be an *index* route (blog.index.tsx), not blog.tsx. As blog.tsx it
+// became the parent layout of blog.$slug.tsx, and with no <Outlet /> the
+// article never rendered — clicking a post changed the URL and nothing else.
+export const Route = createFileRoute("/blog/")({
   head: () => ({
     meta: [
       { title: `Blog — ${BRAND_NAME}` },
