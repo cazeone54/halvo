@@ -3,6 +3,7 @@ import { z } from "zod";
 import { resolveOptionalUserId } from "@/lib/optional-auth.server";
 import { isFreeProduct } from "@/lib/checkout-math";
 import { sendPurchaseConfirmationEmail } from "@/lib/email.server";
+import { recordSaleSource } from "@/lib/record-source.server";
 
 // Claiming a free product (a lead magnet) deliberately never touches Stripe.
 // There is nothing to charge, so there is no PaymentIntent, no destination
@@ -15,6 +16,8 @@ export const claimFreeProduct = createServerFn({ method: "POST" })
       .object({
         productId: z.string().uuid(),
         buyerEmail: z.string().email(),
+        referrer: z.string().max(500).optional(),
+        utmSource: z.string().max(100).optional(),
       })
       .parse(data),
   )
@@ -86,6 +89,13 @@ export const claimFreeProduct = createServerFn({ method: "POST" })
       buyerEmail,
       productName: product.name,
       transactionId: inserted.id,
+    });
+
+    await recordSaleSource({
+      transactionId: inserted.id,
+      sellerId: product.owner_id,
+      referrer: data.referrer,
+      utmSource: data.utmSource,
     });
 
     return { transactionId: inserted.id };

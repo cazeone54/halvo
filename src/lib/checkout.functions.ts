@@ -9,6 +9,7 @@ import { resolveReferralCode } from "@/lib/referrals.functions";
 import { calcCommissionCents } from "@/lib/commission-math";
 import { computeTransactionBackfill } from "@/lib/transaction-race";
 import { sendPurchaseConfirmationEmail, sendSaleNotificationEmail } from "@/lib/email.server";
+import { recordSaleSource } from "@/lib/record-source.server";
 import {
   computeChargeAmountCents,
   isAboveMinimumCharge,
@@ -183,6 +184,8 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
         buyerEmail: z.string().email(),
         referralCode: z.string().trim().min(1).optional(),
         acknowledgedTerms: z.boolean().optional(),
+        referrer: z.string().max(500).optional(),
+        utmSource: z.string().max(100).optional(),
       })
       .parse(data),
   )
@@ -317,6 +320,15 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
         if (commissionError && commissionError.code !== "23505") throw new Error(commissionError.message);
       }
     }
+
+    // After everything that matters is committed — analytics must never be able
+    // to affect whether a paid-for purchase is recorded.
+    await recordSaleSource({
+      transactionId,
+      sellerId: product.owner_id,
+      referrer: data.referrer,
+      utmSource: data.utmSource,
+    });
 
     return { transactionId };
   });

@@ -34,10 +34,32 @@ export const getMyAnalytics = createServerFn({ method: "GET" })
       last30Days.set(day, (last30Days.get(day) ?? 0) + r.amount_paid_cents);
     }
 
+    // Where the sales came from. Read separately and defensively so the rest of
+    // the analytics page still works if migration 0009 hasn't been applied.
+    const topSources: Array<{ source: string; sales: number }> = [];
+    try {
+      const { data: sources } = await context.supabase
+        .from("sale_sources")
+        .select("source")
+        .eq("seller_id", context.userId);
+      const counts = new Map<string, number>();
+      for (const row of sources ?? []) {
+        counts.set(row.source, (counts.get(row.source) ?? 0) + 1);
+      }
+      topSources.push(
+        ...Array.from(counts.entries())
+          .map(([source, sales]) => ({ source, sales }))
+          .sort((a, b) => b.sales - a.sales),
+      );
+    } catch {
+      // Sources are a nice-to-have; never fail the whole analytics page for them.
+    }
+
     return {
       totalRevenueCents,
       totalSales,
       topProducts,
+      topSources,
       dailyRevenue: Array.from(last30Days.entries())
         .map(([day, revenueCents]) => ({ day, revenueCents }))
         .sort((a, b) => a.day.localeCompare(b.day)),

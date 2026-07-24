@@ -63,6 +63,27 @@ function AnalyticsPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle className="text-base">Where your sales came from</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2">
+          {(data?.topSources ?? []).map((s) => (
+            <div key={s.source} className="flex items-center justify-between gap-3 text-sm">
+              <span className="min-w-0 truncate capitalize">{s.source}</span>
+              <span className="shrink-0 whitespace-nowrap text-muted-foreground">
+                {s.sales} sale{s.sales === 1 ? "" : "s"}
+              </span>
+            </div>
+          ))}
+          {(data?.topSources?.length ?? 0) === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Nothing yet. Once you make a sale, this shows which link or platform sent the buyer.
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle className="text-base">Top products</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-2">

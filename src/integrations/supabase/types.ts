@@ -236,6 +236,38 @@ export type Database = {
           },
         ];
       };
+      sale_sources: {
+        Row: {
+          id: string;
+          transaction_id: string;
+          seller_id: string | null;
+          source: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          transaction_id: string;
+          seller_id?: string | null;
+          source: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          transaction_id?: string;
+          seller_id?: string | null;
+          source?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "sale_sources_transaction_id_fkey";
+            columns: ["transaction_id"];
+            isOneToOne: true;
+            referencedRelation: "transactions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       disputes: {
         Row: {
           id: string;

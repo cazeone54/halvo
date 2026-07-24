@@ -25,6 +25,15 @@ type Product = {
   payWhatYouWant: boolean;
 };
 
+// Read once, at module scope on the client, because document.referrer is only
+// meaningful for the page the buyer actually landed on — any in-app navigation
+// before checkout would otherwise overwrite it with one of our own URLs.
+function captureArrival(): { referrer?: string; utmSource?: string } {
+  if (typeof window === "undefined") return {};
+  const utmSource = new URLSearchParams(window.location.search).get("utm_source") ?? undefined;
+  return { referrer: document.referrer || undefined, utmSource: utmSource || undefined };
+}
+
 // A free product skips Stripe entirely — no payment form, no card, and the
 // seller doesn't need Connect onboarding finished for it to work.
 function FreeClaimForm({ productId }: { productId: string }) {
@@ -39,7 +48,9 @@ function FreeClaimForm({ productId }: { productId: string }) {
     setSubmitting(true);
     setError(null);
     try {
-      const { transactionId } = await claimFn({ data: { productId, buyerEmail: email } });
+      const { transactionId } = await claimFn({
+        data: { productId, buyerEmail: email, ...captureArrival() },
+      });
       navigate({ to: "/success", search: { id: transactionId } });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not get your download");
@@ -239,6 +250,7 @@ function PaymentForm({ productId, amountCents }: { productId: string; amountCent
           buyerEmail: email,
           referralCode: getActiveReferralCode() ?? undefined,
           acknowledgedTerms: acknowledged,
+          ...captureArrival(),
         },
       });
       navigate({ to: "/success", search: { id: transactionId } });
