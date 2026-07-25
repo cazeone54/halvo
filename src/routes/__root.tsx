@@ -56,13 +56,39 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       </a>
     </div>
   ),
-  errorComponent: ({ error }) => (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-2 text-center">
-      <h1 className="text-2xl font-semibold">Something went wrong</h1>
-      <p className="text-sm text-muted-foreground">{error.message}</p>
-    </div>
-  ),
+  errorComponent: ({ error, reset }) => <RootError error={error} reset={reset} />,
 });
+
+// A visitor should never see a raw exception string — it's unpolished and can
+// leak internals (a Supabase/Stripe error message). Log the detail for us, show
+// the visitor a calm message plus real ways to recover.
+function RootError({ error, reset }: { error: Error; reset: () => void }) {
+  useEffect(() => {
+    console.error("Route error:", error);
+  }, [error]);
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
+      <div>
+        <h1 className="text-2xl font-semibold">Something went wrong</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          An unexpected error occurred on our end. Please try again.
+        </p>
+      </div>
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={reset}
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+        >
+          Try again
+        </button>
+        <a href="/" className="text-sm text-primary underline underline-offset-4">
+          Go home
+        </a>
+      </div>
+    </div>
+  );
+}
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (

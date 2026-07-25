@@ -163,12 +163,19 @@ export function CheckoutWidget({ product }: { product: Product }) {
           <Label>Name your price (min ${(product.priceCents / 100).toFixed(2)})</Label>
           <Input
             type="number"
+            inputMode="decimal"
             min={product.priceCents / 100}
             step="0.01"
             defaultValue={(product.priceCents / 100).toFixed(2)}
             onBlur={(e) => {
-              const cents = Math.round(Number(e.target.value) * 100);
-              if (cents >= product.priceCents) setAmountCents(cents);
+              // Clamp up to the minimum and write it back, so the field never
+              // shows an amount we won't actually charge. Updating on blur (not
+              // on every keystroke) avoids recreating the PaymentIntent midway
+              // through typing.
+              const raw = Math.round(Number(e.target.value) * 100);
+              const clamped = Number.isFinite(raw) && raw >= product.priceCents ? raw : product.priceCents;
+              setAmountCents(clamped);
+              e.target.value = (clamped / 100).toFixed(2);
             }}
           />
         </div>
