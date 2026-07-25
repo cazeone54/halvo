@@ -7,8 +7,25 @@ import { PublicFooter } from "@/components/public-footer";
 import { PersonaMarquee } from "@/components/persona-marquee";
 import { ExplainerAnimation } from "@/components/explainer-animation";
 import { PricingTiers } from "@/components/pricing-tiers";
+import { BRAND_NAME, BASE_URL } from "@/lib/site";
 
 export const Route = createFileRoute("/")({
+  head: () => ({
+    links: [{ rel: "canonical", href: BASE_URL }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: BRAND_NAME,
+          url: BASE_URL,
+          description: `${BRAND_NAME} lets creators sell digital products with instant checkout and delivery.`,
+          logo: `${BASE_URL}/icon.svg`,
+        }),
+      },
+    ],
+  }),
   component: HomePage,
 });
 

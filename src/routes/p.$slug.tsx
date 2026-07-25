@@ -31,8 +31,25 @@ export const Route = createFileRoute("/p/$slug")({
     const imageUrl = loaderData.imageUrl ? `${BASE_URL}${loaderData.imageUrl}` : undefined;
     const url = `${BASE_URL}/p/${params.slug}`;
 
+    // Product structured data → price/availability rich results in search.
+    const jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: loaderData.name,
+      ...(loaderData.description ? { description: loaderData.description } : {}),
+      ...(imageUrl ? { image: imageUrl } : {}),
+      offers: {
+        "@type": "Offer",
+        price: (loaderData.priceCents / 100).toFixed(2),
+        priceCurrency: "USD",
+        availability: "https://schema.org/InStock",
+        url,
+      },
+    };
+
     return {
       links: [{ rel: "canonical", href: url }],
+      scripts: [{ type: "application/ld+json", children: JSON.stringify(jsonLd) }],
       meta: [
         { title },
         { name: "description", content: description },
