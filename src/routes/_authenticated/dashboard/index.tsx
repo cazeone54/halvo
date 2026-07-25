@@ -730,6 +730,9 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
 
   const [editing, setEditing] = useState(false);
   const [sharing, setSharing] = useState(false);
+  // True only for the moment a product first goes live, so the share panel can
+  // celebrate it and point at the Buy button instead of just appearing.
+  const [justPublished, setJustPublished] = useState(false);
   const [bundling, setBundling] = useState(false);
   const [editName, setEditName] = useState(product.name);
   const [editDescription, setEditDescription] = useState(product.description ?? "");
@@ -824,6 +827,7 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
       if (res?.published) {
         toast.success("Your product is live — share the link to make your first sale.");
         setSharing(true);
+        setJustPublished(true);
       } else {
         toast.success("File attached.");
       }
@@ -1100,6 +1104,14 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
 
         {sharing && product.url_slug ? (
           <div className="flex flex-col gap-3 rounded-md border p-3">
+            {justPublished ? (
+              <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
+                <p className="text-sm font-medium">🎉 You're live. Now put it in front of people.</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Drop the Buy button on your own site, or copy the direct link for anywhere else.
+                </p>
+              </div>
+            ) : null}
             <CopySnippet
               label="Direct link"
               value={buildProductLink(BASE_URL, { slug: product.url_slug, name: product.name, priceCents: product.price_cents })}
@@ -1110,7 +1122,15 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
             />
             <p className="-mt-1 text-xs text-muted-foreground">
               Paste into Webflow, Framer, WordPress, Ghost, Carrd or any site that allows custom HTML. Buyers pay in a
-              popup without leaving your page.
+              popup without leaving your page.{" "}
+              <a
+                href="/guides/add-a-buy-button-to-your-site"
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary underline underline-offset-2"
+              >
+                2-min guide
+              </a>
             </p>
             <CopySnippet
               label="Plain link button (navigates to checkout)"

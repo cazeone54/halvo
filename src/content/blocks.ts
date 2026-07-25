@@ -7,4 +7,5 @@ export type ContentBlock =
   | { type: "steps"; items: string[] }
   | { type: "ul"; items: string[] }
   | { type: "note"; text: string }
+  | { type: "code"; code: string }
   | { type: "pricing" };

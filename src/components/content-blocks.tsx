@@ -45,6 +45,14 @@ function Block({ block }: { block: ContentBlock }) {
           <p>{block.text}</p>
         </div>
       );
+    case "code":
+      // Copy-pasteable snippet (e.g. the embed button). break-all so a long
+      // URL can't force the article to scroll sideways on a phone.
+      return (
+        <pre className="mt-6 overflow-x-auto whitespace-pre-wrap break-all rounded-xl border bg-muted/40 p-4 font-mono text-[13px] leading-relaxed">
+          {block.code}
+        </pre>
+      );
     case "pricing":
       // Rendered from plans.ts so fee content can never drift from real rates.
       return (

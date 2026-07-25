@@ -282,6 +282,70 @@ export const GUIDES: Guide[] = [
       },
     ],
   },
+  {
+    slug: "add-a-buy-button-to-your-site",
+    title: "Add a Buy button to your own site",
+    description: `Sell from your Webflow, Framer, WordPress, Ghost or Carrd site with a ${BRAND_NAME} button that opens checkout right on the page.`,
+    minutes: 3,
+    category: "Growing sales",
+    body: [
+      {
+        type: "p",
+        text: "Your product link works everywhere. But on a site you control, you can do better than a link: a Buy button that opens checkout in a popup, so your visitor pays without ever leaving your page. Higher intent, fewer drop-offs.",
+      },
+      { type: "h2", text: "Copy the button" },
+      {
+        type: "steps",
+        items: [
+          "On your dashboard, open the product and click Share.",
+          "Copy the block labelled “Buy button — opens checkout over your site (recommended)”.",
+          "Paste it wherever your site accepts custom HTML.",
+        ],
+      },
+      {
+        type: "p",
+        text: "The block is just a link plus a small script. It looks like this — your dashboard fills in your real product and price:",
+      },
+      {
+        type: "code",
+        code:
+          '<a href="https://halvo.io/p/your-product"\n   data-halvo-checkout="your-product"\n   style="display:inline-block;padding:12px 24px;background:#1a7a7a;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">Buy — $19.00</a>\n<script src="https://halvo.io/embed.js" async></script>',
+      },
+      {
+        type: "note",
+        text: "It's a real link first. If a visitor has JavaScript turned off, the button still works — it just opens your checkout page normally instead of in a popup. Nothing breaks.",
+      },
+      { type: "h2", text: "Where to paste it" },
+      {
+        type: "ul",
+        items: [
+          "Webflow — add an Embed element and paste the block inside.",
+          "Framer — add an Embed / HTML component and paste it in.",
+          "WordPress — add a Custom HTML block.",
+          "Ghost — add an HTML card (the + menu in the editor).",
+          "Carrd — add an Embed element (Code type).",
+          "Any hand-built page — paste it straight into your HTML.",
+        ],
+      },
+      {
+        type: "note",
+        text: "Notion and most link-in-bio tools don't allow custom scripts. There, use the plain Direct link from the Share panel — it opens your full checkout page and works exactly the same for the buyer.",
+      },
+      { type: "h2", text: "Two small options" },
+      {
+        type: "ul",
+        items: [
+          "Add data-halvo-target=\"blank\" to the link to open checkout in a new tab instead of a popup.",
+          "Reuse the same one script line for every button on a page — you only need it once, even with several products.",
+        ],
+      },
+      { type: "h2", text: "Will the popup and wallets work?" },
+      {
+        type: "p",
+        text: "Yes. The popup is your real checkout page, so Apple Pay, Google Pay and card all work inside it, payment still routes to your own Stripe, and delivery is instant. Buyers can close the popup any time with Escape, the ✕, or by clicking outside it.",
+      },
+    ],
+  },
 ];
 
 export function findGuide(slug: string): Guide | undefined {
