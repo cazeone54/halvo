@@ -57,7 +57,7 @@ import {
 import { StripeEmbeddedCheckoutView } from "@/components/stripe-embedded-checkout";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
 import { CopySnippet } from "@/components/copy-snippet";
-import { buildProductLink, buildButtonSnippet, buildIframeSnippet } from "@/lib/share-snippets";
+import { buildProductLink, buildButtonSnippet, buildIframeSnippet, buildOverlaySnippet } from "@/lib/share-snippets";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -1105,11 +1105,19 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
               value={buildProductLink(BASE_URL, { slug: product.url_slug, name: product.name, priceCents: product.price_cents })}
             />
             <CopySnippet
-              label="Buy button (paste into any website)"
+              label="Buy button — opens checkout over your site (recommended)"
+              value={buildOverlaySnippet(BASE_URL, { slug: product.url_slug, name: product.name, priceCents: product.price_cents })}
+            />
+            <p className="-mt-1 text-xs text-muted-foreground">
+              Paste into Webflow, Framer, WordPress, Ghost, Carrd or any site that allows custom HTML. Buyers pay in a
+              popup without leaving your page.
+            </p>
+            <CopySnippet
+              label="Plain link button (navigates to checkout)"
               value={buildButtonSnippet(BASE_URL, { slug: product.url_slug, name: product.name, priceCents: product.price_cents })}
             />
             <CopySnippet
-              label="Embed checkout (iframe)"
+              label="Inline embed (iframe)"
               value={buildIframeSnippet(BASE_URL, { slug: product.url_slug, name: product.name, priceCents: product.price_cents })}
             />
           </div>

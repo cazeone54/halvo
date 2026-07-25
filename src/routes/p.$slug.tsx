@@ -17,6 +17,12 @@ export const Route = createFileRoute("/p/$slug")({
       throw notFound();
     }
   },
+  // ?embed=1 means this page is rendered inside the overlay iframe on a
+  // seller's own site (see public/embed.js). In that mode we don't want brand
+  // links to hijack the iframe — they open Halvo in a new tab instead.
+  validateSearch: (search: Record<string, unknown>): { embed?: boolean } => ({
+    embed: search.embed === "1" || search.embed === 1 || search.embed === true ? true : undefined,
+  }),
   // Per-product SEO/social metadata — every checkout page used to inherit
   // the same generic "Halvo" title/description from the root layout, so a
   // seller sharing their product link anywhere (Twitter, Slack, iMessage)
@@ -70,6 +76,7 @@ export const Route = createFileRoute("/p/$slug")({
 
 function ProductCheckoutPage() {
   const product = Route.useLoaderData();
+  const { embed } = Route.useSearch();
   const reviewsFn = useServerFn(listProductReviews);
   const reviewsQ = useQuery({
     queryKey: ["product-reviews", product.id],
@@ -86,9 +93,14 @@ function ProductCheckoutPage() {
       {/* Minimal, distraction-free header — no nav on a checkout page, just a
           brand mark and a security cue to build trust. */}
       <header className="mx-auto flex max-w-lg items-center justify-between px-4 py-4 sm:px-6">
-        <Link to="/">
+        {/* In an embedded overlay, the mark must not navigate the iframe. */}
+        {embed ? (
           <Logo markClassName="h-6 w-6" />
-        </Link>
+        ) : (
+          <Link to="/">
+            <Logo markClassName="h-6 w-6" />
+          </Link>
+        )}
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Lock className="h-3.5 w-3.5" /> Secure checkout
         </span>
@@ -172,15 +184,29 @@ function ProductCheckoutPage() {
 
         {/* Every checkout quietly advertises the platform — the Calendly loop.
             Understated on purpose: it must never compete with the seller's own
-            brand or distract from the buy button. */}
-        <Link
-          to="/"
-          className="mx-auto flex w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-        >
-          Powered by
-          <LogoMark className="h-3.5 w-3.5" />
-          <span className="font-medium">{BRAND_NAME}</span>
-        </Link>
+            brand or distract from the buy button. When embedded, open Halvo in
+            a new tab so a curious buyer discovers us without losing checkout. */}
+        {embed ? (
+          <a
+            href={BASE_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="mx-auto flex w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Powered by
+            <LogoMark className="h-3.5 w-3.5" />
+            <span className="font-medium">{BRAND_NAME}</span>
+          </a>
+        ) : (
+          <Link
+            to="/"
+            className="mx-auto flex w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Powered by
+            <LogoMark className="h-3.5 w-3.5" />
+            <span className="font-medium">{BRAND_NAME}</span>
+          </Link>
+        )}
 
         {product.refundPolicy || product.supportEmail ? (
           <div className="flex flex-col gap-2 rounded-xl border bg-card p-4 text-sm text-muted-foreground">
