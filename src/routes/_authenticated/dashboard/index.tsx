@@ -892,6 +892,7 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
               <input
                 type="file"
                 accept="image/*"
+                aria-label="Upload cover image"
                 className="hidden"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
@@ -919,23 +920,24 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
                     <ExternalLink className="h-3.5 w-3.5" /> View
                   </a>
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setSharing((v) => !v)}>
+                <Button variant="outline" size="sm" onClick={() => setSharing((v) => !v)} aria-label="Share links">
                   <Share2 className="h-3.5 w-3.5" />
                 </Button>
               </>
             ) : null}
-            <Button variant="outline" size="sm" onClick={() => setEditing((v) => !v)}>
+            <Button variant="outline" size="sm" onClick={() => setEditing((v) => !v)} aria-label="Edit product">
               <Pencil className="h-3.5 w-3.5" />
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setBundling((v) => !v)}
-              title="Bundle other products into this one"
+              aria-label="Bundle and order bump"
+              title="Bundle other products or add an order bump"
             >
               <Layers className="h-3.5 w-3.5" />
             </Button>
-            <Button variant="destructive" size="sm" onClick={onDelete}>
+            <Button variant="destructive" size="sm" onClick={onDelete} aria-label="Delete product">
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -1130,6 +1132,7 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
               browser control sitting in an otherwise designed card. */}
           <input
             type="file"
+            aria-label="Upload the file buyers receive"
             className="w-full min-w-0 text-sm text-muted-foreground file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-secondary-foreground hover:file:bg-secondary/80"
             onChange={(e) => {
               const file = e.target.files?.[0];
