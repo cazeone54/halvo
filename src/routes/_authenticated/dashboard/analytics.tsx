@@ -49,6 +49,23 @@ function AnalyticsPage() {
         Analytics
       </h1>
 
+      {analyticsQ.isLoading ? (
+        // Don't flash $0.00 / "no sales" at a seller who has revenue — show a
+        // skeleton until the real numbers arrive.
+        <div className="flex flex-col gap-6">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="h-24 animate-pulse rounded-lg bg-muted" />
+            <div className="h-24 animate-pulse rounded-lg bg-muted" />
+          </div>
+          <div className="h-52 animate-pulse rounded-lg bg-muted" />
+          <div className="h-32 animate-pulse rounded-lg bg-muted" />
+        </div>
+      ) : analyticsQ.isError ? (
+        <p className="text-sm text-muted-foreground">
+          We couldn't load your analytics just now. Refresh the page to try again.
+        </p>
+      ) : (
+        <>
       <div className="grid grid-cols-2 gap-3">
         <Card>
           <CardContent className="flex flex-col gap-1 p-4 sm:p-5">
@@ -121,6 +138,8 @@ function AnalyticsPage() {
           ) : null}
         </CardContent>
       </Card>
+        </>
+      )}
     </div>
   );
 }

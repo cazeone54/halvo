@@ -72,7 +72,18 @@ function CustomersPage() {
       ) : null}
 
       <div className="flex flex-col gap-2">
-        {filtered.map((c) => (
+        {customersQ.isLoading ? (
+          <>
+            <div className="h-16 animate-pulse rounded-lg bg-muted" />
+            <div className="h-16 animate-pulse rounded-lg bg-muted" />
+          </>
+        ) : customersQ.isError ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            We couldn't load your customers just now. Refresh to try again.
+          </p>
+        ) : (
+          <>
+            {filtered.map((c) => (
           <Card key={c.email} className="card-hover">
             <CardContent className="flex flex-col gap-2 pt-6 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
@@ -86,14 +97,18 @@ function CustomersPage() {
           </Card>
         ))}
 
-        {all.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-10 text-center">
-            <Users className="h-8 w-8 text-muted-foreground/50" />
-            <p className="text-sm text-muted-foreground">No customers yet — they'll appear here after your first sale.</p>
-          </div>
-        ) : filtered.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">No emails match “{search}”.</p>
-        ) : null}
+            {all.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-10 text-center">
+                <Users className="h-8 w-8 text-muted-foreground/50" />
+                <p className="text-sm text-muted-foreground">
+                  No customers yet — they'll appear here after your first sale.
+                </p>
+              </div>
+            ) : filtered.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">No emails match “{search}”.</p>
+            ) : null}
+          </>
+        )}
       </div>
 
       <p className="text-xs text-muted-foreground">

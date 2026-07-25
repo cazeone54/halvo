@@ -16,6 +16,7 @@ import { formatCents } from "@/lib/format";
 import { BASE_URL } from "@/lib/site";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CopySnippet } from "@/components/copy-snippet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/dashboard/referrals")({
@@ -122,10 +123,10 @@ function ReferralsPage() {
         </CardHeader>
         <CardContent>
           {platformCode ? (
-            <code className="block break-all text-sm">{linkFor(platformCode.code)}</code>
+            <CopySnippet label="Share this link to earn on any sale" value={linkFor(platformCode.code)} />
           ) : (
             <Button size="sm" onClick={() => ensureMut.mutate()} disabled={ensureMut.isPending}>
-              Generate link
+              {ensureMut.isPending ? "Generating…" : "Generate link"}
             </Button>
           )}
         </CardContent>
@@ -165,12 +166,11 @@ function ReferralsPage() {
           {productCodes.map((c) => {
             const product = products.find((p) => p.id === c.product_id);
             return (
-              <div key={c.id} className="text-sm">
-                <span className="font-medium">{product?.name ?? "Unknown"}</span>
-                <code className="block break-all text-muted-foreground">
-                  {linkFor(c.code, product?.url_slug ?? undefined)}
-                </code>
-              </div>
+              <CopySnippet
+                key={c.id}
+                label={product?.name ?? "Unknown product"}
+                value={linkFor(c.code, product?.url_slug ?? undefined)}
+              />
             );
           })}
           {productCodes.length === 0 ? (
