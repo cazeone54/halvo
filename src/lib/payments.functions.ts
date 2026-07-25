@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getStripeClient, getStripeErrorMessage } from "@/lib/stripe.server";
-import { STRIPE_PRICE_IDS } from "@/lib/plans";
+import { STRIPE_PRICE_IDS, STRIPE_PRICE_IDS_ANNUAL } from "@/lib/plans";
 import { BASE_URL } from "@/lib/site";
 import type Stripe from "stripe";
 
@@ -24,9 +24,15 @@ async function resolveOrCreateCustomer(stripe: Stripe, userId: string, email: st
 
 export const createSubscriptionCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((data) => z.object({ tier: z.enum(["creator", "pro"]) }).parse(data))
+  .validator((data) =>
+    z.object({ tier: z.enum(["creator", "pro"]), interval: z.enum(["month", "year"]).optional() }).parse(data),
+  )
   .handler(async ({ data, context }) => {
     const stripe = getStripeClient();
+
+    const priceId =
+      data.interval === "year" ? STRIPE_PRICE_IDS_ANNUAL[data.tier] : STRIPE_PRICE_IDS[data.tier];
+    if (!priceId) throw new Error("Annual billing isn't available yet.");
 
     const { data: existingSub } = await context.supabase
       .from("subscriptions")
@@ -46,7 +52,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
         customer: customerId,
         mode: "subscription",
         ui_mode: "embedded",
-        line_items: [{ price: STRIPE_PRICE_IDS[data.tier], quantity: 1 }],
+        line_items: [{ price: priceId, quantity: 1 }],
         subscription_data: { metadata: { userId: context.userId } },
         return_url: `${BASE_URL}/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       });

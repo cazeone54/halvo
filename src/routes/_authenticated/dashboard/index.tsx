@@ -47,7 +47,13 @@ import { getBumpEditor, setProductBump, removeProductBump } from "@/lib/bumps.fu
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createSubscriptionCheckout, createPortalSession } from "@/lib/payments.functions";
 import { generateProductCopy } from "@/lib/ai-copywriter.functions";
-import { PLAN_LABELS, PLAN_PRICE_USD, type PlanTier } from "@/lib/plans";
+import {
+  PLAN_LABELS,
+  PLAN_PRICE_USD,
+  PLAN_PRICE_ANNUAL_USD,
+  annualBillingConfigured,
+  type PlanTier,
+} from "@/lib/plans";
 import { StripeEmbeddedCheckoutView } from "@/components/stripe-embedded-checkout";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
 import { CopySnippet } from "@/components/copy-snippet";
@@ -94,6 +100,7 @@ function DashboardHome() {
   const featuresQ = useQuery({ queryKey: ["server-features"], queryFn: () => featuresFn() });
 
   const [checkoutTier, setCheckoutTier] = useState<PlanTier | null>(null);
+  const [billingInterval, setBillingInterval] = useState<"month" | "year">("month");
   const portalMut = useMutation({
     mutationFn: () => portalFn(),
     onSuccess: (res) => {
@@ -561,20 +568,49 @@ function DashboardHome() {
             ) : null}
 
             {planQ.data?.tier === "free" && productCount > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" onClick={() => setCheckoutTier(checkoutTier === "creator" ? null : "creator")}>
-                  Upgrade to Creator (${PLAN_PRICE_USD.creator}/mo)
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => setCheckoutTier(checkoutTier === "pro" ? null : "pro")}>
-                  Upgrade to Pro (${PLAN_PRICE_USD.pro}/mo)
-                </Button>
+              <div className="flex flex-col gap-2">
+                {annualBillingConfigured() ? (
+                  <div className="flex w-fit gap-1 rounded-full border p-0.5 text-xs">
+                    {(["month", "year"] as const).map((iv) => (
+                      <button
+                        key={iv}
+                        type="button"
+                        onClick={() => {
+                          setBillingInterval(iv);
+                          setCheckoutTier(null);
+                        }}
+                        className={cn(
+                          "rounded-full px-3 py-1 font-medium transition-colors",
+                          billingInterval === iv ? "bg-primary text-primary-foreground" : "text-muted-foreground",
+                        )}
+                      >
+                        {iv === "month" ? "Monthly" : "Annual · 2 months free"}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" onClick={() => setCheckoutTier(checkoutTier === "creator" ? null : "creator")}>
+                    Upgrade to Creator (
+                    {billingInterval === "year"
+                      ? `$${PLAN_PRICE_ANNUAL_USD.creator}/yr`
+                      : `$${PLAN_PRICE_USD.creator}/mo`}
+                    )
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setCheckoutTier(checkoutTier === "pro" ? null : "pro")}>
+                    Upgrade to Pro (
+                    {billingInterval === "year" ? `$${PLAN_PRICE_ANNUAL_USD.pro}/yr` : `$${PLAN_PRICE_USD.pro}/mo`})
+                  </Button>
+                </div>
               </div>
             ) : null}
 
             {checkoutTier ? (
               <StripeEmbeddedCheckoutView
                 fetchClientSecret={async () => {
-                  const res = await subscriptionCheckoutFn({ data: { tier: checkoutTier } });
+                  const res = await subscriptionCheckoutFn({
+                    data: { tier: checkoutTier, interval: billingInterval },
+                  });
                   if (!res.clientSecret) throw new Error("Could not start checkout");
                   return res.clientSecret;
                 }}

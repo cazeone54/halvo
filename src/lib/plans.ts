@@ -69,6 +69,26 @@ export const PLAN_PRICE_USD: Record<Exclude<PlanTier, "free">, number> = {
   pro: 24,
 };
 
+// Annual pricing = 2 months free (10x the monthly price). Cheaper for the
+// seller, and it gives the platform a year of cash up front plus far better
+// retention.
+export const PLAN_PRICE_ANNUAL_USD: Record<Exclude<PlanTier, "free">, number> = {
+  creator: 100,
+  pro: 240,
+};
+
+// Fill these in from the annual Stripe Prices (create them in the Stripe
+// dashboard alongside the monthly ones). While they're empty, annual billing is
+// simply not offered anywhere — nothing misleading is shown.
+export const STRIPE_PRICE_IDS_ANNUAL: Record<Exclude<PlanTier, "free">, string> = {
+  creator: "",
+  pro: "",
+};
+
+export function annualBillingConfigured(): boolean {
+  return STRIPE_PRICE_IDS_ANNUAL.creator !== "" && STRIPE_PRICE_IDS_ANNUAL.pro !== "";
+}
+
 // Real Stripe Price IDs for this Halvo project (test mode). Not secret —
 // price IDs are safe to reference client-side, same as Kitsly's own pattern.
 export const STRIPE_PRICE_IDS: Record<Exclude<PlanTier, "free">, string> = {
@@ -81,8 +101,17 @@ export const STRIPE_PRICE_IDS: Record<Exclude<PlanTier, "free">, string> = {
 // Stripe misconfiguration. An unrecognized price here just means Free.
 export function tierFromPriceId(priceId: string | null | undefined): PlanTier {
   if (!priceId) return "free";
-  if (priceId === STRIPE_PRICE_IDS.pro) return "pro";
-  if (priceId === STRIPE_PRICE_IDS.creator) return "creator";
+  // Both the monthly and the annual price for a tier resolve to that tier. The
+  // annual guards are so an empty (unconfigured) annual id can't match anything.
+  if (priceId === STRIPE_PRICE_IDS.pro || (STRIPE_PRICE_IDS_ANNUAL.pro && priceId === STRIPE_PRICE_IDS_ANNUAL.pro)) {
+    return "pro";
+  }
+  if (
+    priceId === STRIPE_PRICE_IDS.creator ||
+    (STRIPE_PRICE_IDS_ANNUAL.creator && priceId === STRIPE_PRICE_IDS_ANNUAL.creator)
+  ) {
+    return "creator";
+  }
   return "free";
 }
 
