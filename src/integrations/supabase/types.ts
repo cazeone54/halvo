@@ -236,6 +236,60 @@ export type Database = {
           },
         ];
       };
+      product_bumps: {
+        Row: {
+          id: string;
+          product_id: string;
+          bump_product_id: string;
+          price_cents: number;
+          owner_id: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          product_id: string;
+          bump_product_id: string;
+          price_cents: number;
+          owner_id: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          product_id?: string;
+          bump_product_id?: string;
+          price_cents?: number;
+          owner_id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      transaction_bumps: {
+        Row: {
+          id: string;
+          transaction_id: string;
+          bump_product_id: string;
+          price_cents: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          transaction_id: string;
+          bump_product_id: string;
+          price_cents: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          transaction_id?: string;
+          bump_product_id?: string;
+          price_cents?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       bundle_items: {
         Row: {
           id: string;

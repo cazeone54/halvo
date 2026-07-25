@@ -17,6 +17,7 @@ import {
   computeRequiredMinCents,
   buildDestinationChargeParams,
   isFreeProduct,
+  composeChargeAmount,
 } from "@/lib/checkout-math";
 
 // Shown to a *buyer*, so it never leaks the seller's setup state (missing file,
@@ -67,6 +68,9 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
         amountCents: z.number().int().positive().optional(),
         couponCode: z.string().trim().min(1).optional(),
         referralCode: z.string().trim().min(1).optional(),
+        // The buyer either took the order bump or didn't — a boolean. The price
+        // is NEVER accepted from the client; it's resolved from product_bumps.
+        bumpTaken: z.boolean().optional(),
       })
       .parse(data),
   )
@@ -128,6 +132,28 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
       chargeAmountCents = applyCouponDiscount(chargeAmountCents, coupon);
     }
 
+    // Order bump: resolve its price server-side and add it after the coupon,
+    // so a coupon can't also discount the (already-discounted) add-on. Stamped
+    // into metadata as the source of truth, exactly like the coupon and
+    // referral, so the recorded amount and the delivered files agree.
+    let bumpProductId: string | null = null;
+    let bumpPriceCents = 0;
+    if (data.bumpTaken) {
+      const { data: bump } = await supabaseAdmin
+        .from("product_bumps")
+        .select("bump_product_id, price_cents")
+        .eq("product_id", product.id)
+        .maybeSingle();
+      if (bump) {
+        bumpProductId = bump.bump_product_id;
+        bumpPriceCents = Math.max(0, bump.price_cents);
+        chargeAmountCents = composeChargeAmount({
+          baseAfterCouponCents: chargeAmountCents,
+          bumpPriceCents,
+        });
+      }
+    }
+
     if (!isAboveMinimumCharge(chargeAmountCents)) {
       throw new Error("The charge amount is below the minimum allowed.");
     }
@@ -158,6 +184,7 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
           product_name: product.name,
           ...(data.couponCode ? { coupon_code: data.couponCode.toUpperCase() } : {}),
           ...(referralCodeForMetadata ? { referral_code: referralCodeForMetadata } : {}),
+          ...(bumpProductId ? { bump_product_id: bumpProductId, bump_price_cents: String(bumpPriceCents) } : {}),
         },
         ...buildDestinationChargeParams(
           chargeAmountCents,
@@ -284,6 +311,21 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
         productName: product.name,
         amountCents: intent.amount_received,
       });
+    }
+
+    // Order bump: read from the PaymentIntent metadata (the amount we actually
+    // charged for), not the client. Unique on transaction_id, so idempotent
+    // across the webhook race. This is also what makes the bump's files get
+    // delivered — see downloads.functions.ts.
+    const bumpProductIdMeta = intent.metadata?.bump_product_id as string | undefined;
+    if (bumpProductIdMeta) {
+      const bumpPrice = Number(intent.metadata?.bump_price_cents ?? "0");
+      const { error: bumpError } = await supabaseAdmin.from("transaction_bumps").insert({
+        transaction_id: transactionId,
+        bump_product_id: bumpProductIdMeta,
+        price_cents: Number.isFinite(bumpPrice) ? Math.max(0, Math.round(bumpPrice)) : 0,
+      });
+      if (bumpError && bumpError.code !== "23505") throw new Error(bumpError.message);
     }
 
     // coupon_redemptions has a unique constraint on transaction_id, so this

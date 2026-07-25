@@ -43,6 +43,7 @@ import { getMyBandwidthUsage } from "@/lib/bandwidth.functions";
 import { getServerFeatures } from "@/lib/server-features.functions";
 import { describeConnectStatus } from "@/lib/stripe-requirements";
 import { getBundleEditor, addBundleItem, removeBundleItem } from "@/lib/bundles.functions";
+import { getBumpEditor, setProductBump, removeProductBump } from "@/lib/bumps.functions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createSubscriptionCheckout, createPortalSession } from "@/lib/payments.functions";
 import { generateProductCopy } from "@/lib/ai-copywriter.functions";
@@ -732,6 +733,36 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const bumpEditorFn = useServerFn(getBumpEditor);
+  const setBumpFn = useServerFn(setProductBump);
+  const removeBumpFn = useServerFn(removeProductBump);
+  const [bumpPick, setBumpPick] = useState("");
+  const [bumpPrice, setBumpPrice] = useState("");
+  const bumpQ = useQuery({
+    queryKey: ["bump-editor", product.id],
+    queryFn: () => bumpEditorFn({ data: { productId: product.id } }),
+    enabled: bundling,
+  });
+  const setBumpMut = useMutation({
+    mutationFn: (vars: { bumpProductId: string; priceCents: number }) =>
+      setBumpFn({ data: { productId: product.id, ...vars } }),
+    onSuccess: () => {
+      toast.success("Order bump set.");
+      setBumpPick("");
+      setBumpPrice("");
+      qc.invalidateQueries({ queryKey: ["bump-editor", product.id] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const removeBumpMut = useMutation({
+    mutationFn: () => removeBumpFn({ data: { productId: product.id } }),
+    onSuccess: () => {
+      toast.success("Order bump removed.");
+      qc.invalidateQueries({ queryKey: ["bump-editor", product.id] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const attachMut = useMutation({
     mutationFn: async (file: File) => {
       // Checked before uploading any bytes — the client uploads straight to
@@ -962,6 +993,70 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
                 Create another product first, then you can bundle it in here.
               </p>
             )}
+
+            {/* Order bump — a one-click add-on offered on THIS product's
+                checkout, priced independently of the add-on's own list price. */}
+            <div className="mt-2 border-t pt-3">
+              <p className="text-sm font-medium">Order bump</p>
+              <p className="text-xs text-muted-foreground">
+                Offer one of your other products as a one-click add-on at checkout.
+              </p>
+              {bumpQ.data?.current ? (
+                <div className="mt-2 flex items-center justify-between gap-2 text-sm">
+                  <span className="min-w-0 truncate">
+                    {bumpQ.data.available.find((p) => p.id === bumpQ.data?.current?.bumpProductId)?.name ??
+                      "Selected product"}{" "}
+                    <span className="text-muted-foreground">
+                      at ${((bumpQ.data.current.priceCents ?? 0) / 100).toFixed(2)}
+                    </span>
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeBumpMut.mutate()}
+                    disabled={removeBumpMut.isPending}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ) : (bumpQ.data?.available.length ?? 0) > 0 ? (
+                <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                  <Select value={bumpPick} onValueChange={setBumpPick}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Product to offer…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {bumpQ.data?.available.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className="sm:w-28"
+                    placeholder="Price"
+                    value={bumpPrice}
+                    onChange={(e) => setBumpPrice(e.target.value)}
+                  />
+                  <Button
+                    disabled={!bumpPick || !bumpPrice || setBumpMut.isPending}
+                    onClick={() => {
+                      if (bumpPick && bumpPrice) {
+                        setBumpMut.mutate({ bumpProductId: bumpPick, priceCents: Math.round(Number(bumpPrice) * 100) });
+                      }
+                    }}
+                  >
+                    Set
+                  </Button>
+                </div>
+              ) : (
+                <p className="mt-2 text-xs text-muted-foreground">Create another product to offer as a bump.</p>
+              )}
+            </div>
           </div>
         ) : null}
 

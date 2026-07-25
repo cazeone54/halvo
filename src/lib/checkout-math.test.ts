@@ -6,6 +6,7 @@ import {
   computeRequiredMinCents,
   buildDestinationChargeParams,
   isFreeProduct,
+  composeChargeAmount,
 } from "@/lib/checkout-math";
 import { MIN_CHARGE_CENTS } from "@/lib/fees";
 import { calcPlatformFeeCents } from "@/lib/plans";
@@ -81,6 +82,22 @@ describe("computeRequiredMinCents", () => {
     const product = { price_cents: 2000, pay_what_you_want: false };
     const coupon = { percent_off: 100, amount_off_cents: null };
     expect(computeRequiredMinCents(product, coupon)).toBe(MIN_CHARGE_CENTS);
+  });
+});
+
+describe("composeChargeAmount", () => {
+  it("adds the bump price to the discounted base", () => {
+    expect(composeChargeAmount({ baseAfterCouponCents: 1900, bumpPriceCents: 900 })).toBe(2800);
+  });
+
+  it("is just the base when no bump was taken", () => {
+    expect(composeChargeAmount({ baseAfterCouponCents: 1900 })).toBe(1900);
+    expect(composeChargeAmount({ baseAfterCouponCents: 1900, bumpPriceCents: 0 })).toBe(1900);
+  });
+
+  it("never lets a negative value reduce the charge", () => {
+    expect(composeChargeAmount({ baseAfterCouponCents: 1900, bumpPriceCents: -500 })).toBe(1900);
+    expect(composeChargeAmount({ baseAfterCouponCents: -1900, bumpPriceCents: 900 })).toBe(900);
   });
 });
 

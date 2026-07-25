@@ -46,6 +46,17 @@ export function computeRequiredMinCents(product: ProductPricing, coupon: CouponD
   return applyCouponDiscount(base, coupon);
 }
 
+// Final amount to charge: the base (already floored for pay-what-you-want and
+// already discounted by any coupon) plus an order bump if one was taken. The
+// bump is deliberately added *after* the coupon — a bump is already a discounted
+// add-on, so stacking a coupon on top of it would erode the seller's margin
+// twice on the same checkout.
+export function composeChargeAmount(input: { baseAfterCouponCents: number; bumpPriceCents?: number }): number {
+  const base = Math.max(0, input.baseAfterCouponCents);
+  const bump = Math.max(0, input.bumpPriceCents ?? 0);
+  return base + bump;
+}
+
 export type DestinationChargeParams = {
   amount: number;
   application_fee_amount: number;

@@ -11,7 +11,9 @@ import { Lock } from "lucide-react";
 import { getStripe } from "@/lib/stripe";
 import { createProductPaymentIntent, recordSuccessfulTransaction } from "@/lib/checkout.functions";
 import { claimFreeProduct } from "@/lib/free-claim.functions";
+import { getProductBump } from "@/lib/bumps.functions";
 import { isFreeProduct } from "@/lib/checkout-math";
+import { useQuery } from "@tanstack/react-query";
 import { applyCouponPreview } from "@/lib/coupons.functions";
 import { getActiveReferralCode } from "@/lib/referral-attribution";
 import { Button } from "@/components/ui/button";
@@ -87,29 +89,39 @@ export function CheckoutWidget({ product }: { product: Product }) {
   const [couponLoading, setCouponLoading] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [bumpTaken, setBumpTaken] = useState(false);
   const createIntentFn = useServerFn(createProductPaymentIntent);
   const previewCouponFn = useServerFn(applyCouponPreview);
+  const bumpFn = useServerFn(getProductBump);
   const free = isFreeProduct({ price_cents: product.priceCents, pay_what_you_want: product.payWhatYouWant });
+
+  const bumpQ = useQuery({
+    queryKey: ["product-bump", product.id],
+    queryFn: () => bumpFn({ data: { productId: product.id } }),
+    enabled: !free,
+  });
+  const bump = bumpQ.data;
 
   useEffect(() => {
     if (free) return; // nothing to charge, so never create a PaymentIntent
     setClientSecret(null);
     setError(null);
-    // The referral code must go in at intent time — that's where the affiliate
-    // commission is withheld from the sale.
+    // The referral code and bump both go in at intent time — that's where the
+    // affiliate commission is withheld and where the bump price is resolved.
     createIntentFn({
       data: {
         productId: product.id,
         amountCents,
         couponCode: appliedCoupon?.code,
         referralCode: getActiveReferralCode() ?? undefined,
+        bumpTaken,
       },
     })
       .then((res) => setClientSecret(res.clientSecret ?? null))
       .catch((e: Error) => setError(e.message));
-    // Recreate the intent whenever the pay-what-you-want amount or applied coupon changes.
+    // Recreate the intent whenever amount, coupon or the bump selection changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product.id, amountCents, appliedCoupon?.code, free]);
+  }, [product.id, amountCents, appliedCoupon?.code, free, bumpTaken]);
 
   if (free) return <FreeClaimForm productId={product.id} />;
 
@@ -141,7 +153,8 @@ export function CheckoutWidget({ product }: { product: Product }) {
     );
   }
 
-  const displayAmountCents = appliedCoupon?.discountedAmountCents ?? amountCents;
+  const baseAmountCents = appliedCoupon?.discountedAmountCents ?? amountCents;
+  const displayAmountCents = baseAmountCents + (bumpTaken && bump ? bump.priceCents : 0);
 
   return (
     <div className="flex flex-col gap-4">
@@ -197,6 +210,26 @@ export function CheckoutWidget({ product }: { product: Product }) {
           </p>
         ) : null}
       </div>
+
+      {bump ? (
+        <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-primary/40 bg-primary/5 p-3">
+          <input
+            type="checkbox"
+            className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+            checked={bumpTaken}
+            onChange={(e) => setBumpTaken(e.target.checked)}
+          />
+          <span className="min-w-0">
+            <span className="flex flex-wrap items-center gap-x-2 text-sm font-medium">
+              Add {bump.name}
+              <span className="text-primary">+${(bump.priceCents / 100).toFixed(2)}</span>
+            </span>
+            {bump.description ? (
+              <span className="mt-0.5 block text-xs text-muted-foreground">{bump.description}</span>
+            ) : null}
+          </span>
+        </label>
+      ) : null}
 
       {clientSecret ? (
         <Elements stripe={getStripe()} options={{ clientSecret, appearance: { theme: "stripe" } }}>

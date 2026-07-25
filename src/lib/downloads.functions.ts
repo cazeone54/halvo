@@ -54,13 +54,28 @@ export const getDownloadUrlForTransaction = createServerFn({ method: "GET" })
       throw new Error("This purchase could not be verified.");
     }
 
-    // Includes anything bundled into this product, so a bundle purchase
-    // delivers every file the buyer paid for.
-    const deliverableIds = await resolveDeliverableProductIds(supabaseAdmin, transaction.product_id);
+    // Everything this purchase is entitled to: the product, anything bundled
+    // into it, and an order bump if one was taken. Bump lookup is defensive so
+    // delivery still works if migration 0012 isn't applied.
+    const deliverableIds = new Set(await resolveDeliverableProductIds(supabaseAdmin, transaction.product_id));
+    try {
+      const { data: bump } = await supabaseAdmin
+        .from("transaction_bumps")
+        .select("bump_product_id")
+        .eq("transaction_id", transaction.id)
+        .maybeSingle();
+      if (bump) {
+        for (const id of await resolveDeliverableProductIds(supabaseAdmin, bump.bump_product_id)) {
+          deliverableIds.add(id);
+        }
+      }
+    } catch {
+      // No bump table yet — deliver the base product's files as before.
+    }
     const { data: files, error: filesError } = await supabaseAdmin
       .from("product_files")
       .select("id, file_name, storage_file_path, size_bytes")
-      .in("product_id", deliverableIds);
+      .in("product_id", Array.from(deliverableIds));
     if (filesError) throw new Error(filesError.message);
 
     // Record the access — evidence if disputed, and the bytes/seller for
