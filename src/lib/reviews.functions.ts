@@ -46,7 +46,14 @@ export const submitReview = createServerFn({ method: "POST" })
       },
       { onConflict: "transaction_id" },
     );
-    if (upsertError) throw new Error(upsertError.message);
+    if (upsertError) {
+      // Before migration 0010 is applied the table doesn't exist. Never show a
+      // buyer a raw "schema cache" error on the success page — translate it.
+      if (upsertError.code === "42P01" || /schema cache|could not find the table/i.test(upsertError.message)) {
+        throw new Error("Reviews aren't available just yet — thanks anyway!");
+      }
+      throw new Error(upsertError.message);
+    }
 
     return { ok: true };
   });

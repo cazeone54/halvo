@@ -20,6 +20,7 @@ const NAV_LINKS = [
   { to: "/dashboard/discounts", label: "Discounts" },
   { to: "/dashboard/referrals", label: "Affiliate" },
   { to: "/dashboard/analytics", label: "Analytics" },
+  { to: "/dashboard/customers", label: "Customers" },
   { to: "/discover", label: "Discover" },
   { to: "/guides", label: "Help" },
   { to: "/dashboard/settings", label: "Settings" },
