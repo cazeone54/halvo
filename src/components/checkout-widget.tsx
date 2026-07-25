@@ -251,6 +251,11 @@ function PaymentForm({ productId, amountCents }: { productId: string; amountCent
   const [acknowledged, setAcknowledged] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The payment succeeded at Stripe but we couldn't hand the buyer their
+  // download link (a transient error recording the order). The server-side
+  // webhook still records the sale and emails the link, so this is NOT a
+  // failure the buyer should retry — reassure them instead of re-arming Pay.
+  const [paidPendingDelivery, setPaidPendingDelivery] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -275,23 +280,42 @@ function PaymentForm({ productId, amountCents }: { productId: string; amountCent
       return;
     }
 
-    try {
-      const { transactionId } = await recordFn({
-        data: {
-          paymentIntentId: paymentIntent.id,
-          productId,
-          buyerEmail: email,
-          referralCode: getActiveReferralCode() ?? undefined,
-          acknowledgedTerms: acknowledged,
-          ...captureArrival(),
-        },
-      });
-      navigate({ to: "/success", search: { id: transactionId } });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not record purchase");
-      setSubmitting(false);
+    // From here on the buyer HAS been charged. A retry (with a one-off retry
+    // for a flaky connection) gets them to /success; if it still fails, we
+    // show the reassurance panel rather than an alarming error + Pay button.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const { transactionId } = await recordFn({
+          data: {
+            paymentIntentId: paymentIntent.id,
+            productId,
+            buyerEmail: email,
+            referralCode: getActiveReferralCode() ?? undefined,
+            acknowledgedTerms: acknowledged,
+            ...captureArrival(),
+          },
+        });
+        navigate({ to: "/success", search: { id: transactionId } });
+        return;
+      } catch {
+        if (attempt === 0) continue;
+        setPaidPendingDelivery(true);
+        setSubmitting(false);
+      }
     }
   };
+
+  if (paidPendingDelivery) {
+    return (
+      <div className="rounded-lg border border-primary/30 bg-primary/5 p-5 text-center">
+        <p className="text-sm font-medium">Payment received — you're all set.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          We're emailing your download link to <span className="font-medium text-foreground">{email}</span> now.
+          It can take a minute to arrive; check your spam folder if you don't see it.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
