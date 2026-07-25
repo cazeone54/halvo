@@ -1,21 +1,46 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, Wallet, ShoppingBag } from "lucide-react";
 import { getMyAnalytics } from "@/lib/analytics.functions";
 import { formatCents } from "@/lib/format";
+import { RevenueChart } from "@/components/revenue-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const Route = createFileRoute("/_authenticated/dashboard/analytics")({
   component: AnalyticsPage,
 });
 
+// A labelled horizontal bar: identity on the left, a magnitude bar filling to
+// the row's share of the max, value on the right. Bar is the only colour; text
+// stays in ink tokens.
+function BarRow({ label, value, fraction, sublabel }: { label: string; value: string; fraction: number; sublabel?: string }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-baseline justify-between gap-3 text-sm">
+        <span className="min-w-0 truncate capitalize">{label}</span>
+        <span className="shrink-0 whitespace-nowrap text-muted-foreground">
+          {value}
+          {sublabel ? <span className="ml-1">{sublabel}</span> : null}
+        </span>
+      </div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-full rounded-full bg-primary"
+          style={{ width: `${Math.max(2, Math.min(100, fraction * 100))}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function AnalyticsPage() {
   const analyticsFn = useServerFn(getMyAnalytics);
   const analyticsQ = useQuery({ queryKey: ["my-analytics"], queryFn: () => analyticsFn() });
   const data = analyticsQ.data;
 
-  const maxDaily = Math.max(1, ...(data?.dailyRevenue.map((d) => d.revenueCents) ?? [0]));
+  const topProductMax = Math.max(1, ...(data?.topProducts.map((p) => p.revenueCents) ?? [0]));
+  const topSourceMax = Math.max(1, ...(data?.topSources.map((s) => s.sales) ?? [0]));
 
   return (
     <div className="flex flex-col gap-6">
@@ -26,15 +51,23 @@ function AnalyticsPage() {
 
       <div className="grid grid-cols-2 gap-3">
         <Card>
-          <CardContent className="pt-6">
-            <p className="text-xs text-muted-foreground">Total revenue</p>
-            <p className="text-xl font-semibold">{formatCents(data?.totalRevenueCents ?? 0)}</p>
+          <CardContent className="flex flex-col gap-1 p-4 sm:p-5">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <Wallet className="h-3.5 w-3.5" /> Total revenue
+            </div>
+            <p className="font-[family-name:var(--font-display)] text-xl font-bold tracking-tight tabular-nums sm:text-2xl">
+              {formatCents(data?.totalRevenueCents ?? 0)}
+            </p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-6">
-            <p className="text-xs text-muted-foreground">Total sales</p>
-            <p className="text-xl font-semibold">{data?.totalSales ?? 0}</p>
+          <CardContent className="flex flex-col gap-1 p-4 sm:p-5">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <ShoppingBag className="h-3.5 w-3.5" /> Total sales
+            </div>
+            <p className="font-[family-name:var(--font-display)] text-xl font-bold tracking-tight tabular-nums sm:text-2xl">
+              {data?.totalSales ?? 0}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -44,20 +77,7 @@ function AnalyticsPage() {
           <CardTitle className="text-base">Revenue, last 30 days</CardTitle>
         </CardHeader>
         <CardContent>
-          {data && data.dailyRevenue.length > 0 ? (
-            <div className="flex h-32 items-end gap-1">
-              {data.dailyRevenue.map((d) => (
-                <div
-                  key={d.day}
-                  title={`${d.day}: ${formatCents(d.revenueCents)}`}
-                  className="flex-1 rounded-t bg-primary"
-                  style={{ height: `${Math.max(4, (d.revenueCents / maxDaily) * 100)}%` }}
-                />
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">No sales in the last 30 days.</p>
-          )}
+          <RevenueChart data={data?.dailyRevenue ?? []} />
         </CardContent>
       </Card>
 
@@ -65,14 +85,14 @@ function AnalyticsPage() {
         <CardHeader>
           <CardTitle className="text-base">Where your sales came from</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-2">
+        <CardContent className="flex flex-col gap-3">
           {(data?.topSources ?? []).map((s) => (
-            <div key={s.source} className="flex items-center justify-between gap-3 text-sm">
-              <span className="min-w-0 truncate capitalize">{s.source}</span>
-              <span className="shrink-0 whitespace-nowrap text-muted-foreground">
-                {s.sales} sale{s.sales === 1 ? "" : "s"}
-              </span>
-            </div>
+            <BarRow
+              key={s.source}
+              label={s.source}
+              value={`${s.sales} sale${s.sales === 1 ? "" : "s"}`}
+              fraction={s.sales / topSourceMax}
+            />
           ))}
           {(data?.topSources?.length ?? 0) === 0 ? (
             <p className="text-sm text-muted-foreground">
@@ -86,14 +106,15 @@ function AnalyticsPage() {
         <CardHeader>
           <CardTitle className="text-base">Top products</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-2">
+        <CardContent className="flex flex-col gap-3">
           {(data?.topProducts ?? []).map((p) => (
-            <div key={p.name} className="flex items-center justify-between gap-3 text-sm">
-              <span className="min-w-0 truncate">{p.name}</span>
-              <span className="shrink-0 whitespace-nowrap text-muted-foreground">
-                {formatCents(p.revenueCents)} · {p.sales} sale{p.sales === 1 ? "" : "s"}
-              </span>
-            </div>
+            <BarRow
+              key={p.name}
+              label={p.name}
+              value={formatCents(p.revenueCents)}
+              sublabel={`· ${p.sales} sale${p.sales === 1 ? "" : "s"}`}
+              fraction={p.revenueCents / topProductMax}
+            />
           ))}
           {data?.topProducts.length === 0 ? (
             <p className="text-sm text-muted-foreground">No sales yet.</p>
