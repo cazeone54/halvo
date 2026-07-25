@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getVerifiedTransaction } from "@/lib/checkout.functions";
 import { useState } from "react";
+import { CircleCheck, Download, Mail } from "lucide-react";
 import { getDownloadUrlForTransaction } from "@/lib/downloads.functions";
 import { submitReview } from "@/lib/reviews.functions";
 import { StarInput } from "@/components/stars";
@@ -35,33 +36,55 @@ function SuccessPage() {
     return <p className="mx-auto max-w-lg px-4 py-10 text-sm text-muted-foreground">Verifying purchase…</p>;
   }
   if (transactionQ.isError) {
+    // Don't show a raw error. If they genuinely paid, the email has their link.
     return (
-      <p className="mx-auto max-w-lg px-4 py-10 text-sm text-destructive">
-        {(transactionQ.error as Error).message}
-      </p>
+      <div className="mx-auto max-w-lg px-4 py-10 text-center">
+        <p className="font-medium">We couldn't load this download page.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          If your payment went through, check your email — your download link is in there too.
+        </p>
+      </div>
     );
   }
+
+  const files = filesQ.data?.files ?? [];
 
   return (
     <div className="mx-auto max-w-lg px-4 py-10">
       <Card>
         <CardHeader>
-          <CardTitle>Thanks for your purchase!</CardTitle>
+          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <CircleCheck className="h-6 w-6" aria-hidden="true" />
+          </div>
+          <CardTitle className="mt-3">You're all set</CardTitle>
+          <p className="text-sm text-muted-foreground">{transactionQ.data?.productName}</p>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <p className="text-sm text-muted-foreground">{transactionQ.data?.productName}</p>
-          {(filesQ.data?.files ?? []).map((file) => (
-            <Button key={file.id} asChild variant="outline">
-              <a href={file.url}>Download {file.fileName ?? "file"}</a>
-            </Button>
-          ))}
-          {filesQ.data && filesQ.data.files.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No downloadable files for this product.</p>
-          ) : null}
+          {filesQ.isLoading ? (
+            <p className="text-sm text-muted-foreground">Preparing your download…</p>
+          ) : files.length > 0 ? (
+            <>
+              {files.map((file) => (
+                <Button key={file.id} asChild size="lg">
+                  <a href={file.url} download>
+                    <Download className="h-4 w-4" /> Download {file.fileName ?? "file"}
+                  </a>
+                </Button>
+              ))}
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                We've emailed this page too — you can come back and re-download any time.
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              This product has no files to download. If that seems wrong, contact the seller.
+            </p>
+          )}
         </CardContent>
       </Card>
 
-      <ReviewPrompt transactionId={id} />
+      {files.length > 0 ? <ReviewPrompt transactionId={id} /> : null}
     </div>
   );
 }
