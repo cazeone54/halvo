@@ -22,6 +22,7 @@ export const Route = createFileRoute("/blog/")({
       { property: "og:type", content: "website" },
       { property: "og:url", content: `${BASE_URL}/blog` },
     ],
+    links: [{ rel: "canonical", href: `${BASE_URL}/blog` }],
   }),
   component: BlogIndex,
 });

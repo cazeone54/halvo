@@ -2,5 +2,7 @@ User-agent: *
 Allow: /
 Disallow: /dashboard
 Disallow: /login
+Disallow: /success
+Disallow: /api/
 
 Sitemap: https://halvo.io/sitemap.xml

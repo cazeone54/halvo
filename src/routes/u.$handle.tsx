@@ -4,6 +4,7 @@ import { getSellerStorefront } from "@/lib/storefront.functions";
 import { Card, CardContent } from "@/components/ui/card";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
+import { BRAND_NAME, BASE_URL } from "@/lib/site";
 
 export const Route = createFileRoute("/u/$handle")({
   loader: async ({ params }) => {
@@ -12,6 +13,29 @@ export const Route = createFileRoute("/u/$handle")({
     } catch {
       throw notFound();
     }
+  },
+  // A storefront used to inherit the generic homepage title, so every seller's
+  // page looked identical to search engines and link previews.
+  head: ({ loaderData, params }) => {
+    if (!loaderData) return {};
+    const name = loaderData.profile.display_name ?? loaderData.profile.handle ?? params.handle;
+    const title = `${name} — ${BRAND_NAME}`;
+    const description = loaderData.profile.bio ?? `Digital products from ${name} on ${BRAND_NAME}.`;
+    const url = `${BASE_URL}/u/${params.handle}`;
+    const imageUrl = loaderData.profile.avatarUrl ? `${BASE_URL}${loaderData.profile.avatarUrl}` : undefined;
+    return {
+      links: [{ rel: "canonical", href: url }],
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "profile" },
+        { property: "og:url", content: url },
+        ...(imageUrl ? [{ property: "og:image", content: imageUrl }] : []),
+        { name: "twitter:card", content: "summary" },
+      ],
+    };
   },
   component: StorefrontPage,
 });

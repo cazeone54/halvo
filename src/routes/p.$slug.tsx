@@ -23,20 +23,23 @@ export const Route = createFileRoute("/p/$slug")({
   // got a preview card with no product info at all. og:image points at the
   // stable image proxy (see img.product.$productId.ts), not a short-lived
   // signed URL, so the preview doesn't go stale.
-  head: ({ loaderData }) => {
+  head: ({ loaderData, params }) => {
     if (!loaderData) return {};
     const priceLabel = `$${(loaderData.priceCents / 100).toFixed(2)}`;
     const title = `${loaderData.name} — ${priceLabel}${loaderData.sellerName ? ` | ${loaderData.sellerName}` : ""}`;
     const description = loaderData.description ?? `Buy ${loaderData.name} on ${BRAND_NAME}.`;
     const imageUrl = loaderData.imageUrl ? `${BASE_URL}${loaderData.imageUrl}` : undefined;
+    const url = `${BASE_URL}/p/${params.slug}`;
 
     return {
+      links: [{ rel: "canonical", href: url }],
       meta: [
         { title },
         { name: "description", content: description },
         { property: "og:title", content: title },
         { property: "og:description", content: description },
         { property: "og:type", content: "product" },
+        { property: "og:url", content: url },
         ...(imageUrl ? [{ property: "og:image", content: imageUrl }] : []),
         { name: "twitter:card", content: imageUrl ? "summary_large_image" : "summary" },
         { name: "twitter:title", content: title },

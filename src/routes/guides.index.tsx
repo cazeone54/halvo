@@ -20,6 +20,7 @@ export const Route = createFileRoute("/guides/")({
       { property: "og:type", content: "website" },
       { property: "og:url", content: `${BASE_URL}/guides` },
     ],
+    links: [{ rel: "canonical", href: `${BASE_URL}/guides` }],
   }),
   component: GuidesIndex,
 });

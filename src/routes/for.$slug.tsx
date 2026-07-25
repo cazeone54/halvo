@@ -17,14 +17,16 @@ export const Route = createFileRoute("/for/$slug")({
   head: ({ loaderData }) => {
     if (!loaderData) return {};
     const title = `${loaderData.headline} — ${BRAND_NAME}`;
+    const url = `${BASE_URL}/for/${loaderData.slug}`;
     return {
+      links: [{ rel: "canonical", href: url }],
       meta: [
         { title },
         { name: "description", content: loaderData.intro },
         { property: "og:title", content: title },
         { property: "og:description", content: loaderData.intro },
         { property: "og:type", content: "website" },
-        { property: "og:url", content: `${BASE_URL}/for/${loaderData.slug}` },
+        { property: "og:url", content: url },
         { name: "twitter:card", content: "summary" },
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: loaderData.intro },
