@@ -212,8 +212,12 @@ function DashboardHome() {
   const connectMut = useMutation({
     mutationFn: () => startOnboardingFn(),
     onSuccess: (res) => {
+      // Getting paid depends on this step, so a failure must never be silent —
+      // before, if no URL came back the button just quietly reset.
       if (res.url) window.location.href = res.url;
+      else toast.error("Couldn't open Stripe just now. Please try again.");
     },
+    onError: () => toast.error("Couldn't reach Stripe just now. Please try again in a moment."),
   });
 
   const profile = profileQ.data;
@@ -272,23 +276,33 @@ function DashboardHome() {
           <CardHeader>
             <CardTitle className="text-base">Pick your storefront handle</CardTitle>
           </CardHeader>
-          <CardContent className="flex gap-2">
-            <Input
-              placeholder="yourname"
-              value={handle}
-              onChange={(e) => setHandle(e.target.value)}
-              autoCapitalize="none"
-              autoCorrect="off"
-              autoComplete="off"
-              spellCheck={false}
-            />
-            <Button onClick={() => handleMut.mutate(handle)} disabled={!handle || handleMut.isPending}>
-              Save
-            </Button>
+          <CardContent className="flex flex-col gap-2">
+            <div className="flex gap-2">
+              <Input
+                placeholder="yourname"
+                value={handle}
+                // Sanitize to the allowed set as they type, so the handle they
+                // see is the handle that will save — no guess-and-fail loop.
+                onChange={(e) => setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ""))}
+                autoCapitalize="none"
+                autoCorrect="off"
+                autoComplete="off"
+                spellCheck={false}
+              />
+              <Button onClick={() => handleMut.mutate(handle)} disabled={!handle || handleMut.isPending}>
+                {handleMut.isPending ? "Saving…" : "Save"}
+              </Button>
+            </div>
+            {handleMut.error ? (
+              <p className="text-sm text-destructive">{(handleMut.error as Error).message}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                {handle
+                  ? `Your store: ${BASE_URL.replace(/^https?:\/\//, "")}/u/${handle}`
+                  : "3–32 characters: lowercase letters, numbers, - or _."}
+              </p>
+            )}
           </CardContent>
-          {handleMut.error ? (
-            <p className="px-6 pb-4 text-sm text-destructive">{(handleMut.error as Error).message}</p>
-          ) : null}
         </Card>
       ) : null}
 

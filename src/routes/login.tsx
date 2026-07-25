@@ -63,9 +63,24 @@ function LoginPage() {
           </div>
 
           {sent ? (
-            <p className="text-sm text-muted-foreground">
-              Check <span className="font-medium text-foreground">{email}</span> for a sign-in link.
-            </p>
+            <div className="flex flex-col gap-2 text-sm">
+              <p className="text-muted-foreground">
+                Check <span className="font-medium text-foreground">{email}</span> for your sign-in link. It can take a
+                minute to arrive, and it may land in spam.
+              </p>
+              {/* Don't strand someone who mistyped their email — let them go
+                  back to the form (email preserved) to fix it or resend. */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSent(false);
+                  setError(null);
+                }}
+                className="self-start text-primary underline underline-offset-4"
+              >
+                Wrong email, or didn't get it?
+              </button>
+            </div>
           ) : (
             <form className="flex flex-col gap-3" onSubmit={sendMagicLink}>
               <Input
