@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { z } from "zod";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { Search } from "lucide-react";
@@ -32,10 +32,18 @@ function DiscoverPage() {
   const discoverFn = useServerFn(listDiscover);
   const categoriesFn = useServerFn(listDiscoverCategories);
 
+  // Debounce the text query: without this, every keystroke was a server
+  // invocation and a DB query. Wait for a pause in typing.
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(id);
+  }, [search]);
+
   const productsQ = useQuery({
-    queryKey: ["discover", search, category, sort],
+    queryKey: ["discover", debouncedSearch, category, sort],
     queryFn: () =>
-      discoverFn({ data: { search: search || undefined, category: category ?? undefined, sort } }),
+      discoverFn({ data: { search: debouncedSearch || undefined, category: category ?? undefined, sort } }),
   });
   const categoriesQ = useQuery({ queryKey: ["discover-categories"], queryFn: () => categoriesFn() });
 

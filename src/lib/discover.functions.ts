@@ -26,7 +26,14 @@ export const listDiscover = createServerFn({ method: "GET" })
       .limit(200);
 
     if (data.category) query = query.eq("category", data.category);
-    if (data.search) query = query.or(`name.ilike.%${data.search}%,description.ilike.%${data.search}%`);
+    if (data.search) {
+      // The search string is interpolated into PostgREST's .or() filter syntax,
+      // where a comma, parenthesis or wildcard would break the parse (or worse,
+      // inject extra conditions). Strip anything that isn't a word character or
+      // space before using it as a LIKE term.
+      const term = data.search.replace(/[^\p{L}\p{N} ]/gu, " ").trim();
+      if (term) query = query.or(`name.ilike.%${term}%,description.ilike.%${term}%`);
+    }
 
     const { data: products, error } = await query;
     if (error) throw new Error(error.message);
