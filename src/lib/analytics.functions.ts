@@ -23,7 +23,25 @@ export const getMyAnalytics = createServerFn({ method: "GET" })
       byProduct.set(r.product_id, entry);
     }
 
-    const topProducts = Array.from(byProduct.values()).sort((a, b) => b.revenueCents - a.revenueCents);
+    // Page views → conversion rate. Read defensively and separately so the
+    // whole analytics page still works if migration 0013 hasn't been applied
+    // (the seller just sees no view data). RLS on product_views scopes this to
+    // the seller's own products, so no seller filter is needed here.
+    let totalViews = 0;
+    const viewsByProduct = new Map<string, number>();
+    try {
+      const { data: views } = await context.supabase.from("product_views").select("product_id");
+      for (const v of views ?? []) {
+        totalViews += 1;
+        viewsByProduct.set(v.product_id, (viewsByProduct.get(v.product_id) ?? 0) + 1);
+      }
+    } catch {
+      // Views are a nice-to-have; never fail the whole analytics page for them.
+    }
+
+    const topProducts = Array.from(byProduct.entries())
+      .map(([id, entry]) => ({ ...entry, views: viewsByProduct.get(id) ?? 0 }))
+      .sort((a, b) => b.revenueCents - a.revenueCents);
 
     const last30Days = new Map<string, number>();
     const now = Date.now();
@@ -58,6 +76,7 @@ export const getMyAnalytics = createServerFn({ method: "GET" })
     return {
       totalRevenueCents,
       totalSales,
+      totalViews,
       topProducts,
       topSources,
       dailyRevenue: Array.from(last30Days.entries())

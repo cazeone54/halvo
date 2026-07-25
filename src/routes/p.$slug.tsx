@@ -1,8 +1,10 @@
 import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { ShieldCheck, Mail, CircleCheck, Lock, Zap, CreditCard } from "lucide-react";
 import { getProductPublicView } from "@/lib/product-public.functions";
+import { recordProductView } from "@/lib/product-view.functions";
 import { listProductReviews } from "@/lib/reviews.functions";
 import { Stars } from "@/components/stars";
 import { CheckoutWidget } from "@/components/checkout-widget";
@@ -78,6 +80,21 @@ function ProductCheckoutPage() {
   const product = Route.useLoaderData();
   const { embed } = Route.useSearch();
   const reviewsFn = useServerFn(listProductReviews);
+  const recordViewFn = useServerFn(recordProductView);
+
+  // Count one view per product per browser session — client-side only (so bots
+  // that never run JS don't inflate it, and a refresh doesn't double-count) and
+  // fire-and-forget so it never blocks or errors the page.
+  useEffect(() => {
+    const key = `halvo-viewed-${product.id}`;
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+    } catch {
+      // Private mode / storage disabled — fall through and just record it.
+    }
+    void recordViewFn({ data: { productId: product.id } }).catch(() => {});
+  }, [product.id, recordViewFn]);
   const reviewsQ = useQuery({
     queryKey: ["product-reviews", product.id],
     queryFn: () => reviewsFn({ data: { productId: product.id } }),

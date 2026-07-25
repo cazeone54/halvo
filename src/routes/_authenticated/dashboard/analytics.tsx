@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { BarChart3, Wallet, ShoppingBag } from "lucide-react";
+import { BarChart3, Wallet, ShoppingBag, Eye, Percent } from "lucide-react";
 import { getMyAnalytics } from "@/lib/analytics.functions";
 import { formatCents } from "@/lib/format";
+import { formatConversionRate } from "@/lib/conversion";
 import { RevenueChart } from "@/components/revenue-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -66,11 +67,11 @@ function AnalyticsPage() {
         </p>
       ) : (
         <>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Card>
           <CardContent className="flex flex-col gap-1 p-4 sm:p-5">
             <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-              <Wallet className="h-3.5 w-3.5" /> Total revenue
+              <Wallet className="h-3.5 w-3.5" /> Revenue
             </div>
             <p className="font-[family-name:var(--font-display)] text-xl font-bold tracking-tight tabular-nums sm:text-2xl">
               {formatCents(data?.totalRevenueCents ?? 0)}
@@ -80,10 +81,30 @@ function AnalyticsPage() {
         <Card>
           <CardContent className="flex flex-col gap-1 p-4 sm:p-5">
             <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-              <ShoppingBag className="h-3.5 w-3.5" /> Total sales
+              <ShoppingBag className="h-3.5 w-3.5" /> Sales
             </div>
             <p className="font-[family-name:var(--font-display)] text-xl font-bold tracking-tight tabular-nums sm:text-2xl">
               {data?.totalSales ?? 0}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex flex-col gap-1 p-4 sm:p-5">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <Eye className="h-3.5 w-3.5" /> Views
+            </div>
+            <p className="font-[family-name:var(--font-display)] text-xl font-bold tracking-tight tabular-nums sm:text-2xl">
+              {(data?.totalViews ?? 0).toLocaleString()}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex flex-col gap-1 p-4 sm:p-5">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <Percent className="h-3.5 w-3.5" /> Conversion
+            </div>
+            <p className="font-[family-name:var(--font-display)] text-xl font-bold tracking-tight tabular-nums sm:text-2xl">
+              {formatConversionRate(data?.totalSales ?? 0, data?.totalViews ?? 0)}
             </p>
           </CardContent>
         </Card>
@@ -129,7 +150,9 @@ function AnalyticsPage() {
               key={p.name}
               label={p.name}
               value={formatCents(p.revenueCents)}
-              sublabel={`· ${p.sales} sale${p.sales === 1 ? "" : "s"}`}
+              sublabel={`· ${p.sales} sale${p.sales === 1 ? "" : "s"}${
+                p.views > 0 ? ` · ${formatConversionRate(p.sales, p.views)} conv.` : ""
+              }`}
               fraction={p.revenueCents / topProductMax}
             />
           ))}
