@@ -22,6 +22,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
+      // Don't leak the full URL (which can carry a capability token, e.g. the
+      // /success?id= transaction id or a signed download URL) to third parties
+      // via the Referer header. Sends only the origin cross-origin.
+      { name: "referrer", content: "strict-origin-when-cross-origin" },
       { title: `${BRAND_NAME} — Sell digital products in minutes` },
       {
         name: "description",
