@@ -1,6 +1,10 @@
 import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
-import { Menu, Package, Tag, BarChart3, Settings } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
+import { Menu, Package, Tag, BarChart3, Settings, User, ExternalLink, Store, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getMyProfile } from "@/lib/profile.functions";
+import { BASE_URL } from "@/lib/site";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -8,6 +12,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -39,6 +45,13 @@ const PRIMARY_TABS = [
 
 function DashboardLayout() {
   const navigate = useNavigate();
+  // Reuses the ["my-profile"] cache the dashboard already loads, so the account
+  // menu costs no extra fetch on the products page.
+  const profileFn = useServerFn(getMyProfile);
+  const profileQ = useQuery({ queryKey: ["my-profile"], queryFn: () => profileFn() });
+  const profile = profileQ.data;
+  const storefrontUrl = profile?.handle ? `${BASE_URL}/u/${profile.handle}` : null;
+  const displayName = profile?.display_name || profile?.handle || "Your account";
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -88,9 +101,44 @@ function DashboardLayout() {
               <DropdownMenuItem onSelect={signOut}>Sign out</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button variant="ghost" size="sm" onClick={signOut} className="hidden sm:inline-flex">
-            Sign out
-          </Button>
+          {/* Account menu (desktop) — consolidates storefront, settings and
+              sign-out behind an avatar, instead of a bare "Sign out" button. */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                aria-label="Account menu"
+                className="hidden h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-primary ring-1 ring-border transition-colors hover:bg-primary/20 sm:flex"
+              >
+                {profile?.avatarUrl ? (
+                  <img src={profile.avatarUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <User className="h-4 w-4" />
+                )}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="truncate">{displayName}</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {storefrontUrl ? (
+                <DropdownMenuItem asChild>
+                  <a href={storefrontUrl} target="_blank" rel="noreferrer">
+                    <Store className="h-4 w-4" /> View storefront
+                    <ExternalLink className="ml-auto h-3 w-3 opacity-60" />
+                  </a>
+                </DropdownMenuItem>
+              ) : null}
+              <DropdownMenuItem asChild>
+                <Link to="/dashboard/settings">
+                  <Settings className="h-4 w-4" /> Settings
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={signOut}>
+                <LogOut className="h-4 w-4" /> Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
       <main className="mx-auto max-w-3xl px-4 py-6 pb-24 sm:px-6 sm:pb-6">
