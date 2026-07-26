@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Zap, Wallet, Percent, Sparkles, ArrowRight, Quote } from "lucide-react";
+import { Zap, Wallet, Percent, Sparkles, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PublicNav } from "@/components/public-nav";
@@ -59,26 +59,6 @@ const PROOF_STATS = [
   { value: "Instant", label: "Checkout to download" },
   { value: "Your own", label: "Stripe account for payouts" },
   { value: "24/7", label: "Sells while you sleep" },
-];
-
-// Deliberately written as unfilled slots, NOT invented reviews — replace each
-// with a real customer quote before launch.
-const TESTIMONIALS = [
-  {
-    quote: "Add a real customer quote here — ideally what changed for them after switching to Halvo.",
-    name: "Customer name",
-    role: "What they sell",
-  },
-  {
-    quote: "A second quote lands best when it names a concrete outcome — a first sale, or hours saved.",
-    name: "Customer name",
-    role: "What they sell",
-  },
-  {
-    quote: "Keep the third one short. One specific sentence, in their own words.",
-    name: "Customer name",
-    role: "What they sell",
-  },
 ];
 
 function HomePage() {
@@ -157,24 +137,6 @@ function HomePage() {
                 </div>
               ))}
             </dl>
-
-            <h2 className="mt-14 text-center font-[family-name:var(--font-display)] text-2xl font-semibold sm:text-3xl">
-              What creators say
-            </h2>
-            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-              {TESTIMONIALS.map((t) => (
-                <Card key={t.quote} className="card-hover">
-                  <CardContent className="flex h-full flex-col gap-3 pt-6">
-                    <Quote className="h-5 w-5 shrink-0 text-primary/60" aria-hidden="true" />
-                    <p className="flex-1 text-sm text-muted-foreground">{t.quote}</p>
-                    <div>
-                      <p className="text-sm font-medium">{t.name}</p>
-                      <p className="text-xs text-muted-foreground">{t.role}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
           </div>
         </section>
 
