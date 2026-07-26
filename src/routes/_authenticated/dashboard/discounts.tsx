@@ -136,7 +136,15 @@ function DiscountsPage() {
                 >
                   {coupon.active ? "Deactivate" : "Activate"}
                 </Button>
-                <Button variant="destructive" size="sm" onClick={() => deleteMut.mutate(coupon.id)}>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    if (window.confirm(`Delete coupon ${coupon.code}? Buyers will no longer be able to use it.`)) {
+                      deleteMut.mutate(coupon.id);
+                    }
+                  }}
+                >
                   Delete
                 </Button>
               </div>

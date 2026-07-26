@@ -945,7 +945,20 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
             >
               <Layers className="h-3.5 w-3.5" />
             </Button>
-            <Button variant="destructive" size="sm" onClick={onDelete} aria-label="Delete product">
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                if (
+                  window.confirm(
+                    `Delete "${product.name}"? If it has sales it's unpublished and its history is kept; otherwise it's removed for good.`,
+                  )
+                ) {
+                  onDelete();
+                }
+              }}
+              aria-label="Delete product"
+            >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -1154,7 +1167,15 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
                 <FileText className="h-3.5 w-3.5" />
                 {f.file_name}
               </span>
-              <Button variant="ghost" size="sm" onClick={() => removeMut.mutate(f.id)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  if (window.confirm("Remove this file? Buyers of this product may lose access to this download.")) {
+                    removeMut.mutate(f.id);
+                  }
+                }}
+              >
                 Remove
               </Button>
             </div>
