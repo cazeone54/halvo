@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const NAV_LINKS = [
+  { to: "/features", label: "Features" },
   { to: "/pricing", label: "Pricing" },
   { to: "/guides", label: "Guides" },
   { to: "/blog", label: "Blog" },

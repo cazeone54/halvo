@@ -6,6 +6,7 @@ import { AUDIENCES } from "@/content/audiences";
 
 const STATIC_PATHS = [
   "/",
+  "/features",
   "/pricing",
   "/guides",
   "/blog",
