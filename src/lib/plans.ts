@@ -32,7 +32,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxFileMb: 100,
     totalStorageMb: 500,
     monthlyBandwidthGb: 5,
-    platformFeePct: 0.08,
+    platformFeePct: 0.07,
     platformFeeFixedCents: 35,
     aiGenerationsPerMonth: 10,
   },
