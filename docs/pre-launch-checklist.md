@@ -50,13 +50,20 @@ Legend: 🔴 hard blocker · 🟡 strongly recommended · 🟢 nice-to-have
 
 ---
 
-## On registering a business
+## On registering a business (Bulgaria)
 
-Not legal/tax advice — confirm with a local professional — but the shape of it:
+Not legal/tax advice — confirm with a Bulgarian счетоводител (accountant) and/or lawyer — but the shape of it:
 
-**Yes, form a limited-liability entity before you take real money at any scale.** Halvo *facilitates payments and bears platform liability* for disputes/chargebacks, so the liability separation an entity gives you (personal assets shielded from business risk) is exactly the protection that matters here. It also makes Stripe activation, a business bank account, and the legal pages cleaner and more credible.
+**Yes, form a limited-liability entity before you take real money at any scale.** Halvo *facilitates payments and bears platform liability* for disputes/chargebacks, so the personal-asset protection an entity gives you is exactly what matters here. It also makes Stripe activation, a business bank account, and the legal pages cleaner and more credible.
 
-- **US:** an **LLC** is the usual starting point — liability protection, pass-through taxation, low admin. (A C-corp only if you plan to raise VC.)
-- **UK/EU:** a **private limited company** (Ltd / GmbH / equivalent).
-- **Timing trade-off:** you *can* validate with a handful of test/early sales as a sole proprietor/individual on Stripe and incorporate once it's clearly working — but understand you're **personally exposed** until you do, and with a payments platform that exposure is real. Given money is involved, incorporating before you take money from strangers is the prudent call.
-- Whichever entity, use *its* legal name + address in Stripe activation and in the terms/privacy pages.
+- **Recommended entity: ЕООД (EOOD)** — a single-owner limited-liability company. Standard for a solo founder. **Avoid ЕТ (sole trader)** — unlimited personal liability, wrong for a payments platform.
+- **Setup:** minimum share capital is **2 BGN**; registered at the **Commercial Register (Търговски регистър)** at the Registry Agency. A lawyer/accountant can form it in a few days for a few hundred BGN.
+- **Tax:** **10% flat corporate income tax** (among the lowest in the EU), **5%** tax on dividends to you, **20% VAT (ДДС)**.
+- **VAT is the part to get professional help on — the single most important item:**
+  - You sell **digital services across the EU**, so once registered for VAT you charge each EU consumer their **own country's VAT rate**, reported through the **OSS** (One-Stop Shop) scheme — not a flat 20% to everyone.
+  - As a **platform facilitating other people's digital sales**, ask the accountant whether Halvo counts as a **"deemed supplier"** for the marketplace transactions (EU electronic-interface VAT rules). This materially changes who remits VAT on buyer purchases. Get this answered before launch.
+  - Verify the current **mandatory VAT-registration turnover threshold** (it has changed in recent years).
+- **Stripe supports Bulgaria** and Stripe Connect; onboard the EOOD once it's formed.
+- **GDPR + EU consumer law apply.** Good news: the checkout's "all sales are final once you download" acknowledgment already aligns with the EU rule that lets a consumer waive the 14-day withdrawal right for digital content — keep that.
+- **Currency:** confirm the BGN→EUR (euro adoption) status and price/report in the correct currency.
+- Use the **EOOD's** legal name + address in Stripe activation and in the terms/privacy pages.
