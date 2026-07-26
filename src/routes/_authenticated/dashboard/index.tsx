@@ -492,7 +492,17 @@ function DashboardHome() {
                     <Button
                       variant="destructive"
                       size="sm"
-                      onClick={() => refundMut.mutate(sale.id)}
+                      // Refunds are irreversible (buyer refunded via Stripe,
+                      // transfer reversed, access revoked) — confirm before firing.
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `Refund ${formatCents(sale.amountPaidCents)} to the buyer? They're refunded through Stripe and lose access to the download. This can't be undone.`,
+                          )
+                        ) {
+                          refundMut.mutate(sale.id);
+                        }
+                      }}
                       disabled={refundMut.isPending}
                     >
                       Refund
