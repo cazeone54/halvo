@@ -15,7 +15,10 @@ function StripeRefreshPage() {
   useEffect(() => {
     startOnboardingFn()
       .then((res) => {
+        // No URL back → don't strand the seller on "Restarting…"; send them
+        // back to the dashboard where the Connect button lives.
         if (res.url) window.location.href = res.url;
+        else navigate({ to: "/dashboard" });
       })
       .catch(() => navigate({ to: "/dashboard" }));
   }, [navigate, startOnboardingFn]);

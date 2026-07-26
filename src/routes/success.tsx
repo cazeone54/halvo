@@ -13,7 +13,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/success")({
-  validateSearch: zodValidator(z.object({ id: z.string().uuid() })),
+  // .optional().catch(undefined) so hitting /success with a missing or
+  // malformed id degrades to a friendly message instead of a hard 500.
+  validateSearch: zodValidator(z.object({ id: z.string().uuid().optional().catch(undefined) })),
   component: SuccessPage,
 });
 
@@ -24,13 +26,27 @@ function SuccessPage() {
 
   const transactionQ = useQuery({
     queryKey: ["transaction", id],
-    queryFn: () => transactionFn({ data: { transactionId: id } }),
+    queryFn: () => transactionFn({ data: { transactionId: id! } }),
+    enabled: !!id,
   });
   const filesQ = useQuery({
     queryKey: ["download-files", id],
-    queryFn: () => downloadFn({ data: { transactionId: id } }),
-    enabled: !!transactionQ.data,
+    queryFn: () => downloadFn({ data: { transactionId: id! } }),
+    enabled: !!id && !!transactionQ.data,
   });
+
+  // Reached without a valid purchase id (stale link, removed query param, bot).
+  if (!id) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-10 text-center">
+        <p className="font-medium">No purchase to show here.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          This page shows your download right after a purchase. If you just bought something, use the link in your
+          email.
+        </p>
+      </div>
+    );
+  }
 
   if (transactionQ.isLoading) {
     return <p className="mx-auto max-w-lg px-4 py-10 text-sm text-muted-foreground">Verifying purchase…</p>;

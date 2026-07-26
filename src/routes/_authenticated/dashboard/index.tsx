@@ -105,8 +105,11 @@ function DashboardHome() {
   const portalMut = useMutation({
     mutationFn: () => portalFn(),
     onSuccess: (res) => {
+      // Managing/cancelling a subscription depends on this — never fail silently.
       if (res.url) window.location.href = res.url;
+      else toast.error("Couldn't open the billing portal just now. Please try again.");
     },
+    onError: () => toast.error("Couldn't open the billing portal just now. Please try again in a moment."),
   });
 
   const refundMut = useMutation({
@@ -830,6 +833,7 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
   const removeMut = useMutation({
     mutationFn: (fileId: string) => removeFn({ data: { fileId } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["product-files", product.id] }),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const imageMut = useMutation({

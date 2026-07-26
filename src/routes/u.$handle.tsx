@@ -92,7 +92,9 @@ function StorefrontPage() {
                       <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{product.description}</p>
                     ) : null}
                     <p className="mt-2 font-semibold text-primary">
-                      {product.pay_what_you_want ? "From " : ""}${(product.price_cents / 100).toFixed(2)}
+                      {!product.pay_what_you_want && product.price_cents === 0
+                        ? "Free"
+                        : `${product.pay_what_you_want ? "From " : ""}$${(product.price_cents / 100).toFixed(2)}`}
                     </p>
                   </CardContent>
                 </Card>
