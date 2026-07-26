@@ -60,6 +60,7 @@ import { CopySnippet } from "@/components/copy-snippet";
 import { buildProductLink, buildButtonSnippet, buildIframeSnippet, buildOverlaySnippet } from "@/lib/share-snippets";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -271,41 +272,6 @@ function DashboardHome() {
         ) : null}
       </div>
 
-      {profile && !profile.handle ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Pick your storefront handle</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            <div className="flex gap-2">
-              <Input
-                placeholder="yourname"
-                value={handle}
-                // Sanitize to the allowed set as they type, so the handle they
-                // see is the handle that will save — no guess-and-fail loop.
-                onChange={(e) => setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ""))}
-                autoCapitalize="none"
-                autoCorrect="off"
-                autoComplete="off"
-                spellCheck={false}
-              />
-              <Button onClick={() => handleMut.mutate(handle)} disabled={!handle || handleMut.isPending}>
-                {handleMut.isPending ? "Saving…" : "Save"}
-              </Button>
-            </div>
-            {handleMut.error ? (
-              <p className="text-sm text-destructive">{(handleMut.error as Error).message}</p>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                {handle
-                  ? `Your store: ${BASE_URL.replace(/^https?:\/\//, "")}/u/${handle}`
-                  : "3–32 characters: lowercase letters, numbers, - or _."}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      ) : null}
-
       {paidSales.length > 0 && !firstSaleSeen ? (
         <Card className="border-primary bg-primary/5">
           <CardContent className="flex flex-col gap-3 p-6 sm:flex-row sm:items-center sm:justify-between">
@@ -334,9 +300,14 @@ function DashboardHome() {
       ) : null}
 
       <OnboardingChecklist
+        savedHandle={profile?.handle ?? null}
+        handleDraft={handle}
+        onHandleDraftChange={setHandle}
+        onSaveHandle={() => handleMut.mutate(handle)}
+        savingHandle={handleMut.isPending}
+        handleError={handleMut.error ? (handleMut.error as Error).message : null}
         hasProduct={(productsQ.data?.length ?? 0) > 0}
         stripeConnected={!!connect?.chargesEnabled}
-        handle={profile?.handle ?? null}
         onCreateProduct={() => setShowNewProduct(true)}
         onConnectStripe={() => connectMut.mutate()}
       />
@@ -405,7 +376,12 @@ function DashboardHome() {
             </div>
             <div>
               <Label>Description</Label>
-              <Input value={description} onChange={(e) => setDescription(e.target.value)} />
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+                placeholder="What the buyer gets, and why it's worth it."
+              />
             </div>
             <div>
               <Label>Price (USD)</Label>
@@ -970,7 +946,7 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
             </div>
             <div>
               <Label>Description</Label>
-              <Input value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
+              <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={3} />
             </div>
             <div className="flex gap-3">
               <div className="flex-1">

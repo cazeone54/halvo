@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile, updateMySettings, setMyAvatar } from "@/lib/profile.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -112,7 +113,7 @@ function SettingsPage() {
           </div>
           <div>
             <Label>Bio</Label>
-            <Input value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Shown on your storefront" />
+            <Textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} placeholder="Shown on your storefront" />
           </div>
           <div>
             <Label>Support email</Label>
@@ -126,9 +127,10 @@ function SettingsPage() {
           </div>
           <div>
             <Label>Refund policy</Label>
-            <Input
+            <Textarea
               value={refundPolicy}
               onChange={(e) => setRefundPolicy(e.target.value)}
+              rows={3}
               placeholder="e.g. 14-day money-back guarantee"
             />
           </div>
