@@ -25,7 +25,8 @@ Legend: 🔴 hard blocker · 🟡 strongly recommended · 🟢 nice-to-have
 
 ## Phase 2 — Go-live infrastructure
 
-- [ ] 🔴 **Own the domain.** Confirm `halvo.io` (or whatever you pick) is registered to you. Set `BASE_URL` and `BRAND_DOMAIN` in `src/lib/site.ts`.
+- [ ] 🔴 **Own the domain.** Confirm the domain is registered to you, then set **`VITE_SITE_URL=https://yourdomain`** in the host's build env (no code edit — `BASE_URL`/`BRAND_DOMAIN`/`BRAND_EMAIL` all derive from it).
+- [ ] 🔴 **Add `public/og.png` (1200×630)** and `public/icon.png` — export them from the OG-cover artifact. The social-share meta already points at `/og.png`; without it, link previews and ad cards show no image.
 - [ ] 🔴 **Activate the Stripe account** (submit business details) and switch to **live** keys. Recreate the subscription **Price IDs in live mode** and update `STRIPE_PRICE_IDS` in `plans.ts`. Re-register the webhook in **live** mode with a fresh signing secret.
 - [ ] 🔴 **Verify the Resend sending domain** (SPF + DKIM DNS records) so purchase/sale emails actually deliver and don't land in spam. Confirm the `from` address uses that domain.
 - [ ] 🔴 Point the production domain at the deployed app; verify HTTPS + `www`/apex redirect.
