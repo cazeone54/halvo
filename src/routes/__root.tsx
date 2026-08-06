@@ -8,7 +8,7 @@ import { useEffect } from "react";
 import type { QueryClient } from "@tanstack/react-query";
 import { QueryClientProvider } from "@tanstack/react-query";
 import appCss from "../styles.css?url";
-import { BRAND_NAME, BRAND_KEY } from "@/lib/site";
+import { BRAND_NAME, BRAND_KEY, BASE_URL } from "@/lib/site";
 import { captureReferralFromUrl } from "@/lib/referral-attribution";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AppToaster } from "@/components/app-toaster";
@@ -32,6 +32,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content: `${BRAND_NAME} lets creators sell digital products with instant checkout and download delivery.`,
       },
       { name: "theme-color", content: "#1a7a7a" },
+      // Default social-share card for every page. Product/storefront pages set
+      // their own og:image (more specific); this is the baseline so sharing the
+      // marketing site — or an ad's link preview — never shows a bare card.
+      // Add a 1200x630 public/og.png (see the OG cover artifact) for the image.
+      { property: "og:site_name", content: BRAND_NAME },
+      { property: "og:type", content: "website" },
+      { property: "og:title", content: `${BRAND_NAME} — Sell digital products in minutes` },
+      {
+        property: "og:description",
+        content: `Instant Stripe checkout, instant delivery, and payouts to your own account. From 4% a sale.`,
+      },
+      { property: "og:image", content: `${BASE_URL}/og.png` },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: `${BASE_URL}/og.png` },
     ],
     links: [
       // Manrope — the intended display typeface (referenced by --font-display
