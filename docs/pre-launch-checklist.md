@@ -37,7 +37,14 @@ Legend: 🔴 hard blocker · 🟡 strongly recommended · 🟢 nice-to-have
 - [ ] 🔴 **Read the legal pages end-to-end** (`/terms`, `/privacy`, `/refund-policy`) and make sure they describe how Halvo *actually* handles money, refunds, disputes and data — not generic boilerplate. Ideally a lawyer skims them. (Stripe Connect platforms are required to have these.)
 - [ ] 🟡 Decide the **business entity** (see the note below) and use the entity's details in Stripe activation + the legal pages.
 - [ ] 🟡 **Remove/replace placeholder marketing.** (Testimonials are already removed; keep an eye out for any other "coming soon" copy.)
-- [ ] 🟡 Run a **security review** of the payment + auth + RLS surface before real money flows (`/security-review`).
+- [ ] 🟡 Run a **security review** of the payment + auth + RLS surface before real money flows (`/security-review`). (A full audit already ran: auth, authorization/RLS, storage, and the money path are solid — see the notes below.)
+- [ ] 🟡 **Set security response headers at the host / edge** (Nitro doesn't expose route-rule headers in this setup, and they belong at the edge anyway). `Referrer-Policy` is already set in-app. Add at the host:
+  ```
+  Strict-Transport-Security: max-age=63072000; includeSubDomains
+  X-Content-Type-Options: nosniff
+  ```
+  Do **not** set `X-Frame-Options`/`frame-ancestors` globally — the checkout page is intentionally embeddable (buy button). A `Content-Security-Policy` is worth adding later, but only with testing (Stripe.js, Supabase, Google Fonts and the inline theme script must be allowed).
+- [ ] 🟢 **Dev-only dependency vulns:** `npm audit` shows brace-expansion DoS advisories in the eslint tool-chain (dev only, not shipped). The only clean fix is `eslint@10` (a breaking major that risks the lint/CI setup), so it was deliberately **not** applied — negligible real risk. Revisit when upgrading eslint.
 - [ ] 🟢 Add **error monitoring** (Sentry/Logtail) so production errors surface to you, not just `console.error`.
 - [ ] 🟢 Confirm the **AI quota** costs are acceptable at scale (Haiku is cheap, but watch it) and that `ANTHROPIC_API_KEY` is set in prod (or the AI box stays hidden, which is fine).
 
