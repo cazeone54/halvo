@@ -30,7 +30,8 @@ Legend: 🔴 hard blocker · 🟡 strongly recommended · 🟢 nice-to-have
 - [ ] 🔴 **Activate the Stripe account** (submit business details) and switch to **live** keys. Recreate the subscription **Price IDs in live mode** and update `STRIPE_PRICE_IDS` in `plans.ts`. Re-register the webhook in **live** mode with a fresh signing secret.
 - [ ] 🔴 **Verify the Resend sending domain** (SPF + DKIM DNS records) so purchase/sale emails actually deliver and don't land in spam. Confirm the `from` address uses that domain.
 - [ ] 🔴 Point the production domain at the deployed app; verify HTTPS + `www`/apex redirect.
-- [ ] 🟡 Apply any migrations to the **production** Supabase project if it's separate from the one used in dev. (In the current dev project, 0001–0013 are already applied.)
+- [ ] 🔴 **Upgrade Supabase off the free tier before launch.** Free projects **auto-pause after ~1 week of inactivity** — in production that means the whole site (auth, checkout, data) goes dark until someone manually restores it. A paid plan (or at least active monitoring) is required for a live product.
+- [ ] 🟡 Apply any migrations to the **production** Supabase project if it's separate from the one used in dev. (In the current dev project, 0001–0014 are already applied.)
 - [ ] 🟡 Set up **Stripe Connect branding** (platform name, icon, support email) so the connected-onboarding and buyer statements look like Halvo.
 
 ## Phase 3 — Trust, legal, safety
