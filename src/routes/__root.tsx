@@ -12,6 +12,7 @@ import { BRAND_NAME, BRAND_KEY, BASE_URL } from "@/lib/site";
 import { captureReferralFromUrl } from "@/lib/referral-attribution";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AppToaster } from "@/components/app-toaster";
+import { ConsentBanner } from "@/components/consent-banner";
 
 // Applies the persisted light/dark/system choice before hydration to avoid
 // a flash of the wrong theme.
@@ -135,6 +136,7 @@ function RootComponent() {
       <ThemeProvider>
         <Outlet />
         <AppToaster />
+        <ConsentBanner />
       </ThemeProvider>
     </QueryClientProvider>
   );

@@ -4,10 +4,11 @@ import { zodValidator } from "@tanstack/zod-adapter";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getVerifiedTransaction } from "@/lib/checkout.functions";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CircleCheck, Download, Mail } from "lucide-react";
 import { getDownloadUrlForTransaction } from "@/lib/downloads.functions";
 import { submitReview } from "@/lib/reviews.functions";
+import { trackEvent } from "@/lib/ad-pixels";
 import { StarInput } from "@/components/stars";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,17 @@ function SuccessPage() {
     queryFn: () => downloadFn({ data: { transactionId: id! } }),
     enabled: !!id && !!transactionQ.data,
   });
+
+  // Report the sale as a conversion to any ad pixel the visitor consented to.
+  // No-op unless a pixel is configured AND consent was given, so it's GDPR-safe.
+  useEffect(() => {
+    if (!transactionQ.data) return;
+    trackEvent("Purchase", {
+      value: transactionQ.data.amountPaidCents / 100,
+      currency: "USD",
+      content_name: transactionQ.data.productName,
+    });
+  }, [transactionQ.data]);
 
   // Reached without a valid purchase id (stale link, removed query param, bot).
   if (!id) {
