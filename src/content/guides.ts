@@ -156,14 +156,14 @@ export const GUIDES: Guide[] = [
     body: [
       {
         type: "p",
-        text: "Two things come out of every sale: Stripe's payment processing fee, and our platform fee. Nothing else, and nothing hidden.",
+        text: "Just one thing comes out of every sale: our platform fee. We cover Stripe's card-processing cost out of that fee, so there's no separate Stripe charge to you — nothing hidden.",
       },
       { type: "h2", text: "Current plans" },
       { type: "pricing" },
       { type: "h2", text: "A worked example" },
       {
         type: "p",
-        text: "Say you're on Creator and you sell a $49 template. Our platform fee comes off the sale, Stripe takes its processing cut, and the rest is transferred straight into your own Stripe account — usually within seconds of the payment clearing.",
+        text: "Say you're on Creator and you sell a $49 template. Our platform fee comes off the sale and the rest is transferred straight into your own Stripe account — usually within seconds of the payment clearing. Stripe's processing cost comes out of our fee, not yours, so the amount you see is the amount you keep.",
       },
       { type: "h2", text: "Why there's a fixed few cents as well as a percentage" },
       {
