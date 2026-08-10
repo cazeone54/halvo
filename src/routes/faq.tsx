@@ -17,6 +17,22 @@ export const Route = createFileRoute("/faq")({
       { property: "og:url", content: `${BASE_URL}/faq` },
     ],
     links: [{ rel: "canonical", href: `${BASE_URL}/faq` }],
+    // FAQPage structured data → Google can surface these Q&As as rich results,
+    // expanding the search footprint for free. Built from the same FAQS below.
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: FAQS.flatMap((group) => group.items).map((item) => ({
+            "@type": "Question",
+            name: item.q,
+            acceptedAnswer: { "@type": "Answer", text: item.a },
+          })),
+        }),
+      },
+    ],
   }),
   component: FaqPage,
 });
