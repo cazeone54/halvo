@@ -1,10 +1,10 @@
 import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { Menu, Package, Tag, BarChart3, Settings, User, ExternalLink, Store, LogOut } from "lucide-react";
+import { Menu, Package, Tag, BarChart3, Settings, User, ExternalLink, Store, LogOut, LifeBuoy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile } from "@/lib/profile.functions";
-import { BASE_URL } from "@/lib/site";
+import { BASE_URL, BRAND_EMAIL } from "@/lib/site";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -132,6 +132,11 @@ function DashboardLayout() {
                 <Link to="/dashboard/settings">
                   <Settings className="h-4 w-4" /> Settings
                 </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a href={`mailto:${BRAND_EMAIL}`}>
+                  <LifeBuoy className="h-4 w-4" /> Contact support
+                </a>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={signOut}>

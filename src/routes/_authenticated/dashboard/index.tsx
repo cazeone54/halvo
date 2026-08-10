@@ -49,6 +49,7 @@ import { createSubscriptionCheckout, createPortalSession } from "@/lib/payments.
 import { generateProductCopy } from "@/lib/ai-copywriter.functions";
 import {
   PLAN_LABELS,
+  PLAN_LIMITS,
   PLAN_PRICE_USD,
   PLAN_PRICE_ANNUAL_USD,
   annualBillingConfigured,
@@ -413,7 +414,9 @@ function DashboardHome() {
                   <span className="text-sm font-medium">Drop a file here, or click to choose</span>
                 )}
                 <span className="text-xs text-muted-foreground">
-                  {newFile ? "Click to replace" : "This is what your buyer downloads — it publishes the product"}
+                  {newFile
+                    ? "Click to replace"
+                    : `This is what your buyer downloads — it publishes the product · up to ${PLAN_LIMITS[planQ.data?.tier ?? "free"].maxFileMb} MB`}
                 </span>
                 <input
                   type="file"

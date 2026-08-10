@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { BRAND_NAME } from "@/lib/site";
+import { BRAND_NAME, BRAND_EMAIL } from "@/lib/site";
 import { LogoMark } from "@/components/logo";
 import { AUDIENCES } from "@/content/audiences";
 
@@ -27,6 +27,9 @@ export function PublicFooter() {
           <Link to="/guides">Guides</Link>
           <Link to="/blog">Blog</Link>
           <Link to="/faq">FAQ</Link>
+          <a href={`mailto:${BRAND_EMAIL}`} className="font-medium text-foreground hover:text-primary">
+            Contact
+          </a>
           <Link to="/terms">Terms</Link>
           <Link to="/privacy">Privacy</Link>
           <Link to="/refund-policy">Refund policy</Link>

@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Zap, Wallet, Percent, Sparkles, ArrowRight } from "lucide-react";
+import { Zap, Wallet, Percent, Sparkles, ArrowRight, ShieldCheck, Users2, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PublicNav } from "@/components/public-nav";
@@ -49,6 +49,27 @@ const FEATURES = [
     icon: Sparkles,
     title: "AI-assisted listings",
     body: "Turn a rough pitch into a polished product name and description in seconds.",
+  },
+];
+
+// The single biggest hesitation on a brand-new payments platform is "will I
+// actually get paid, and is my money safe?" — so these three promises are the
+// trust anchor. Every one is literally true of how Halvo works.
+const TRUST = [
+  {
+    icon: Wallet,
+    title: "Paid to your own Stripe",
+    body: "Every sale lands in your own Stripe account — not ours. We literally can't hold or freeze your money.",
+  },
+  {
+    icon: Users2,
+    title: "Your customers are yours",
+    body: "Every buyer's email is yours to keep and export, any time. We never get between you and your audience.",
+  },
+  {
+    icon: Unlock,
+    title: "No lock-in",
+    body: "Cancel whenever you want and take everything with you — your products, your list, your links.",
   },
 ];
 
@@ -120,6 +141,31 @@ function HomePage() {
           <p className="mt-2 text-center text-muted-foreground">30 seconds: list a product, get paid.</p>
           <div className="mt-6">
             <ExplainerAnimation />
+          </div>
+        </section>
+
+        {/* Trust anchor — answered loudly and high on the page, because "will I
+            get paid?" is the real reason a first seller hesitates on a new
+            payments platform. */}
+        <section className="border-y bg-primary/5">
+          <div className="mx-auto max-w-4xl px-4 py-16 text-center sm:px-6">
+            <ShieldCheck className="mx-auto h-9 w-9 text-primary" aria-hidden="true" />
+            <h2 className="mt-3 font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight sm:text-3xl">
+              Your money is yours.
+            </h2>
+            <p className="mx-auto mt-2 max-w-xl text-muted-foreground">
+              Every sale is paid straight into your own Stripe account. We never hold your funds, never touch your
+              payouts, and never lock in your customers.
+            </p>
+            <div className="mt-8 grid grid-cols-1 gap-4 text-left sm:grid-cols-3">
+              {TRUST.map((t) => (
+                <div key={t.title} className="rounded-xl border bg-card p-5">
+                  <t.icon className="h-5 w-5 text-primary" aria-hidden="true" />
+                  <h3 className="mt-3 font-[family-name:var(--font-display)] font-semibold">{t.title}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{t.body}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { PricingTiers } from "@/components/pricing-tiers";
+import { EarningsCalculator } from "@/components/earnings-calculator";
 
 export const Route = createFileRoute("/pricing")({
   component: PricingPage,
@@ -18,6 +19,16 @@ function PricingPage() {
 
           <div className="mt-12">
             <PricingTiers />
+          </div>
+
+          <div className="mt-16">
+            <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold sm:text-2xl">
+              See what you'd keep
+            </h2>
+            <p className="mt-2 text-muted-foreground">Try a price — the math updates live.</p>
+            <div className="mt-6">
+              <EarningsCalculator />
+            </div>
           </div>
         </div>
       </main>
