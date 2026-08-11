@@ -11,6 +11,7 @@ const STATIC_PATHS = [
   "/guides",
   "/blog",
   "/faq",
+  "/access",
   "/discover",
   "/terms",
   "/privacy",

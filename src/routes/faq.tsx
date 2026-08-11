@@ -94,6 +94,10 @@ const FAQS: Array<{ group: string; items: Array<{ q: string; a: string }> }> = [
         a: "No. Every buyer's email is yours — you can see and export your full customer list any time. We never get between you and your audience.",
       },
       {
+        q: "A buyer lost their download link — what do they do?",
+        a: `They can go to ${BASE_URL.replace(/^https?:\/\//, "")}/access, enter the email they bought with, and we'll re-send the download links for everything they've purchased.`,
+      },
+      {
         q: "What happens on a refund?",
         a: "Refunding a sale from your dashboard issues a real Stripe refund to the buyer and revokes their download access.",
       },

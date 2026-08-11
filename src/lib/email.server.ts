@@ -54,6 +54,37 @@ export async function sendPurchaseConfirmationEmail(params: {
   await sendEmail({ to: params.buyerEmail, subject, html, text });
 }
 
+// Re-sends a buyer the links to everything they've bought, when they've lost the
+// original confirmation email. Only ever sent to the address that actually made
+// the purchases (that's the proof of ownership), and only when there's at least
+// one — see requestPurchaseAccess, which never reveals whether an email matched.
+export async function sendPurchaseAccessEmail(params: {
+  email: string;
+  purchases: Array<{ productName: string; transactionId: string }>;
+}): Promise<void> {
+  if (params.purchases.length === 0) return;
+
+  const rows = params.purchases
+    .map((p) => {
+      const url = `${BASE_URL}/success?id=${p.transactionId}`;
+      const name = p.productName.replace(/</g, "&lt;");
+      return `<li style="margin-bottom:10px"><a href="${url}" style="color:#0d7a70;font-weight:600">${name}</a></li>`;
+    })
+    .join("");
+
+  const html = `<div style="font-family:system-ui,sans-serif;line-height:1.6;color:#0a1c1a">
+    <p>Here are your ${BRAND_NAME} downloads. Click a product to open its download page again:</p>
+    <ul style="padding-left:18px">${rows}</ul>
+    <p style="color:#4e6c67;font-size:13px">If you didn't request this, you can ignore this email — nothing changed.</p>
+  </div>`;
+
+  const text = `Your ${BRAND_NAME} downloads:\n\n${params.purchases
+    .map((p) => `- ${p.productName}: ${BASE_URL}/success?id=${p.transactionId}`)
+    .join("\n")}\n\nIf you didn't request this, you can ignore this email.`;
+
+  await sendEmail({ to: params.email, subject: `Your ${BRAND_NAME} downloads`, html, text });
+}
+
 // Tells the seller they earned money, at the moment they earned it. This is the
 // retention half of a sale — the dashboard row only works if they happen to be
 // looking at it.

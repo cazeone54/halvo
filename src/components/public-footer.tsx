@@ -27,6 +27,7 @@ export function PublicFooter() {
           <Link to="/guides">Guides</Link>
           <Link to="/blog">Blog</Link>
           <Link to="/faq">FAQ</Link>
+          <Link to="/access">Recover a purchase</Link>
           <a href={`mailto:${BRAND_EMAIL}`} className="font-medium text-foreground hover:text-primary">
             Contact
           </a>

@@ -101,7 +101,11 @@ function SuccessPage() {
               ))}
               <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                We've emailed this page too — you can come back and re-download any time.
+                We've emailed this page too. Lost it later?{" "}
+                <a href="/access" className="underline underline-offset-2 hover:text-foreground">
+                  Recover your downloads
+                </a>
+                .
               </p>
             </>
           ) : (
