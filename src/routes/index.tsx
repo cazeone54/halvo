@@ -59,7 +59,7 @@ const TRUST = [
   {
     icon: Wallet,
     title: "Paid to your own Stripe",
-    body: "Every sale lands in your own Stripe account — not ours. We literally can't hold or freeze your money.",
+    body: "Your share is paid to your own connected Stripe account and pays out on your schedule — no waiting on us, no manual payout requests.",
   },
   {
     icon: Users2,
@@ -154,8 +154,8 @@ function HomePage() {
               Your money is yours.
             </h2>
             <p className="mx-auto mt-2 max-w-xl text-muted-foreground">
-              Every sale is paid straight into your own Stripe account. We never hold your funds, never touch your
-              payouts, and never lock in your customers.
+              Every sale is paid into your own Stripe account through Stripe Connect. We only ever take our platform
+              fee — your payouts and your customer list stay yours.
             </p>
             <div className="mt-8 grid grid-cols-1 gap-4 text-left sm:grid-cols-3">
               {TRUST.map((t) => (
