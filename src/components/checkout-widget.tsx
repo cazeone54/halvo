@@ -123,6 +123,13 @@ export function CheckoutWidget({ product }: { product: Product }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.id, amountCents, appliedCoupon?.code, free, bumpTaken]);
 
+  // Warm Stripe.js immediately, in parallel with creating the PaymentIntent, so
+  // the payment form mounts the instant the client secret arrives instead of
+  // only then starting to download the Stripe SDK.
+  useEffect(() => {
+    if (!free) void getStripe();
+  }, [free]);
+
   if (free) return <FreeClaimForm productId={product.id} />;
 
   const applyCoupon = async () => {
@@ -239,12 +246,32 @@ export function CheckoutWidget({ product }: { product: Product }) {
       ) : null}
 
       {clientSecret ? (
-        <Elements stripe={getStripe()} options={{ clientSecret, appearance: { theme: "stripe" } }}>
+        // locale:"en" pins the Stripe/Link widgets to English so they match the
+        // site UI (they otherwise follow the browser's language).
+        <Elements
+          stripe={getStripe()}
+          options={{ clientSecret, appearance: { theme: "stripe" }, locale: "en" }}
+        >
           <PaymentForm productId={product.id} amountCents={displayAmountCents} />
         </Elements>
       ) : (
-        <p className="text-sm text-muted-foreground">Loading checkout…</p>
+        <CheckoutSkeleton />
       )}
+    </div>
+  );
+}
+
+// A shaped placeholder while the PaymentIntent + Stripe.js load, so the wait
+// reads as "loading the form" rather than a broken "Loading checkout…" line.
+function CheckoutSkeleton() {
+  return (
+    <div className="flex flex-col gap-3" role="status" aria-label="Loading secure checkout">
+      <div className="h-4 w-16 animate-pulse rounded bg-muted" />
+      <div className="h-9 w-full animate-pulse rounded-md bg-muted" />
+      <div className="h-9 w-full animate-pulse rounded-md bg-muted" />
+      <div className="h-9 w-2/3 animate-pulse rounded-md bg-muted" />
+      <div className="mt-1 h-11 w-full animate-pulse rounded-md bg-muted" />
+      <span className="sr-only">Loading secure checkout…</span>
     </div>
   );
 }

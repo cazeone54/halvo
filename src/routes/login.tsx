@@ -47,9 +47,11 @@ function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="font-[family-name:var(--font-display)] text-xl">
-            Sign in to {BRAND_NAME}
+            Sign in or create your account
           </CardTitle>
-          <CardDescription>Sell your first digital product in minutes.</CardDescription>
+          <CardDescription>
+            One step, no password. New to {BRAND_NAME}? This creates your account. Already have one? It signs you in.
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <Button variant="outline" onClick={signInWithGoogle}>
@@ -92,8 +94,11 @@ function LoginPage() {
                 required
               />
               <Button type="submit" disabled={loading}>
-                {loading ? "Sending…" : "Send magic link"}
+                {loading ? "Sending…" : "Continue with email"}
               </Button>
+              <p className="text-xs text-muted-foreground">
+                We'll email you a secure link — no password to set or remember.
+              </p>
             </form>
           )}
 

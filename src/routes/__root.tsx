@@ -13,6 +13,7 @@ import { captureReferralFromUrl } from "@/lib/referral-attribution";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AppToaster } from "@/components/app-toaster";
 import { ConsentBanner } from "@/components/consent-banner";
+import { NotFound } from "@/components/not-found";
 
 // Applies the persisted light/dark/system choice before hydration to avoid
 // a flash of the wrong theme.
@@ -67,14 +68,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   }),
   shellComponent: RootShell,
   component: RootComponent,
-  notFoundComponent: () => (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-2 text-center">
-      <h1 className="text-2xl font-semibold">Page not found</h1>
-      <a href="/" className="text-primary underline underline-offset-4">
-        Go home
-      </a>
-    </div>
-  ),
+  notFoundComponent: () => <NotFound />,
   errorComponent: ({ error, reset }) => <RootError error={error} reset={reset} />,
 });
 

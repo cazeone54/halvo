@@ -140,8 +140,10 @@ function DashboardHome() {
   // row — creating a product and attaching its file used to be two separate
   // journeys, and stopping between them left a permanently unsellable draft.
   const [newFile, setNewFile] = useState<File | null>(null);
+  const [newCoverFile, setNewCoverFile] = useState<File | null>(null);
   const createCheckUploadFn = useServerFn(checkCanUploadFile);
   const createAttachFn = useServerFn(attachProductFile);
+  const createSetImageFn = useServerFn(setProductImage);
   const [pitch, setPitch] = useState("");
   const generateCopyFn = useServerFn(generateProductCopy);
   const aiMut = useMutation({
@@ -161,13 +163,27 @@ function DashboardHome() {
       const product = await createProductFn({
         data: { name, description: description || undefined, priceCents: Math.round(Number(price) * 100) },
       });
-      if (!newFile) return { published: false };
 
-      await createCheckUploadFn({ data: { productId: product.id, sizeBytes: newFile.size } });
       const {
         data: { user },
       } = await supabase.auth.getUser();
+
+      // Optional cover image, uploaded best-effort so it can never block the
+      // deliverable from publishing the product.
+      if (newCoverFile && user) {
+        const coverPath = `${user.id}/${product.id}/cover-${Date.now()}-${newCoverFile.name}`;
+        const { error: coverErr } = await supabase.storage.from("digital-assets").upload(coverPath, newCoverFile);
+        if (!coverErr) {
+          await createSetImageFn({
+            data: { productId: product.id, storageFilePath: coverPath, sizeBytes: newCoverFile.size },
+          });
+        }
+      }
+
+      if (!newFile) return { published: false };
       if (!user) throw new Error("Not signed in");
+
+      await createCheckUploadFn({ data: { productId: product.id, sizeBytes: newFile.size } });
       const path = `${user.id}/${product.id}/${Date.now()}-${newFile.name}`;
       const { error: uploadError } = await supabase.storage.from("digital-assets").upload(path, newFile);
       if (uploadError) throw uploadError;
@@ -186,6 +202,7 @@ function DashboardHome() {
       setDescription("");
       setPrice("");
       setNewFile(null);
+      setNewCoverFile(null);
       setShowNewProduct(false);
       toast.success(
         res.published
@@ -393,6 +410,37 @@ function DashboardHome() {
               <p className="mt-1 text-xs text-muted-foreground">
                 Set <span className="font-medium">0</span> to give it away as a free lead magnet — buyers just
                 leave an email, and you don&apos;t need Stripe connected for it.
+              </p>
+            </div>
+
+            <div>
+              <Label>Cover image (optional)</Label>
+              <div className="mt-1 flex items-center gap-3">
+                {newCoverFile ? (
+                  <img
+                    src={URL.createObjectURL(newCoverFile)}
+                    alt=""
+                    className="h-14 w-14 shrink-0 rounded-md object-cover"
+                  />
+                ) : (
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                    <ImagePlus className="h-5 w-5" />
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  aria-label="Upload cover image"
+                  className="w-full min-w-0 text-sm text-muted-foreground file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-secondary-foreground hover:file:bg-secondary/80"
+                  onChange={(e) => {
+                    const chosen = e.target.files?.[0];
+                    if (chosen) setNewCoverFile(chosen);
+                    e.target.value = "";
+                  }}
+                />
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                A clear cover sells more — it's shown on your storefront and the product page.
               </p>
             </div>
 
@@ -895,7 +943,9 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
               {product.imageUrl ? (
                 <img src={product.imageUrl} alt="" className="h-full w-full object-cover" />
               ) : (
-                <Package className="h-5 w-5" />
+                // ImagePlus (not a generic cube) so an imageless product reads
+                // as "click to add a cover".
+                <ImagePlus className="h-5 w-5" />
               )}
               <span className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
                 <ImagePlus className="h-4 w-4 text-white" />
@@ -919,7 +969,11 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
               </div>
               <p className="text-sm text-muted-foreground">
                 ${(product.price_cents / 100).toFixed(2)}
-                {!product.url_slug ? " · add a file below to publish" : null}
+                {!product.url_slug
+                  ? " · add a file below to publish"
+                  : !product.imageUrl
+                    ? " · add a cover image to stand out"
+                    : null}
               </p>
             </div>
           </div>
