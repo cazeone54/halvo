@@ -34,9 +34,12 @@ const slugify = (name: string, suffix: string) =>
 export const listMyProducts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    // select("*") (rather than an explicit column list) so refund_policy comes
+    // through when migration 0015 is applied and is simply absent when it isn't —
+    // no query error either way. It's the seller's own rows, so nothing extra leaks.
     const { data, error } = await context.supabase
       .from("products")
-      .select("id, name, description, price_cents, pay_what_you_want, url_slug, category, image_url, created_at")
+      .select("*")
       .eq("owner_id", context.userId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
@@ -53,6 +56,7 @@ export const createProduct = createServerFn({ method: "POST" })
         priceCents: z.number().int().min(0),
         payWhatYouWant: z.boolean().optional(),
         category: z.string().trim().max(60).optional(),
+        refundPolicy: z.string().trim().max(2000).optional(),
       })
       .parse(data),
   )
@@ -87,6 +91,18 @@ export const createProduct = createServerFn({ method: "POST" })
       .select("id, url_slug")
       .single();
     if (error || !product) throw new Error(error?.message ?? "Could not create product");
+
+    // Optional per-product refund policy, written separately and best-effort so
+    // a not-yet-applied migration 0015 can never break product creation — any
+    // error (e.g. missing column) is intentionally ignored.
+    if (data.refundPolicy !== undefined) {
+      await context.supabase
+        .from("products")
+        .update({ refund_policy: data.refundPolicy || null })
+        .eq("id", product.id)
+        .eq("owner_id", context.userId);
+    }
+
     return product;
   });
 
@@ -101,6 +117,7 @@ export const updateProduct = createServerFn({ method: "POST" })
         priceCents: z.number().int().min(0).optional(),
         payWhatYouWant: z.boolean().optional(),
         category: z.string().trim().max(60).optional(),
+        refundPolicy: z.string().trim().max(2000).optional(),
       })
       .parse(data),
   )
@@ -113,12 +130,25 @@ export const updateProduct = createServerFn({ method: "POST" })
     if (rest.payWhatYouWant !== undefined) update.pay_what_you_want = rest.payWhatYouWant;
     if (rest.category !== undefined) update.category = rest.category;
 
-    const { error } = await context.supabase
-      .from("products")
-      .update(update)
-      .eq("id", productId)
-      .eq("owner_id", context.userId);
-    if (error) throw new Error(error.message);
+    if (Object.keys(update).length > 0) {
+      const { error } = await context.supabase
+        .from("products")
+        .update(update)
+        .eq("id", productId)
+        .eq("owner_id", context.userId);
+      if (error) throw new Error(error.message);
+    }
+
+    // Refund policy is written separately and best-effort so a missing 0015
+    // migration can't break the rest of the edit — its error is ignored.
+    if (rest.refundPolicy !== undefined) {
+      await context.supabase
+        .from("products")
+        .update({ refund_policy: rest.refundPolicy || null })
+        .eq("id", productId)
+        .eq("owner_id", context.userId);
+    }
+
     return { ok: true };
   });
 

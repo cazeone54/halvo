@@ -136,6 +136,7 @@ function DashboardHome() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [newRefundPolicy, setNewRefundPolicy] = useState("");
   // The deliverable is chosen here rather than in a second step on the product
   // row — creating a product and attaching its file used to be two separate
   // journeys, and stopping between them left a permanently unsellable draft.
@@ -161,7 +162,12 @@ function DashboardHome() {
     // part-way still leaves a recoverable draft on the dashboard.
     mutationFn: async () => {
       const product = await createProductFn({
-        data: { name, description: description || undefined, priceCents: Math.round(Number(price) * 100) },
+        data: {
+          name,
+          description: description || undefined,
+          priceCents: Math.round(Number(price) * 100),
+          refundPolicy: newRefundPolicy.trim() || undefined,
+        },
       });
 
       const {
@@ -201,6 +207,7 @@ function DashboardHome() {
       setName("");
       setDescription("");
       setPrice("");
+      setNewRefundPolicy("");
       setNewFile(null);
       setNewCoverFile(null);
       setShowNewProduct(false);
@@ -441,6 +448,19 @@ function DashboardHome() {
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
                 A clear cover sells more — it's shown on your storefront and the product page.
+              </p>
+            </div>
+
+            <div>
+              <Label>Refund policy for this product (optional)</Label>
+              <Textarea
+                value={newRefundPolicy}
+                onChange={(e) => setNewRefundPolicy(e.target.value)}
+                rows={2}
+                placeholder="e.g. 14-day money-back guarantee"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Leave blank to use your account-wide policy from Settings.
               </p>
             </div>
 
@@ -771,6 +791,8 @@ type ProductRowData = {
   category: string | null;
   url_slug: string | null;
   imageUrl: string | null;
+  // Present once migration 0015 is applied (listMyProducts uses select("*")).
+  refund_policy?: string | null;
 };
 
 function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: () => void }) {
@@ -792,6 +814,7 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
   const [editDescription, setEditDescription] = useState(product.description ?? "");
   const [editPrice, setEditPrice] = useState((product.price_cents / 100).toFixed(2));
   const [editCategory, setEditCategory] = useState(product.category ?? "");
+  const [editRefundPolicy, setEditRefundPolicy] = useState(product.refund_policy ?? "");
 
   const filesQ = useQuery({
     queryKey: ["product-files", product.id],
@@ -924,6 +947,7 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
           description: editDescription,
           priceCents: Math.round(Number(editPrice) * 100),
           category: editCategory,
+          refundPolicy: editRefundPolicy,
         },
       }),
     onSuccess: () => {
@@ -1041,6 +1065,15 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
                 <Label>Category</Label>
                 <Input value={editCategory} onChange={(e) => setEditCategory(e.target.value)} placeholder="e.g. templates" />
               </div>
+            </div>
+            <div>
+              <Label>Refund policy for this product (optional)</Label>
+              <Textarea
+                value={editRefundPolicy}
+                onChange={(e) => setEditRefundPolicy(e.target.value)}
+                rows={2}
+                placeholder="Leave blank to use your account-wide policy from Settings"
+              />
             </div>
             <Button size="sm" className="self-start" onClick={() => updateMut.mutate()} disabled={updateMut.isPending}>
               Save changes

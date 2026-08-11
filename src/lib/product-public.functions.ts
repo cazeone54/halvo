@@ -7,15 +7,21 @@ export const getProductPublicView = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    // select("*") so a per-product refund_policy (migration 0015) comes through
+    // when present and is simply absent when it isn't — the curated return below
+    // never exposes the extra columns.
     const { data: product, error } = await supabaseAdmin
       .from("products")
-      .select("id, name, description, price_cents, pay_what_you_want, url_slug, owner_id, image_url")
+      .select("*")
       .eq("url_slug", data.slug)
       .single();
     if (error || !product) throw new Error("Product not found");
 
+    // A per-product refund policy overrides the seller's account-wide one.
+    const productRefundPolicy = product.refund_policy ?? null;
+
     let sellerName: string | null = null;
-    let refundPolicy: string | null = null;
+    let refundPolicy: string | null = productRefundPolicy;
     let supportEmail: string | null = null;
     if (product.owner_id) {
       const { data: seller } = await supabaseAdmin
@@ -24,7 +30,7 @@ export const getProductPublicView = createServerFn({ method: "GET" })
         .eq("id", product.owner_id)
         .single();
       sellerName = seller?.display_name ?? seller?.handle ?? null;
-      refundPolicy = seller?.refund_policy ?? null;
+      refundPolicy = productRefundPolicy ?? seller?.refund_policy ?? null;
       supportEmail = seller?.support_email ?? null;
     }
 

@@ -70,6 +70,7 @@ export type Database = {
           image_url: string | null;
           url_slug: string | null;
           category: string | null;
+          refund_policy: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -83,6 +84,7 @@ export type Database = {
           image_url?: string | null;
           url_slug?: string | null;
           category?: string | null;
+          refund_policy?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -96,6 +98,7 @@ export type Database = {
           image_url?: string | null;
           url_slug?: string | null;
           category?: string | null;
+          refund_policy?: string | null;
           created_at?: string;
           updated_at?: string;
         };
