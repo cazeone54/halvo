@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { ShieldCheck, Mail, CircleCheck, Lock, Zap, CreditCard } from "lucide-react";
-import { getProductPublicView } from "@/lib/product-public.functions";
+import { getProductPublicView, listMoreFromSeller } from "@/lib/product-public.functions";
 import { recordProductView } from "@/lib/product-view.functions";
 import { listProductReviews } from "@/lib/reviews.functions";
 import { Stars } from "@/components/stars";
@@ -100,6 +100,17 @@ function ProductCheckoutPage() {
     queryFn: () => reviewsFn({ data: { productId: product.id } }),
   });
   const summary = reviewsQ.data?.summary;
+
+  // Other products by this seller — cross-sell. Skipped inside the embed overlay
+  // to keep it focused on the single product it was opened for.
+  const moreFn = useServerFn(listMoreFromSeller);
+  const moreQ = useQuery({
+    queryKey: ["more-from-seller", product.id],
+    queryFn: () => moreFn({ data: { productId: product.id } }),
+    enabled: !embed,
+  });
+  const more = moreQ.data?.products ?? [];
+
   const isFree = !product.payWhatYouWant && product.priceCents === 0;
   const priceLabel = isFree
     ? "Free"
@@ -194,6 +205,46 @@ function ProductCheckoutPage() {
                   <Stars value={review.rating} />
                   <p className="mt-1.5 text-sm text-muted-foreground">{review.body}</p>
                 </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {!embed && more.length > 0 ? (
+          <div className="rounded-2xl border bg-card p-5">
+            <div className="flex items-center justify-between gap-3">
+              <p className="font-[family-name:var(--font-display)] font-semibold">
+                More from {product.sellerName ?? "this seller"}
+              </p>
+              {product.sellerHandle ? (
+                <Link
+                  to="/u/$handle"
+                  params={{ handle: product.sellerHandle }}
+                  className="shrink-0 text-xs text-primary underline underline-offset-4"
+                >
+                  View all
+                </Link>
+              ) : null}
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              {more.map((p) => (
+                <Link key={p.id} to="/p/$slug" params={{ slug: p.slug }} className="group">
+                  <div className="aspect-video w-full overflow-hidden rounded-lg bg-muted">
+                    {p.imageUrl ? (
+                      <img
+                        src={p.imageUrl}
+                        alt=""
+                        className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                      />
+                    ) : null}
+                  </div>
+                  <p className="mt-1.5 truncate text-sm font-medium">{p.name}</p>
+                  <p className="text-xs text-primary">
+                    {!p.payWhatYouWant && p.priceCents === 0
+                      ? "Free"
+                      : `${p.payWhatYouWant ? "From " : ""}$${(p.priceCents / 100).toFixed(2)}`}
+                  </p>
+                </Link>
               ))}
             </div>
           </div>

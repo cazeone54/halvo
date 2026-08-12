@@ -2,6 +2,47 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { productImageUrl } from "@/lib/public-image-url";
 
+// Other published products by the same seller — powers a "More from this
+// seller" cross-sell on the product page (and a discovery nudge post-purchase).
+// Public and best-effort: any failure just yields an empty list, and a seller
+// with only one product naturally returns nothing (so the section hides).
+export const listMoreFromSeller = createServerFn({ method: "GET" })
+  .validator((data) => z.object({ productId: z.string().uuid() }).parse(data))
+  .handler(async ({ data }) => {
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+      const { data: current } = await supabaseAdmin
+        .from("products")
+        .select("owner_id")
+        .eq("id", data.productId)
+        .single();
+      if (!current?.owner_id) return { products: [] };
+
+      const { data: others } = await supabaseAdmin
+        .from("products")
+        .select("id, name, price_cents, pay_what_you_want, url_slug, image_url")
+        .eq("owner_id", current.owner_id)
+        .neq("id", data.productId)
+        .not("url_slug", "is", null) // published only
+        .order("created_at", { ascending: false })
+        .limit(4);
+
+      return {
+        products: (others ?? []).map((p) => ({
+          id: p.id,
+          name: p.name,
+          priceCents: p.price_cents,
+          payWhatYouWant: p.pay_what_you_want,
+          slug: p.url_slug as string,
+          imageUrl: productImageUrl(p.id, p.image_url),
+        })),
+      };
+    } catch {
+      return { products: [] };
+    }
+  });
+
 export const getProductPublicView = createServerFn({ method: "GET" })
   .validator((data) => z.object({ slug: z.string().min(1) }).parse(data))
   .handler(async ({ data }) => {
@@ -21,6 +62,7 @@ export const getProductPublicView = createServerFn({ method: "GET" })
     const productRefundPolicy = product.refund_policy ?? null;
 
     let sellerName: string | null = null;
+    let sellerHandle: string | null = null;
     let refundPolicy: string | null = productRefundPolicy;
     let supportEmail: string | null = null;
     if (product.owner_id) {
@@ -30,6 +72,7 @@ export const getProductPublicView = createServerFn({ method: "GET" })
         .eq("id", product.owner_id)
         .single();
       sellerName = seller?.display_name ?? seller?.handle ?? null;
+      sellerHandle = seller?.handle ?? null;
       refundPolicy = productRefundPolicy ?? seller?.refund_policy ?? null;
       supportEmail = seller?.support_email ?? null;
     }
@@ -48,6 +91,7 @@ export const getProductPublicView = createServerFn({ method: "GET" })
       payWhatYouWant: product.pay_what_you_want,
       imageUrl: productImageUrl(product.id, product.image_url),
       sellerName,
+      sellerHandle,
       refundPolicy,
       supportEmail,
       salesCount: salesCount ?? 0,
