@@ -7,11 +7,13 @@ import { getVerifiedTransaction } from "@/lib/checkout.functions";
 import { useState, useEffect } from "react";
 import { CircleCheck, Download, Mail } from "lucide-react";
 import { getDownloadUrlForTransaction } from "@/lib/downloads.functions";
+import { getLicenseKeyForTransaction } from "@/lib/license.functions";
 import { submitReview } from "@/lib/reviews.functions";
 import { trackEvent } from "@/lib/ad-pixels";
 import { StarInput } from "@/components/stars";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { KeyRound, Copy, Check } from "lucide-react";
 
 export const Route = createFileRoute("/success")({
   // .optional().catch(undefined) so hitting /success with a missing or
@@ -24,6 +26,7 @@ function SuccessPage() {
   const { id } = Route.useSearch();
   const transactionFn = useServerFn(getVerifiedTransaction);
   const downloadFn = useServerFn(getDownloadUrlForTransaction);
+  const licenseFn = useServerFn(getLicenseKeyForTransaction);
 
   const transactionQ = useQuery({
     queryKey: ["transaction", id],
@@ -33,6 +36,13 @@ function SuccessPage() {
   const filesQ = useQuery({
     queryKey: ["download-files", id],
     queryFn: () => downloadFn({ data: { transactionId: id! } }),
+    enabled: !!id && !!transactionQ.data,
+  });
+  // Only products that opted into license keys return one; everyone else gets
+  // null and this block never renders. Safe/dormant until migration 0016.
+  const licenseQ = useQuery({
+    queryKey: ["license-key", id],
+    queryFn: () => licenseFn({ data: { transactionId: id! } }),
     enabled: !!id && !!transactionQ.data,
   });
 
@@ -113,10 +123,47 @@ function SuccessPage() {
               This product has no files to download. If that seems wrong, contact the seller.
             </p>
           )}
+
+          {licenseQ.data?.licenseKey ? <LicenseKeyBlock licenseKey={licenseQ.data.licenseKey} /> : null}
         </CardContent>
       </Card>
 
       {files.length > 0 ? <ReviewPrompt transactionId={id} /> : null}
+    </div>
+  );
+}
+
+// The buyer's license key, with one-tap copy. Shown only for products that
+// enabled keys. The key is theirs forever — the same one is returned on every
+// return visit to this page (and via the recovery email link).
+function LicenseKeyBlock({ licenseKey }: { licenseKey: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(licenseKey);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard blocked (insecure context / permissions) — the key is still
+      // visible and select-all, so the buyer can copy it by hand.
+    }
+  };
+
+  return (
+    <div className="rounded-lg border bg-muted/40 p-3">
+      <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <KeyRound className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> Your license key
+      </p>
+      <div className="mt-1.5 flex items-center gap-2">
+        <code className="flex-1 select-all overflow-x-auto rounded bg-background px-2 py-1.5 font-mono text-sm tracking-wide">
+          {licenseKey}
+        </code>
+        <Button variant="outline" size="icon" onClick={copy} aria-label="Copy license key" title="Copy">
+          {copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
+        </Button>
+      </div>
+      <p className="mt-1.5 text-xs text-muted-foreground">Keep this safe — you'll need it to activate the product.</p>
     </div>
   );
 }

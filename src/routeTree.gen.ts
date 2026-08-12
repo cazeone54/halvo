@@ -41,6 +41,7 @@ import { Route as ImgAvatarUserIdRouteImport } from './routes/img.avatar.$userId
 import { Route as ImgProductProductIdRouteImport } from './routes/img.product.$productId'
 import { Route as AuthenticatedDashboardStripeRefreshRouteImport } from './routes/_authenticated/dashboard/stripe.refresh'
 import { Route as AuthenticatedDashboardStripeReturnRouteImport } from './routes/_authenticated/dashboard/stripe.return'
+import { Route as ApiPublicLicenseValidateRouteImport } from './routes/api/public/license/validate'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
 const IndexRoute = IndexRouteImport.update({
@@ -211,6 +212,12 @@ const AuthenticatedDashboardStripeReturnRoute =
     path: '/stripe/return',
     getParentRoute: () => AuthenticatedDashboardRouteRoute,
   } as any)
+const ApiPublicLicenseValidateRoute =
+  ApiPublicLicenseValidateRouteImport.update({
+    id: '/api/public/license/validate',
+    path: '/api/public/license/validate',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
     id: '/api/public/payments/webhook',
@@ -250,6 +257,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/stripe/refresh': typeof AuthenticatedDashboardStripeRefreshRoute
   '/dashboard/stripe/return': typeof AuthenticatedDashboardStripeReturnRoute
+  '/api/public/license/validate': typeof ApiPublicLicenseValidateRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -283,6 +291,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/stripe/refresh': typeof AuthenticatedDashboardStripeRefreshRoute
   '/dashboard/stripe/return': typeof AuthenticatedDashboardStripeReturnRoute
+  '/api/public/license/validate': typeof ApiPublicLicenseValidateRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesById {
@@ -319,6 +328,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/dashboard/stripe/refresh': typeof AuthenticatedDashboardStripeRefreshRoute
   '/_authenticated/dashboard/stripe/return': typeof AuthenticatedDashboardStripeReturnRoute
+  '/api/public/license/validate': typeof ApiPublicLicenseValidateRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRouteTypes {
@@ -355,6 +365,7 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/dashboard/stripe/refresh'
     | '/dashboard/stripe/return'
+    | '/api/public/license/validate'
     | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -388,6 +399,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/dashboard/stripe/refresh'
     | '/dashboard/stripe/return'
+    | '/api/public/license/validate'
     | '/api/public/payments/webhook'
   id:
     | '__root__'
@@ -423,6 +435,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/'
     | '/_authenticated/dashboard/stripe/refresh'
     | '/_authenticated/dashboard/stripe/return'
+    | '/api/public/license/validate'
     | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -450,6 +463,7 @@ export interface RootRouteChildren {
   GuidesIndexRoute: typeof GuidesIndexRoute
   ImgAvatarUserIdRoute: typeof ImgAvatarUserIdRoute
   ImgProductProductIdRoute: typeof ImgProductProductIdRoute
+  ApiPublicLicenseValidateRoute: typeof ApiPublicLicenseValidateRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
@@ -679,6 +693,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardStripeReturnRouteImport
       parentRoute: typeof AuthenticatedDashboardRouteRoute
     }
+    '/api/public/license/validate': {
+      id: '/api/public/license/validate'
+      path: '/api/public/license/validate'
+      fullPath: '/api/public/license/validate'
+      preLoaderRoute: typeof ApiPublicLicenseValidateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
       path: '/api/public/payments/webhook'
@@ -755,6 +776,7 @@ const rootRouteChildren: RootRouteChildren = {
   GuidesIndexRoute: GuidesIndexRoute,
   ImgAvatarUserIdRoute: ImgAvatarUserIdRoute,
   ImgProductProductIdRoute: ImgProductProductIdRoute,
+  ApiPublicLicenseValidateRoute: ApiPublicLicenseValidateRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
 export const routeTree = rootRouteImport

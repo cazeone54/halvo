@@ -137,6 +137,7 @@ function DashboardHome() {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [newRefundPolicy, setNewRefundPolicy] = useState("");
+  const [newLicenseEnabled, setNewLicenseEnabled] = useState(false);
   // The deliverable is chosen here rather than in a second step on the product
   // row — creating a product and attaching its file used to be two separate
   // journeys, and stopping between them left a permanently unsellable draft.
@@ -167,6 +168,7 @@ function DashboardHome() {
           description: description || undefined,
           priceCents: Math.round(Number(price) * 100),
           refundPolicy: newRefundPolicy.trim() || undefined,
+          licenseKeyEnabled: newLicenseEnabled,
         },
       });
 
@@ -208,6 +210,7 @@ function DashboardHome() {
       setDescription("");
       setPrice("");
       setNewRefundPolicy("");
+      setNewLicenseEnabled(false);
       setNewFile(null);
       setNewCoverFile(null);
       setShowNewProduct(false);
@@ -463,6 +466,22 @@ function DashboardHome() {
                 Leave blank to use your account-wide policy from Settings.
               </p>
             </div>
+
+            <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+                checked={newLicenseEnabled}
+                onChange={(e) => setNewLicenseEnabled(e.target.checked)}
+              />
+              <span className="min-w-0">
+                <span className="block text-sm font-medium">Deliver a unique license key</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  For software, plugins, fonts or presets. Each buyer gets their own key on the download page, which
+                  your app can verify at halvo.io/api/public/license/validate. Refunds revoke it automatically.
+                </span>
+              </span>
+            </label>
 
             <div>
               <Label>File buyers receive</Label>
@@ -793,6 +812,8 @@ type ProductRowData = {
   imageUrl: string | null;
   // Present once migration 0015 is applied (listMyProducts uses select("*")).
   refund_policy?: string | null;
+  // Present once migration 0016 is applied.
+  license_key_enabled?: boolean | null;
 };
 
 function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: () => void }) {
@@ -815,6 +836,7 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
   const [editPrice, setEditPrice] = useState((product.price_cents / 100).toFixed(2));
   const [editCategory, setEditCategory] = useState(product.category ?? "");
   const [editRefundPolicy, setEditRefundPolicy] = useState(product.refund_policy ?? "");
+  const [editLicenseEnabled, setEditLicenseEnabled] = useState(!!product.license_key_enabled);
 
   const filesQ = useQuery({
     queryKey: ["product-files", product.id],
@@ -948,6 +970,7 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
           priceCents: Math.round(Number(editPrice) * 100),
           category: editCategory,
           refundPolicy: editRefundPolicy,
+          licenseKeyEnabled: editLicenseEnabled,
         },
       }),
     onSuccess: () => {
@@ -1075,6 +1098,21 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
                 placeholder="Leave blank to use your account-wide policy from Settings"
               />
             </div>
+            <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+                checked={editLicenseEnabled}
+                onChange={(e) => setEditLicenseEnabled(e.target.checked)}
+              />
+              <span className="min-w-0">
+                <span className="block text-sm font-medium">Deliver a unique license key</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  Each buyer gets their own key on the download page; your app can verify it at
+                  halvo.io/api/public/license/validate. Refunds revoke it automatically.
+                </span>
+              </span>
+            </label>
             <Button size="sm" className="self-start" onClick={() => updateMut.mutate()} disabled={updateMut.isPending}>
               Save changes
             </Button>

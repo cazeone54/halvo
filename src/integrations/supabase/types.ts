@@ -71,6 +71,7 @@ export type Database = {
           url_slug: string | null;
           category: string | null;
           refund_policy: string | null;
+          license_key_enabled: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -85,6 +86,7 @@ export type Database = {
           url_slug?: string | null;
           category?: string | null;
           refund_policy?: string | null;
+          license_key_enabled?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -99,10 +101,43 @@ export type Database = {
           url_slug?: string | null;
           category?: string | null;
           refund_policy?: string | null;
+          license_key_enabled?: boolean;
           created_at?: string;
           updated_at?: string;
         };
         Relationships: [];
+      };
+      license_keys: {
+        Row: {
+          id: string;
+          transaction_id: string;
+          product_id: string | null;
+          license_key: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          transaction_id: string;
+          product_id?: string | null;
+          license_key: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          transaction_id?: string;
+          product_id?: string | null;
+          license_key?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "license_keys_transaction_id_fkey";
+            columns: ["transaction_id"];
+            isOneToOne: true;
+            referencedRelation: "transactions";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       product_files: {
         Row: {
