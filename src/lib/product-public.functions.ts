@@ -62,48 +62,49 @@ export const getProductPublicView = createServerFn({ method: "GET" })
     // A per-product refund policy overrides the seller's account-wide one.
     const productRefundPolicy = product.refund_policy ?? null;
 
-    let sellerName: string | null = null;
-    let sellerHandle: string | null = null;
-    let refundPolicy: string | null = productRefundPolicy;
-    let supportEmail: string | null = null;
-    if (product.owner_id) {
-      const { data: seller } = await supabaseAdmin
-        .from("profiles")
-        .select("display_name, handle, refund_policy, support_email")
-        .eq("id", product.owner_id)
-        .single();
-      sellerName = seller?.display_name ?? seller?.handle ?? null;
-      sellerHandle = seller?.handle ?? null;
-      refundPolicy = productRefundPolicy ?? seller?.refund_policy ?? null;
-      supportEmail = seller?.support_email ?? null;
-    }
-
-    const { count: salesCount } = await supabaseAdmin
-      .from("transactions")
-      .select("id", { count: "exact", head: true })
-      .eq("product_id", product.id)
-      .eq("status", "success");
-
-    // Review summary, computed server-side so the page can emit an
-    // aggregateRating in its structured data (star ratings in search results).
-    // Best-effort: reviews are a nice-to-have and the table may be unmigrated,
-    // so any failure just yields no rating rather than breaking the money page.
-    let reviewCount = 0;
-    let reviewAverage = 0;
-    try {
-      const { data: ratingRows } = await supabaseAdmin
-        .from("reviews")
-        .select("rating")
+    // The seller profile, sales count, and review summary each depend only on
+    // the product row we already have — so run them concurrently rather than
+    // three sequential round-trips on the checkout page (the money page, where
+    // latency matters most). Each is independently defensive.
+    const [sellerRes, salesRes, reviewSummary] = await Promise.all([
+      product.owner_id
+        ? supabaseAdmin
+            .from("profiles")
+            .select("display_name, handle, refund_policy, support_email")
+            .eq("id", product.owner_id)
+            .single()
+        : Promise.resolve({ data: null }),
+      supabaseAdmin
+        .from("transactions")
+        .select("id", { count: "exact", head: true })
         .eq("product_id", product.id)
-        .limit(1000);
-      if (ratingRows && ratingRows.length > 0) {
-        const summary = summarizeRatings(ratingRows.map((r) => r.rating));
-        reviewCount = summary.count;
-        reviewAverage = summary.average;
-      }
-    } catch {
-      // reviews table not migrated / query failed — no rating in the markup.
-    }
+        .eq("status", "success"),
+      // Review summary, computed server-side so the page can emit an
+      // aggregateRating in its structured data (star ratings in search results).
+      // Best-effort: the table may be unmigrated, so any failure yields no rating
+      // rather than breaking the page.
+      (async () => {
+        try {
+          const { data: ratingRows } = await supabaseAdmin
+            .from("reviews")
+            .select("rating")
+            .eq("product_id", product.id)
+            .limit(1000);
+          return summarizeRatings((ratingRows ?? []).map((r) => r.rating));
+        } catch {
+          return summarizeRatings([]);
+        }
+      })(),
+    ]);
+
+    const seller = sellerRes.data;
+    const sellerName = seller?.display_name ?? seller?.handle ?? null;
+    const sellerHandle = seller?.handle ?? null;
+    const refundPolicy = productRefundPolicy ?? seller?.refund_policy ?? null;
+    const supportEmail = seller?.support_email ?? null;
+    const salesCount = salesRes.count ?? 0;
+    const reviewCount = reviewSummary.count;
+    const reviewAverage = reviewSummary.average;
 
     return {
       id: product.id,
@@ -116,8 +117,11 @@ export const getProductPublicView = createServerFn({ method: "GET" })
       sellerHandle,
       refundPolicy,
       supportEmail,
-      salesCount: salesCount ?? 0,
+      salesCount,
       reviewCount,
       reviewAverage,
+      // Lets the checkout page advertise "includes a license key" to buyers.
+      // Absent (undefined) until migration 0016 → coerced to false.
+      licenseKeyEnabled: product.license_key_enabled === true,
     };
   });

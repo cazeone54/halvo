@@ -2,7 +2,7 @@ import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { ShieldCheck, Mail, CircleCheck, Lock, Zap, CreditCard } from "lucide-react";
+import { ShieldCheck, Mail, CircleCheck, Lock, Zap, CreditCard, KeyRound } from "lucide-react";
 import { getProductPublicView, listMoreFromSeller } from "@/lib/product-public.functions";
 import { recordProductView } from "@/lib/product-view.functions";
 import { listProductReviews } from "@/lib/reviews.functions";
@@ -189,6 +189,13 @@ function ProductCheckoutPage() {
             </div>
           </div>
         </div>
+
+        {product.licenseKeyEnabled ? (
+          <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
+            <KeyRound className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+            <span>Includes a unique license key, delivered instantly after purchase.</span>
+          </div>
+        ) : null}
 
         {/* Checkout card */}
         <div className="rounded-2xl border bg-card p-5 shadow-sm">
