@@ -346,6 +346,69 @@ export const GUIDES: Guide[] = [
       },
     ],
   },
+  {
+    slug: "selling-software-with-license-keys",
+    title: "Sell software with license keys",
+    description: `Give every buyer a unique license key and verify it from your own app — for plugins, desktop apps, fonts, presets and anything that needs activation.`,
+    minutes: 4,
+    category: "Getting started",
+    body: [
+      {
+        type: "p",
+        text: "If you sell software — a plugin, a desktop or mobile app, a font, a preset pack, anything that unlocks on activation — you can hand each buyer a unique license key at checkout and check it from your own code. No extra service to run.",
+      },
+      { type: "h2", text: "1. Turn it on for a product" },
+      {
+        type: "steps",
+        items: [
+          "Open the product on your dashboard (create it or edit an existing one).",
+          "Tick “Deliver a unique license key”.",
+          "Save. That's it — every future purchase gets its own key.",
+        ],
+      },
+      {
+        type: "note",
+        text: "You can still attach a file too. A buyer of a licensed product gets both their download and their key on the same page — deliver the app as the file, and use the key to activate it.",
+      },
+      { type: "h2", text: "2. Where the buyer sees their key" },
+      {
+        type: "p",
+        text: "Right after paying, the buyer sees their key on the download page with a one-tap copy button. It's also always waiting for them in Your purchases when they're signed in, and reachable from the confirmation email — so they can never permanently lose it.",
+      },
+      { type: "h2", text: "3. Verify a key from your app" },
+      {
+        type: "p",
+        text: "When someone enters their key in your software, call this endpoint. It's a plain GET, needs no API key, and works from anywhere (browser, desktop app, server) — so you can call it straight from your app:",
+      },
+      {
+        type: "code",
+        code: 'curl "https://halvo.io/api/public/license/validate?key=AB3K-9XZ2-QW7M-4TYP"',
+      },
+      { type: "p", text: "You get back JSON:" },
+      {
+        type: "code",
+        code: '{ "valid": true, "product": "Focus — Lightroom Presets" }',
+      },
+      {
+        type: "p",
+        text: "From JavaScript it's just as short:",
+      },
+      {
+        type: "code",
+        code:
+          'async function checkKey(key) {\n  const res = await fetch(\n    "https://halvo.io/api/public/license/validate?key=" + encodeURIComponent(key)\n  );\n  const { valid } = await res.json();\n  return valid; // true = unlock the app\n}',
+      },
+      { type: "h2", text: "4. Refunds and chargebacks revoke keys automatically" },
+      {
+        type: "p",
+        text: "A key is only “valid” while the purchase behind it is a completed, non-refunded, non-disputed sale. If you refund a buyer, or they charge back, that key stops validating the moment it happens — you don't have to track or revoke anything yourself. Re-check the key on activation (and, for long-running software, occasionally afterwards) and the platform keeps you honest.",
+      },
+      {
+        type: "note",
+        text: "Keys are unique per purchase and use a hard-to-mistype, ambiguity-free alphabet (no 0/O or 1/I/L). Need to look one up for support? Open Recent sales on your dashboard — the buyer's key shows on their sale.",
+      },
+    ],
+  },
 ];
 
 export function findGuide(slug: string): Guide | undefined {
