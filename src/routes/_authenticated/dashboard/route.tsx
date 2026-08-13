@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { Menu, Package, Tag, BarChart3, Settings, User, ExternalLink, Store, LogOut, LifeBuoy } from "lucide-react";
+import { Menu, Package, Tag, BarChart3, Settings, User, ExternalLink, Store, LogOut, LifeBuoy, ShoppingBag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile } from "@/lib/profile.functions";
 import { BASE_URL, BRAND_EMAIL } from "@/lib/site";
@@ -96,6 +96,9 @@ function DashboardLayout() {
                   <Link to={link.to}>{link.label}</Link>
                 </DropdownMenuItem>
               ))}
+              <DropdownMenuItem asChild>
+                <Link to="/dashboard/purchases">Your purchases</Link>
+              </DropdownMenuItem>
               {/* Sign out lives in here on mobile so the header doesn't run out
                   of room next to the wordmark, theme toggle and menu. */}
               <DropdownMenuItem onSelect={signOut}>Sign out</DropdownMenuItem>
@@ -128,6 +131,11 @@ function DashboardLayout() {
                   </a>
                 </DropdownMenuItem>
               ) : null}
+              <DropdownMenuItem asChild>
+                <Link to="/dashboard/purchases">
+                  <ShoppingBag className="h-4 w-4" /> Your purchases
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link to="/dashboard/settings">
                   <Settings className="h-4 w-4" /> Settings
