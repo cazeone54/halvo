@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { productImageUrl } from "@/lib/public-image-url";
+import { summarizeRatings } from "@/lib/ratings";
 
 export const DISCOVER_SORTS = ["trending", "best-selling", "newest"] as const;
 export type DiscoverSort = (typeof DISCOVER_SORTS)[number];
@@ -80,11 +81,42 @@ export const listDiscover = createServerFn({ method: "GET" })
       });
     }
 
-    return ranked.slice(0, 60).map((p) => ({
-      ...p,
-      imageUrl: productImageUrl(p.id, p.image_url),
-      salesCount: salesTotal.get(p.id) ?? 0,
-    }));
+    const visible = ranked.slice(0, 60);
+
+    // Star ratings for the shown cards — one batched read (no N+1), best-effort
+    // so an unmigrated/failing reviews table just means no stars, never a broken
+    // grid. Social proof on the card measurably lifts click-through.
+    const ratingSum = new Map<string, number[]>();
+    if (visible.length > 0) {
+      try {
+        const { data: reviews } = await supabaseAdmin
+          .from("reviews")
+          .select("product_id, rating")
+          .in(
+            "product_id",
+            visible.map((r) => r.id),
+          );
+        for (const rev of reviews ?? []) {
+          const arr = ratingSum.get(rev.product_id) ?? [];
+          arr.push(rev.rating);
+          ratingSum.set(rev.product_id, arr);
+        }
+      } catch {
+        // reviews not available — cards render without stars.
+      }
+    }
+
+    return visible.map((p) => {
+      const summary = summarizeRatings(ratingSum.get(p.id) ?? []);
+      return {
+        ...p,
+        imageUrl: productImageUrl(p.id, p.image_url),
+        salesCount: salesTotal.get(p.id) ?? 0,
+        ratingAverage: summary.average,
+        ratingRounded: summary.rounded,
+        ratingCount: summary.count,
+      };
+    });
   });
 
 // Powers the category filter chips — only categories actually in use, not a

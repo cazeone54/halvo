@@ -1,6 +1,7 @@
 import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { User, Package } from "lucide-react";
 import { getSellerStorefront } from "@/lib/storefront.functions";
+import { Stars } from "@/components/stars";
 import { Card, CardContent } from "@/components/ui/card";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
@@ -90,6 +91,14 @@ function StorefrontPage() {
                     <p className="font-medium">{product.name}</p>
                     {product.description ? (
                       <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{product.description}</p>
+                    ) : null}
+                    {product.ratingCount > 0 ? (
+                      <div className="mt-1.5 flex items-center gap-1.5">
+                        <Stars value={product.ratingRounded} />
+                        <span className="text-xs text-muted-foreground">
+                          {product.ratingAverage.toFixed(1)} ({product.ratingCount})
+                        </span>
+                      </div>
                     ) : null}
                     <p className="mt-2 font-semibold text-primary">
                       {!product.pay_what_you_want && product.price_cents === 0

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { Search } from "lucide-react";
 import { listDiscover, listDiscoverCategories, type DiscoverSort } from "@/lib/discover.functions";
+import { Stars } from "@/components/stars";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -120,6 +121,14 @@ function DiscoverPage() {
                   <p className="font-medium">{product.name}</p>
                   {product.description ? (
                     <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{product.description}</p>
+                  ) : null}
+                  {product.ratingCount > 0 ? (
+                    <div className="mt-1.5 flex items-center gap-1.5">
+                      <Stars value={product.ratingRounded} />
+                      <span className="text-xs text-muted-foreground">
+                        {product.ratingAverage.toFixed(1)} ({product.ratingCount})
+                      </span>
+                    </div>
                   ) : null}
                   <div className="mt-2 flex items-center justify-between gap-2">
                     <p className="font-semibold text-primary">
