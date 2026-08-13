@@ -53,6 +53,19 @@ export const Route = createFileRoute("/p/$slug")({
         availability: "https://schema.org/InStock",
         url,
       },
+      // Only when there are real, verified-purchase reviews — matches what's
+      // shown on the page, so the rich-result stars are legitimate.
+      ...(loaderData.reviewCount > 0
+        ? {
+            aggregateRating: {
+              "@type": "AggregateRating",
+              ratingValue: loaderData.reviewAverage.toFixed(1),
+              reviewCount: loaderData.reviewCount,
+              bestRating: "5",
+              worstRating: "1",
+            },
+          }
+        : {}),
     };
 
     return {

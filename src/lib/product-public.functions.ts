@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { productImageUrl } from "@/lib/public-image-url";
+import { summarizeRatings } from "@/lib/ratings";
 
 // Other published products by the same seller — powers a "More from this
 // seller" cross-sell on the product page (and a discovery nudge post-purchase).
@@ -83,6 +84,27 @@ export const getProductPublicView = createServerFn({ method: "GET" })
       .eq("product_id", product.id)
       .eq("status", "success");
 
+    // Review summary, computed server-side so the page can emit an
+    // aggregateRating in its structured data (star ratings in search results).
+    // Best-effort: reviews are a nice-to-have and the table may be unmigrated,
+    // so any failure just yields no rating rather than breaking the money page.
+    let reviewCount = 0;
+    let reviewAverage = 0;
+    try {
+      const { data: ratingRows } = await supabaseAdmin
+        .from("reviews")
+        .select("rating")
+        .eq("product_id", product.id)
+        .limit(1000);
+      if (ratingRows && ratingRows.length > 0) {
+        const summary = summarizeRatings(ratingRows.map((r) => r.rating));
+        reviewCount = summary.count;
+        reviewAverage = summary.average;
+      }
+    } catch {
+      // reviews table not migrated / query failed — no rating in the markup.
+    }
+
     return {
       id: product.id,
       name: product.name,
@@ -95,5 +117,7 @@ export const getProductPublicView = createServerFn({ method: "GET" })
       refundPolicy,
       supportEmail,
       salesCount: salesCount ?? 0,
+      reviewCount,
+      reviewAverage,
     };
   });
