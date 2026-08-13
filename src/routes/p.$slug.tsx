@@ -168,7 +168,10 @@ function ProductCheckoutPage() {
               </p>
             </div>
             {product.description ? (
-              <p className="text-sm text-muted-foreground">{product.description}</p>
+              // whitespace-pre-line keeps the seller's paragraph/line breaks
+              // instead of collapsing a multi-line description into one block;
+              // break-words stops a pasted long URL from overflowing the card.
+              <p className="whitespace-pre-line break-words text-sm text-muted-foreground">{product.description}</p>
             ) : null}
             <div className="flex flex-wrap items-center gap-2">
               {product.salesCount > 0 ? (
@@ -301,7 +304,7 @@ function ProductCheckoutPage() {
             {product.refundPolicy ? (
               <p className="flex items-start gap-2">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                {product.refundPolicy}
+                <span className="whitespace-pre-line break-words">{product.refundPolicy}</span>
               </p>
             ) : null}
             {product.supportEmail ? (
