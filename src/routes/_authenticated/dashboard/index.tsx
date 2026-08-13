@@ -21,6 +21,7 @@ import {
   Users2,
   Upload,
   Layers,
+  KeyRound,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile, updateMyHandle } from "@/lib/profile.functions";
@@ -574,6 +575,15 @@ function DashboardHome() {
                       </span>
                     ) : null}
                   </div>
+                  {sale.licenseKey ? (
+                    <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <KeyRound className="h-3 w-3 shrink-0 text-primary" aria-hidden="true" />
+                      License key:{" "}
+                      <code className="select-all break-all font-mono text-foreground" title="Select to copy — for buyer support">
+                        {sale.licenseKey}
+                      </code>
+                    </p>
+                  ) : null}
                 </div>
                 <div className="flex items-center gap-2">
                   {sale.disputed ? <Badge variant="destructive">Disputed</Badge> : null}

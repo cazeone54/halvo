@@ -36,6 +36,7 @@ export const listMySales = createServerFn({ method: "GET" })
     // seller — the commissions RLS policy only exposes rows to the *referrer*,
     // not to the seller whose sale funded them.
     const affiliateFees = new Map<string, number>();
+    const licenseKeys = new Map<string, string>();
     if (txIds.length > 0) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { data: commissions } = await supabaseAdmin
@@ -44,6 +45,19 @@ export const listMySales = createServerFn({ method: "GET" })
         .in("transaction_id", txIds);
       for (const c of commissions ?? []) {
         affiliateFees.set(c.transaction_id, (affiliateFees.get(c.transaction_id) ?? 0) + c.amount_cents);
+      }
+
+      // The issued license key per sale, so the seller can look it up when a
+      // buyer asks for support. Best-effort: the table is service-role-only and
+      // may be unmigrated, so any failure just means no key shown on the row.
+      try {
+        const { data: keys } = await supabaseAdmin
+          .from("license_keys")
+          .select("transaction_id, license_key")
+          .in("transaction_id", txIds);
+        for (const k of keys ?? []) licenseKeys.set(k.transaction_id, k.license_key);
+      } catch {
+        // license_keys not migrated — sales still render, just without keys.
       }
     }
 
@@ -59,5 +73,6 @@ export const listMySales = createServerFn({ method: "GET" })
       affiliateFeeCents: affiliateFees.get(t.id) ?? 0,
       downloadCount: downloads.get(t.id)?.count ?? 0,
       lastDownloadAt: downloads.get(t.id)?.lastAt ?? null,
+      licenseKey: licenseKeys.get(t.id) ?? null,
     }));
   });
