@@ -21,7 +21,27 @@ export const Route = createFileRoute("/")({
           name: BRAND_NAME,
           url: BASE_URL,
           description: `${BRAND_NAME} lets creators sell digital products with instant checkout and delivery.`,
-          logo: `${BASE_URL}/icon.svg`,
+          // Raster logo — Google's logo feature doesn't accept SVG.
+          logo: `${BASE_URL}/logo.png`,
+        }),
+      },
+      {
+        // WebSite + SearchAction → eligible for a sitelinks search box, wired to
+        // the existing /discover search.
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: BRAND_NAME,
+          url: BASE_URL,
+          potentialAction: {
+            "@type": "SearchAction",
+            target: {
+              "@type": "EntryPoint",
+              urlTemplate: `${BASE_URL}/discover?q={search_term_string}`,
+            },
+            "query-input": "required name=search_term_string",
+          },
         }),
       },
     ],
