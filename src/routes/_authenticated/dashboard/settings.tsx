@@ -28,6 +28,8 @@ function SettingsPage() {
   const [bio, setBio] = useState("");
   const [supportEmail, setSupportEmail] = useState("");
   const [refundPolicy, setRefundPolicy] = useState("");
+  const [thankYouMessage, setThankYouMessage] = useState("");
+  const [thankYouRedirectUrl, setThankYouRedirectUrl] = useState("");
 
   useEffect(() => {
     if (!profileQ.data) return;
@@ -35,12 +37,14 @@ function SettingsPage() {
     setBio(profileQ.data.bio ?? "");
     setSupportEmail(profileQ.data.support_email ?? "");
     setRefundPolicy(profileQ.data.refund_policy ?? "");
+    setThankYouMessage(profileQ.data.thank_you_message ?? "");
+    setThankYouRedirectUrl(profileQ.data.thank_you_redirect_url ?? "");
   }, [profileQ.data]);
 
   const saveMut = useMutation({
     mutationFn: () =>
       updateSettingsFn({
-        data: { displayName, bio, supportEmail, refundPolicy },
+        data: { displayName, bio, supportEmail, refundPolicy, thankYouMessage, thankYouRedirectUrl },
       }),
     onSuccess: () => {
       toast.success("Settings saved.");
@@ -133,6 +137,30 @@ function SettingsPage() {
               rows={3}
               placeholder="e.g. 14-day money-back guarantee"
             />
+          </div>
+          <div>
+            <Label>Thank-you note</Label>
+            <Textarea
+              value={thankYouMessage}
+              onChange={(e) => setThankYouMessage(e.target.value)}
+              rows={3}
+              placeholder="A personal note shown to buyers on their download page — e.g. how to get started, or where to reach you."
+            />
+            <p className="mt-1 text-xs text-muted-foreground">Shown right after every purchase, across all your products.</p>
+          </div>
+          <div>
+            <Label>Next-step link (optional)</Label>
+            <Input
+              type="url"
+              inputMode="url"
+              value={thankYouRedirectUrl}
+              onChange={(e) => setThankYouRedirectUrl(e.target.value)}
+              placeholder="https://discord.gg/…  or  https://your-community.com"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Adds a button on the download page — send buyers to a community, onboarding guide or upsell. Must start
+              with http:// or https://.
+            </p>
           </div>
           <Button className="self-start" onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
             Save

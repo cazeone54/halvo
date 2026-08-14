@@ -8,7 +8,9 @@ export const getMyProfile = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("profiles")
-      .select("id, handle, display_name, bio, support_email, refund_policy, avatar_url")
+      .select(
+        "id, handle, display_name, bio, support_email, refund_policy, avatar_url, thank_you_message, thank_you_redirect_url",
+      )
       .eq("id", context.userId)
       .single();
     if (error) throw new Error(error.message);
@@ -44,6 +46,16 @@ export const updateMySettings = createServerFn({ method: "POST" })
         bio: z.string().trim().max(280).optional(),
         supportEmail: z.string().trim().email().optional().or(z.literal("")),
         refundPolicy: z.string().trim().max(500).optional(),
+        thankYouMessage: z.string().trim().max(500).optional(),
+        // Restricted to http(s) so the value can be rendered as a link on the
+        // buyer's download page without a javascript:/data: scheme sneaking in.
+        thankYouRedirectUrl: z
+          .string()
+          .trim()
+          .max(500)
+          .regex(/^https?:\/\/.+/i, "Use a full link starting with http:// or https://")
+          .optional()
+          .or(z.literal("")),
       })
       .parse(data),
   )
@@ -55,6 +67,8 @@ export const updateMySettings = createServerFn({ method: "POST" })
         bio: data.bio ?? null,
         support_email: data.supportEmail || null,
         refund_policy: data.refundPolicy ?? null,
+        thank_you_message: data.thankYouMessage ?? null,
+        thank_you_redirect_url: data.thankYouRedirectUrl || null,
       })
       .eq("id", context.userId);
     if (error) throw new Error(error.message);

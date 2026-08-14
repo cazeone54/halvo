@@ -13,7 +13,7 @@ import { trackEvent } from "@/lib/ad-pixels";
 import { StarInput } from "@/components/stars";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { KeyRound, Copy, Check } from "lucide-react";
+import { KeyRound, Copy, Check, ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/success")({
   // .optional().catch(undefined) so hitting /success with a missing or
@@ -128,8 +128,37 @@ function SuccessPage() {
         </CardContent>
       </Card>
 
+      {transactionQ.data?.thankYouMessage || transactionQ.data?.thankYouRedirectUrl ? (
+        <SellerThankYou
+          message={transactionQ.data.thankYouMessage ?? null}
+          url={transactionQ.data.thankYouRedirectUrl ?? null}
+        />
+      ) : null}
+
       {files.length > 0 ? <ReviewPrompt transactionId={id} /> : null}
     </div>
+  );
+}
+
+// The seller's personal post-purchase note and optional next-step link. The URL
+// is server-validated to http(s), and opened in a new tab so the buyer never
+// loses this download page.
+function SellerThankYou({ message, url }: { message: string | null; url: string | null }) {
+  return (
+    <Card className="mt-4">
+      <CardContent className="flex flex-col gap-3 p-6">
+        <p className="text-sm font-medium">A note from the seller</p>
+        {message ? <p className="whitespace-pre-line break-words text-sm text-muted-foreground">{message}</p> : null}
+        {url ? (
+          <Button asChild variant="outline" className="self-start">
+            <a href={url} target="_blank" rel="noreferrer noopener">
+              Next step
+              <ExternalLink className="h-4 w-4" />
+            </a>
+          </Button>
+        ) : null}
+      </CardContent>
+    </Card>
   );
 }
 

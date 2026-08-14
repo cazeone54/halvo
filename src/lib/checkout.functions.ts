@@ -382,17 +382,43 @@ export const getVerifiedTransaction = createServerFn({ method: "GET" })
 
     const { data: transaction, error } = await supabaseAdmin
       .from("transactions")
-      .select("id, status, refunded_at, amount_paid_cents, product_id, products(name)")
+      .select("id, status, refunded_at, amount_paid_cents, product_id, seller_id, products(name, owner_id)")
       .eq("id", data.transactionId)
       .single();
     if (error || !transaction || transaction.status !== "success" || transaction.refunded_at) {
       throw new Error("This purchase could not be verified.");
     }
 
-    const product = transaction.products as unknown as { name: string } | null;
+    const product = transaction.products as unknown as { name: string; owner_id: string | null } | null;
+
+    // The seller's post-purchase thank-you note + optional next-step link,
+    // shown on the download page. Best-effort: a missing seller or profile just
+    // means no note, never a failed verification.
+    let thankYouMessage: string | null = null;
+    let thankYouRedirectUrl: string | null = null;
+    const sellerId = transaction.seller_id ?? product?.owner_id ?? null;
+    if (sellerId) {
+      try {
+        const { data: seller } = await supabaseAdmin
+          .from("profiles")
+          .select("thank_you_message, thank_you_redirect_url")
+          .eq("id", sellerId)
+          .single();
+        thankYouMessage = seller?.thank_you_message ?? null;
+        // Defence in depth: only ever hand the client an http(s) link, even if a
+        // bad value somehow reached the column.
+        const url = seller?.thank_you_redirect_url ?? null;
+        thankYouRedirectUrl = url && /^https?:\/\//i.test(url) ? url : null;
+      } catch {
+        // no thank-you note available — the page renders without it.
+      }
+    }
+
     return {
       transactionId: transaction.id,
       productName: product?.name ?? "Your purchase",
       amountPaidCents: transaction.amount_paid_cents,
+      thankYouMessage,
+      thankYouRedirectUrl,
     };
   });
