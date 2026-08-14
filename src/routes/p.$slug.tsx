@@ -160,7 +160,23 @@ function ProductCheckoutPage() {
                   {product.name}
                 </h1>
                 {product.sellerName ? (
-                  <p className="text-sm text-muted-foreground">by {product.sellerName}</p>
+                  <p className="text-sm text-muted-foreground">
+                    by{" "}
+                    {/* Link to the seller's storefront so a buyer can see the
+                        rest of their catalogue — but not inside the embed
+                        iframe, where it would hijack the host page. */}
+                    {product.sellerHandle && !embed ? (
+                      <Link
+                        to="/u/$handle"
+                        params={{ handle: product.sellerHandle }}
+                        className="font-medium text-foreground underline-offset-2 hover:underline"
+                      >
+                        {product.sellerName}
+                      </Link>
+                    ) : (
+                      product.sellerName
+                    )}
+                  </p>
                 ) : null}
               </div>
               <p className="shrink-0 font-[family-name:var(--font-display)] text-xl font-semibold text-primary sm:text-2xl">
