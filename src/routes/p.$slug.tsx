@@ -241,7 +241,15 @@ function ProductCheckoutPage() {
             <div className="mt-4 flex flex-col gap-4">
               {reviewsQ.data.reviews.slice(0, 5).map((review) => (
                 <div key={review.id} className="border-b pb-4 last:border-b-0 last:pb-0">
-                  <Stars value={review.rating} />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Stars value={review.rating} />
+                    {/* Every review on Halvo is tied to a real, completed, non-
+                        refunded purchase — server-enforced — so this label is
+                        always truthful, and it's the strongest trust signal here. */}
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+                      <CircleCheck className="h-3.5 w-3.5" aria-hidden="true" /> Verified purchase
+                    </span>
+                  </div>
                   <p className="mt-1.5 text-sm text-muted-foreground">{review.body}</p>
                 </div>
               ))}
@@ -273,6 +281,8 @@ function ProductCheckoutPage() {
                       <img
                         src={p.imageUrl}
                         alt={p.name}
+                        loading="lazy"
+                        decoding="async"
                         className="h-full w-full object-cover transition-transform group-hover:scale-105"
                       />
                     ) : null}
