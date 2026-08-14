@@ -114,7 +114,7 @@ function DiscoverPage() {
               <Card className="card-hover h-full overflow-hidden">
                 <div className="aspect-video w-full bg-muted">
                   {product.imageUrl ? (
-                    <img src={product.imageUrl} alt="" className="h-full w-full object-cover" />
+                    <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" />
                   ) : null}
                 </div>
                 <CardContent className="pt-4">

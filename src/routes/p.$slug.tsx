@@ -151,7 +151,7 @@ function ProductCheckoutPage() {
         {/* Product card */}
         <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
           {product.imageUrl ? (
-            <img src={product.imageUrl} alt="" className="aspect-video w-full object-cover" />
+            <img src={product.imageUrl} alt={product.name} className="aspect-video w-full object-cover" />
           ) : null}
           <div className="flex flex-col gap-3 p-5">
             <div className="flex items-start justify-between gap-3">
@@ -256,7 +256,7 @@ function ProductCheckoutPage() {
                     {p.imageUrl ? (
                       <img
                         src={p.imageUrl}
-                        alt=""
+                        alt={p.name}
                         className="h-full w-full object-cover transition-transform group-hover:scale-105"
                       />
                     ) : null}

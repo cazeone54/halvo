@@ -82,7 +82,7 @@ function StorefrontPage() {
                 <Card className="card-hover h-full overflow-hidden">
                   <div className="flex aspect-video w-full items-center justify-center bg-muted">
                     {product.imageUrl ? (
-                      <img src={product.imageUrl} alt="" className="h-full w-full object-cover" />
+                      <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" />
                     ) : (
                       <Package className="h-8 w-8 text-muted-foreground/40" />
                     )}
