@@ -1,8 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LegalLayout } from "@/components/legal-layout";
-import { BRAND_NAME } from "@/lib/site";
+import { BRAND_NAME, BASE_URL } from "@/lib/site";
 
 export const Route = createFileRoute("/refund-policy")({
+  head: () => ({
+    meta: [
+      { title: `Refund Policy — ${BRAND_NAME}` },
+      {
+        name: "description",
+        content: `How refunds work on ${BRAND_NAME}: sellers set their own policy and refunds are issued through Stripe.`,
+      },
+    ],
+    links: [{ rel: "canonical", href: `${BASE_URL}/refund-policy` }],
+  }),
   component: RefundPolicyPage,
 });
 

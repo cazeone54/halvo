@@ -1,8 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { LegalLayout } from "@/components/legal-layout";
-import { BRAND_NAME, BRAND_EMAIL } from "@/lib/site";
+import { BRAND_NAME, BRAND_EMAIL, BASE_URL } from "@/lib/site";
 
 export const Route = createFileRoute("/terms")({
+  head: () => ({
+    meta: [
+      { title: `Terms of Service — ${BRAND_NAME}` },
+      { name: "description", content: `The terms for using ${BRAND_NAME} to buy and sell digital products.` },
+    ],
+    links: [{ rel: "canonical", href: `${BASE_URL}/terms` }],
+  }),
   component: TermsPage,
 });
 

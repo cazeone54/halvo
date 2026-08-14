@@ -3,8 +3,22 @@ import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { PricingTiers } from "@/components/pricing-tiers";
 import { EarningsCalculator } from "@/components/earnings-calculator";
+import { BRAND_NAME, BASE_URL } from "@/lib/site";
 
 export const Route = createFileRoute("/pricing")({
+  head: () => ({
+    meta: [
+      { title: `Pricing — ${BRAND_NAME}` },
+      {
+        name: "description",
+        content: `${BRAND_NAME} pricing: start free with no monthly cost and pay one small fee per sale. Upgrade to Creator or Pro for lower fees. Payouts go to your own Stripe.`,
+      },
+      { property: "og:title", content: `Pricing — ${BRAND_NAME}` },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: `${BASE_URL}/pricing` },
+    ],
+    links: [{ rel: "canonical", href: `${BASE_URL}/pricing` }],
+  }),
   component: PricingPage,
 });
 

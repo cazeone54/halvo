@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { cn } from "@/lib/utils";
+import { BRAND_NAME, BASE_URL } from "@/lib/site";
 
 const SORT_LABELS: Array<{ value: DiscoverSort; label: string }> = [
   { value: "trending", label: "Trending" },
@@ -22,6 +23,20 @@ const SORT_LABELS: Array<{ value: DiscoverSort; label: string }> = [
 
 export const Route = createFileRoute("/discover")({
   validateSearch: zodValidator(z.object({ q: z.string().optional() })),
+  head: () => ({
+    meta: [
+      { title: `Discover digital products — ${BRAND_NAME}` },
+      {
+        name: "description",
+        content: `Browse digital products from independent creators on ${BRAND_NAME} — templates, presets, ebooks, software, fonts and more. Instant download after checkout.`,
+      },
+      { property: "og:title", content: `Discover digital products — ${BRAND_NAME}` },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: `${BASE_URL}/discover` },
+    ],
+    // Canonical is the clean URL so ?q= search variants don't fragment indexing.
+    links: [{ rel: "canonical", href: `${BASE_URL}/discover` }],
+  }),
   component: DiscoverPage,
 });
 
