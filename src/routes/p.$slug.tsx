@@ -68,9 +68,34 @@ export const Route = createFileRoute("/p/$slug")({
         : {}),
     };
 
+    // Breadcrumb trail → breadcrumb rich results, and reinforces the
+    // Home → storefront → product hierarchy. The storefront rung is included
+    // only when we know the seller's handle.
+    const crumbs: Array<{ name: string; item: string }> = [{ name: BRAND_NAME, item: BASE_URL }];
+    if (loaderData.sellerHandle) {
+      crumbs.push({
+        name: loaderData.sellerName ?? loaderData.sellerHandle,
+        item: `${BASE_URL}/u/${loaderData.sellerHandle}`,
+      });
+    }
+    crumbs.push({ name: loaderData.name, item: url });
+    const breadcrumbLd = {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: crumbs.map((c, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        name: c.name,
+        item: c.item,
+      })),
+    };
+
     return {
       links: [{ rel: "canonical", href: url }],
-      scripts: [{ type: "application/ld+json", children: JSON.stringify(jsonLd) }],
+      scripts: [
+        { type: "application/ld+json", children: JSON.stringify(jsonLd) },
+        { type: "application/ld+json", children: JSON.stringify(breadcrumbLd) },
+      ],
       meta: [
         { title },
         { name: "description", content: description },
