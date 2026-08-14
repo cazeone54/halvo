@@ -68,6 +68,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BASE_URL, BRAND_KEY } from "@/lib/site";
 import { formatCents } from "@/lib/format";
+import { toCsv } from "@/lib/csv";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/dashboard/")({
@@ -272,6 +273,30 @@ function DashboardHome() {
   const paidSales = sales.filter((s) => s.status === "success" && !s.disputed);
   const revenueCents = paidSales.reduce((sum, s) => sum + s.amountPaidCents, 0);
   const productCount = productsQ.data?.length ?? 0;
+
+  // One row per sale, for the seller's own bookkeeping/VAT records. Built
+  // client-side from data already loaded — no extra request, no new surface.
+  const exportSales = () => {
+    const csv = toCsv(
+      ["date", "product", "buyer_email", "gross_usd", "affiliate_fee_usd", "status", "disputed"],
+      sales.map((s) => [
+        s.createdAt.slice(0, 10),
+        s.productName,
+        s.buyerEmail,
+        (s.amountPaidCents / 100).toFixed(2),
+        (s.affiliateFeeCents / 100).toFixed(2),
+        s.status,
+        s.disputed ? "yes" : "no",
+      ]),
+    );
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `halvo-sales-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
   const storefrontUrl = profile?.handle ? `${BASE_URL}/u/${profile.handle}` : null;
 
   return (
@@ -542,10 +567,17 @@ function DashboardHome() {
 
       {/* Recent sales */}
       <section className="flex flex-col gap-3">
-        <h2 className="flex items-center gap-2 text-lg font-semibold font-[family-name:var(--font-display)]">
-          <ShoppingBag className="h-5 w-5 text-muted-foreground" />
-          Sales
-        </h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2 text-lg font-semibold font-[family-name:var(--font-display)]">
+            <ShoppingBag className="h-5 w-5 text-muted-foreground" />
+            Sales
+          </h2>
+          {sales.length > 0 ? (
+            <Button size="sm" variant="outline" onClick={exportSales} className="shrink-0">
+              <Download className="h-3.5 w-3.5" /> Export CSV
+            </Button>
+          ) : null}
+        </div>
         <div className="flex flex-col gap-3">
           {(salesQ.data ?? []).map((sale) => (
             <Card key={sale.id} className="card-hover">
