@@ -304,6 +304,7 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
         buyerEmail: data.buyerEmail,
         productName: product.name,
         transactionId,
+        amountCents: intent.amount_received,
       });
       await notifySellerOfSale({
         supabaseAdmin,

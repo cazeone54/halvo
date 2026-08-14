@@ -63,6 +63,7 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
       buyerEmail: buyerEmail.toLowerCase(),
       productName: product.name,
       transactionId: inserted.id,
+      amountCents: intent.amount_received,
     });
   }
 }

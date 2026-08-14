@@ -21,4 +21,33 @@ describe("buildPurchaseEmail", () => {
     expect(result.html).not.toContain("supabase.co/storage");
     expect(result.html).toContain("/success?id=");
   });
+
+  it("shows a paid amount as a receipt line when given", () => {
+    const result = buildPurchaseEmail({
+      productName: "Ebook",
+      downloadPageUrl: "https://halvo.io/success?id=xyz",
+      amountCents: 1999,
+    });
+    expect(result.html).toContain("$19.99");
+    expect(result.text).toContain("$19.99");
+  });
+
+  it("shows Free for a zero-amount claim", () => {
+    const result = buildPurchaseEmail({
+      productName: "Lead magnet",
+      downloadPageUrl: "https://halvo.io/success?id=xyz",
+      amountCents: 0,
+    });
+    expect(result.text).toContain("Free");
+    expect(result.html).not.toContain("$0.00");
+  });
+
+  it("omits the receipt line entirely when no amount is given", () => {
+    const result = buildPurchaseEmail({
+      productName: "Ebook",
+      downloadPageUrl: "https://halvo.io/success?id=xyz",
+    });
+    expect(result.text).not.toContain("$");
+    expect(result.text).not.toContain("Free");
+  });
 });

@@ -86,6 +86,7 @@ export const claimFreeProduct = createServerFn({ method: "POST" })
       buyerEmail,
       productName: product.name,
       transactionId: inserted.id,
+      amountCents: 0,
     });
 
     await recordSaleSource({

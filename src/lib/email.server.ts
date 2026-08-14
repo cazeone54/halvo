@@ -44,12 +44,14 @@ export async function sendPurchaseConfirmationEmail(params: {
   buyerEmail: string;
   productName: string;
   transactionId: string;
+  amountCents?: number;
 }): Promise<void> {
   if (params.buyerEmail.endsWith("@buyer.reconciled")) return; // placeholder from the webhook fallback path, not a real address
 
   const { subject, html, text } = buildPurchaseEmail({
     productName: params.productName,
     downloadPageUrl: `${BASE_URL}/success?id=${params.transactionId}`,
+    amountCents: params.amountCents,
   });
   await sendEmail({ to: params.buyerEmail, subject, html, text });
 }
