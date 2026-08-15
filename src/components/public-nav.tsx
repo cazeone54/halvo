@@ -41,7 +41,11 @@ export function PublicNav() {
 
         <nav className="hidden items-center gap-6 text-sm text-muted-foreground sm:flex">
           {NAV_LINKS.map((link) => (
-            <Link key={link.to} to={link.to} activeProps={{ className: "text-foreground" }}>
+            <Link
+              key={link.to}
+              to={link.to}
+              activeProps={{ className: "text-foreground", "aria-current": "page" }}
+            >
               {link.label}
             </Link>
           ))}

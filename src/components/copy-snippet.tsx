@@ -19,7 +19,14 @@ export function CopySnippet({ label, value }: { label: string; value: string }) 
         <pre className="max-h-32 flex-1 overflow-auto whitespace-pre-wrap break-all rounded-md border bg-muted/40 p-2 font-mono text-xs">
           {value}
         </pre>
-        <Button type="button" variant="outline" size="icon-sm" onClick={copy}>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon-sm"
+          onClick={copy}
+          aria-label={copied ? "Copied" : `Copy ${label.toLowerCase()}`}
+          title="Copy"
+        >
           {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
         </Button>
       </div>

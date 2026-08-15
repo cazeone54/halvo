@@ -71,7 +71,7 @@ function DashboardLayout() {
                 key={link.to}
                 to={link.to}
                 activeOptions={"exact" in link ? { exact: link.exact } : undefined}
-                activeProps={{ className: "text-foreground" }}
+                activeProps={{ className: "text-foreground", "aria-current": "page" }}
               >
                 {link.label}
               </Link>
@@ -166,7 +166,7 @@ function DashboardLayout() {
             key={tab.to}
             to={tab.to}
             activeOptions={"exact" in tab ? { exact: tab.exact } : undefined}
-            activeProps={{ className: "text-primary" }}
+            activeProps={{ className: "text-primary", "aria-current": "page" }}
             className="flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium"
           >
             <tab.icon className="h-5 w-5" />
