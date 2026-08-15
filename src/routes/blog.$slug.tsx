@@ -4,7 +4,7 @@ import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { ContentBlocks } from "@/components/content-blocks";
 import { Button } from "@/components/ui/button";
-import { findPost } from "@/content/blog";
+import { findPost, BLOG_POSTS } from "@/content/blog";
 import { BRAND_NAME, BASE_URL } from "@/lib/site";
 
 export const Route = createFileRoute("/blog/$slug")({
@@ -64,6 +64,12 @@ function BlogPostPage() {
     day: "numeric",
   });
 
+  // A few other posts to keep readers on the site — internal links help SEO and
+  // engagement. Newest first, excluding the current post.
+  const moreReading = BLOG_POSTS.filter((p) => p.slug !== post.slug)
+    .sort((a, b) => (a.date < b.date ? 1 : -1))
+    .slice(0, 3);
+
   return (
     <div className="flex min-h-screen flex-col">
       <PublicNav />
@@ -104,6 +110,34 @@ function BlogPostPage() {
               <Link to="/login">Get started</Link>
             </Button>
           </div>
+
+          {moreReading.length > 0 ? (
+            <section className="mt-14" aria-labelledby="keep-reading">
+              <h2
+                id="keep-reading"
+                className="font-[family-name:var(--font-display)] text-lg font-semibold"
+              >
+                Keep reading
+              </h2>
+              <div className="mt-4 flex flex-col gap-3">
+                {moreReading.map((p) => (
+                  <Link
+                    key={p.slug}
+                    to="/blog/$slug"
+                    params={{ slug: p.slug }}
+                    className="group rounded-xl border p-4 transition-colors hover:border-primary/40 hover:bg-muted/40"
+                  >
+                    <p className="font-medium group-hover:text-primary">{p.title}</p>
+                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{p.description}</p>
+                    <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3" aria-hidden="true" />
+                      {p.minutes} min read
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          ) : null}
         </article>
       </main>
       <PublicFooter />
