@@ -3,7 +3,7 @@ import { ArrowLeft, Clock } from "lucide-react";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { ContentBlocks } from "@/components/content-blocks";
-import { findGuide } from "@/content/guides";
+import { findGuide, GUIDES } from "@/content/guides";
 import { BRAND_NAME, BASE_URL } from "@/lib/site";
 
 export const Route = createFileRoute("/guides/$slug")({
@@ -36,6 +36,14 @@ export const Route = createFileRoute("/guides/$slug")({
 
 function GuidePage() {
   const guide = Route.useLoaderData();
+
+  // Related guides: same category first (most relevant), then any others, so
+  // there's always a next step and crawlers have internal links to follow.
+  const others = GUIDES.filter((g) => g.slug !== guide.slug);
+  const related = [
+    ...others.filter((g) => g.category === guide.category),
+    ...others.filter((g) => g.category !== guide.category),
+  ].slice(0, 3);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -75,6 +83,34 @@ function GuidePage() {
               Get started
             </Link>
           </div>
+
+          {related.length > 0 ? (
+            <section className="mt-14" aria-labelledby="related-guides">
+              <h2
+                id="related-guides"
+                className="font-[family-name:var(--font-display)] text-lg font-semibold"
+              >
+                Related guides
+              </h2>
+              <div className="mt-4 flex flex-col gap-3">
+                {related.map((g) => (
+                  <Link
+                    key={g.slug}
+                    to="/guides/$slug"
+                    params={{ slug: g.slug }}
+                    className="group rounded-xl border p-4 transition-colors hover:border-primary/40 hover:bg-muted/40"
+                  >
+                    <p className="font-medium group-hover:text-primary">{g.title}</p>
+                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{g.description}</p>
+                    <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3" aria-hidden="true" />
+                      {g.minutes} min read
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          ) : null}
         </article>
       </main>
       <PublicFooter />
