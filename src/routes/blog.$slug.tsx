@@ -17,8 +17,28 @@ export const Route = createFileRoute("/blog/$slug")({
     if (!loaderData) return {};
     const title = `${loaderData.title} — ${BRAND_NAME}`;
     const url = `${BASE_URL}/blog/${loaderData.slug}`;
+    // BlogPosting structured data → eligible for article rich results. No
+    // per-post author/image, so the brand is author+publisher and the default
+    // OG card is the image.
+    const articleLd = {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      headline: loaderData.title,
+      description: loaderData.description,
+      datePublished: loaderData.date,
+      dateModified: loaderData.date,
+      image: `${BASE_URL}/og.png`,
+      author: { "@type": "Organization", name: BRAND_NAME, url: BASE_URL },
+      publisher: {
+        "@type": "Organization",
+        name: BRAND_NAME,
+        logo: { "@type": "ImageObject", url: `${BASE_URL}/logo.png` },
+      },
+      mainEntityOfPage: { "@type": "WebPage", "@id": url },
+    };
     return {
       links: [{ rel: "canonical", href: url }],
+      scripts: [{ type: "application/ld+json", children: JSON.stringify(articleLd) }],
       meta: [
         { title },
         { name: "description", content: loaderData.description },
