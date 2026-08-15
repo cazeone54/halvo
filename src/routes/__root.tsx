@@ -112,6 +112,15 @@ function RootShell({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
+        {/* Skip link — the first focusable element, so a keyboard user can jump
+            past the nav straight to the page's <main id="main-content">. Hidden
+            until focused. */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground focus:shadow"
+        >
+          Skip to content
+        </a>
         {children}
         <Scripts />
       </body>

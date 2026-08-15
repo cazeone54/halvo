@@ -47,7 +47,7 @@ function BlogPostPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <PublicNav />
-      <main className="flex-1">
+      <main id="main-content" tabIndex={-1} className="flex-1">
         <article className="mx-auto w-full max-w-2xl px-4 py-12 sm:px-6 sm:py-16">
           <Link
             to="/blog"

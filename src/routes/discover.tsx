@@ -66,7 +66,7 @@ function DiscoverPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <PublicNav />
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6">
+      <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6">
         <div>
           <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold">Discover</h1>
           <p className="mt-1 text-sm text-muted-foreground">Browse digital products from creators on Halvo.</p>

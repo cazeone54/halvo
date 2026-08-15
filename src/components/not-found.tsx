@@ -10,7 +10,7 @@ export function NotFound() {
   return (
     <div className="flex min-h-screen flex-col">
       <PublicNav />
-      <main className="flex flex-1 items-center justify-center px-4 py-20 text-center">
+      <main id="main-content" tabIndex={-1} className="flex flex-1 items-center justify-center px-4 py-20 text-center">
         <div className="max-w-md">
           <p className="font-[family-name:var(--font-display)] text-7xl font-bold leading-none text-primary/25">
             404

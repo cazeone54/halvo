@@ -172,7 +172,7 @@ function ProductCheckoutPage() {
         </span>
       </header>
 
-      <main className="mx-auto flex max-w-lg flex-col gap-4 px-4 pb-16 sm:px-6">
+      <main id="main-content" tabIndex={-1} className="mx-auto flex max-w-lg flex-col gap-4 px-4 pb-16 sm:px-6">
         {/* Product card */}
         <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
           {product.imageUrl ? (

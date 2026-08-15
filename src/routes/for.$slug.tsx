@@ -42,7 +42,7 @@ function AudiencePage() {
   return (
     <div className="flex min-h-screen flex-col">
       <PublicNav />
-      <main className="flex-1">
+      <main id="main-content" tabIndex={-1} className="flex-1">
         <section className="relative overflow-hidden border-b bg-hero-glow">
           <div aria-hidden="true" className="pointer-events-none absolute inset-0">
             <div className="absolute left-1/2 top-[-8rem] h-72 w-[40rem] max-w-[120vw] -translate-x-1/2 rounded-full bg-primary/20 blur-3xl" />

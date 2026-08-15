@@ -26,7 +26,7 @@ function PricingPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <PublicNav />
-      <main className="flex-1 bg-hero-glow">
+      <main id="main-content" tabIndex={-1} className="flex-1 bg-hero-glow">
         <div className="mx-auto max-w-4xl px-4 py-16 text-center sm:px-6 sm:py-20">
           <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold sm:text-4xl">Pricing</h1>
           <p className="mt-2 text-muted-foreground">Start free. Upgrade when you outgrow it.</p>

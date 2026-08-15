@@ -37,7 +37,7 @@ function BlogIndex() {
   return (
     <div className="flex min-h-screen flex-col">
       <PublicNav />
-      <main className="flex-1">
+      <main id="main-content" tabIndex={-1} className="flex-1">
         <div className="border-b bg-hero-glow">
           <div className="mx-auto max-w-3xl px-4 py-14 text-center sm:px-6 sm:py-20">
             <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight sm:text-4xl">

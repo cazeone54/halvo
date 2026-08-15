@@ -106,7 +106,7 @@ function HomePage() {
   return (
     <div className="flex min-h-screen flex-col">
       <PublicNav />
-      <main className="flex-1">
+      <main id="main-content" tabIndex={-1} className="flex-1">
         <section className="relative overflow-hidden bg-hero-glow">
           {/* Decorative depth — layered teal glows so the hero isn't a flat wash. */}
           <div aria-hidden="true" className="pointer-events-none absolute inset-0">

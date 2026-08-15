@@ -5,7 +5,7 @@ export function LegalLayout({ title, children }: { title: string; children: Reac
   return (
     <div className="flex min-h-screen flex-col">
       <PublicNav />
-      <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-10 sm:px-6">
+      <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-2xl flex-1 px-4 py-10 sm:px-6">
         <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold">{title}</h1>
         <div className="mt-3 rounded-md border border-dashed bg-muted/40 p-3 text-sm text-muted-foreground">
           Placeholder legal text — have a lawyer review this before real launch. Not legal advice.

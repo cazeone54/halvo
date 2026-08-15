@@ -130,7 +130,7 @@ function FaqPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <PublicNav />
-      <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-16 sm:px-6">
+      <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-2xl flex-1 px-4 py-16 sm:px-6">
         <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold">
           Frequently asked questions
         </h1>

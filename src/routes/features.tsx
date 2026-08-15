@@ -111,7 +111,7 @@ function FeaturesPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <PublicNav />
-      <main className="flex-1">
+      <main id="main-content" tabIndex={-1} className="flex-1">
         {/* Hero */}
         <section className="border-b bg-hero-glow">
           <div className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6 sm:py-20">

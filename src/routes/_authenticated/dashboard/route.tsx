@@ -154,7 +154,7 @@ function DashboardLayout() {
           </DropdownMenu>
         </div>
       </header>
-      <main className="mx-auto max-w-3xl px-4 py-6 pb-24 sm:px-6 sm:pb-6">
+      <main id="main-content" tabIndex={-1} className="mx-auto max-w-3xl px-4 py-6 pb-24 sm:px-6 sm:pb-6">
         <Outlet />
       </main>
 

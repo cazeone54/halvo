@@ -44,7 +44,7 @@ function AccessPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <PublicNav />
-      <main className="flex flex-1 items-center justify-center px-4 py-16">
+      <main id="main-content" tabIndex={-1} className="flex flex-1 items-center justify-center px-4 py-16">
         <Card className="w-full max-w-md">
           <CardHeader>
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
