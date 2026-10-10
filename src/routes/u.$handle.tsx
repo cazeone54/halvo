@@ -6,6 +6,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { BRAND_NAME, BASE_URL } from "@/lib/site";
+import { brandThemeStyle } from "@/lib/brand-color";
+import { cn } from "@/lib/utils";
+import type { CSSProperties } from "react";
 
 export const Route = createFileRoute("/u/$handle")({
   loader: async ({ params }) => {
@@ -43,11 +46,17 @@ export const Route = createFileRoute("/u/$handle")({
 
 function StorefrontPage() {
   const { profile, products } = Route.useLoaderData();
+  const brandStyle = brandThemeStyle(profile.accent_color);
 
   return (
     <div className="flex min-h-screen flex-col">
       <PublicNav />
-      <main id="main-content" tabIndex={-1} className="flex-1">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className={cn("flex-1", brandStyle && "brand-theme")}
+        style={brandStyle as CSSProperties | undefined}
+      >
         {/* Branded header band */}
         <div className="border-b bg-hero-glow">
           <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-3 px-4 py-12 text-center sm:px-6">

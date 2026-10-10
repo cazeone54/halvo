@@ -123,6 +123,22 @@
   --sidebar-ring: oklch(0.68 0.14 195);
 }
 
+/* A seller's brand color on their storefront and product pages. The --brand-*
+   values are contrast-checked in src/lib/brand-color.ts. --hero-glow is
+   redeclared because :root computed it from the platform primary. */
+.brand-theme {
+  --primary: var(--brand-light);
+  --primary-foreground: var(--brand-light-fg);
+  --ring: var(--brand-light);
+  --hero-glow: color-mix(in oklab, var(--brand-light) 10%, var(--background));
+}
+.dark .brand-theme {
+  --primary: var(--brand-dark);
+  --primary-foreground: var(--brand-dark-fg);
+  --ring: var(--brand-dark);
+  --hero-glow: color-mix(in oklab, var(--brand-dark) 18%, var(--background));
+}
+
 @layer base {
   * {
     border-color: var(--color-border);

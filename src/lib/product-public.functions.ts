@@ -70,7 +70,7 @@ export const getProductPublicView = createServerFn({ method: "GET" })
       product.owner_id
         ? supabaseAdmin
             .from("profiles")
-            .select("display_name, handle, refund_policy, support_email")
+            .select("display_name, handle, refund_policy, support_email, accent_color")
             .eq("id", product.owner_id)
             .single()
         : Promise.resolve({ data: null }),
@@ -115,6 +115,7 @@ export const getProductPublicView = createServerFn({ method: "GET" })
       imageUrl: productImageUrl(product.id, product.image_url),
       sellerName,
       sellerHandle,
+      accentColor: seller?.accent_color ?? null,
       refundPolicy,
       supportEmail,
       salesCount,

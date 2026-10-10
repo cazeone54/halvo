@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { avatarImageUrl } from "@/lib/public-image-url";
+import { normalizeHex } from "@/lib/brand-color";
 
 export const getMyProfile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -9,7 +10,7 @@ export const getMyProfile = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("profiles")
       .select(
-        "id, handle, display_name, bio, support_email, refund_policy, avatar_url, thank_you_message, thank_you_redirect_url",
+        "id, handle, display_name, bio, support_email, refund_policy, avatar_url, thank_you_message, thank_you_redirect_url, accent_color",
       )
       .eq("id", context.userId)
       .single();
@@ -56,6 +57,13 @@ export const updateMySettings = createServerFn({ method: "POST" })
           .regex(/^https?:\/\/.+/i, "Use a full link starting with http:// or https://")
           .optional()
           .or(z.literal("")),
+        // Hex only — the value ends up in an inline style on public pages.
+        // "" clears it back to the platform default; omitted leaves it as is.
+        accentColor: z
+          .string()
+          .trim()
+          .refine((v) => v === "" || normalizeHex(v) !== null, "Use a hex color like #4f46e5")
+          .optional(),
       })
       .parse(data),
   )
@@ -69,6 +77,7 @@ export const updateMySettings = createServerFn({ method: "POST" })
         refund_policy: data.refundPolicy ?? null,
         thank_you_message: data.thankYouMessage ?? null,
         thank_you_redirect_url: data.thankYouRedirectUrl || null,
+        ...(data.accentColor === undefined ? {} : { accent_color: normalizeHex(data.accentColor) }),
       })
       .eq("id", context.userId);
     if (error) throw new Error(error.message);

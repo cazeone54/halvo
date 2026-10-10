@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BrandColorPicker } from "@/components/brand-color-picker";
 
 export const Route = createFileRoute("/_authenticated/dashboard/settings")({
   component: SettingsPage,
@@ -30,6 +31,7 @@ function SettingsPage() {
   const [refundPolicy, setRefundPolicy] = useState("");
   const [thankYouMessage, setThankYouMessage] = useState("");
   const [thankYouRedirectUrl, setThankYouRedirectUrl] = useState("");
+  const [accentColor, setAccentColor] = useState("");
 
   useEffect(() => {
     if (!profileQ.data) return;
@@ -39,12 +41,13 @@ function SettingsPage() {
     setRefundPolicy(profileQ.data.refund_policy ?? "");
     setThankYouMessage(profileQ.data.thank_you_message ?? "");
     setThankYouRedirectUrl(profileQ.data.thank_you_redirect_url ?? "");
+    setAccentColor(profileQ.data.accent_color ?? "");
   }, [profileQ.data]);
 
   const saveMut = useMutation({
     mutationFn: () =>
       updateSettingsFn({
-        data: { displayName, bio, supportEmail, refundPolicy, thankYouMessage, thankYouRedirectUrl },
+        data: { displayName, bio, supportEmail, refundPolicy, thankYouMessage, thankYouRedirectUrl, accentColor },
       }),
     onSuccess: () => {
       toast.success("Settings saved.");
@@ -119,6 +122,12 @@ function SettingsPage() {
             <Label>Bio</Label>
             <Textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} placeholder="Shown on your storefront" />
           </div>
+          <BrandColorPicker
+            value={accentColor}
+            onChange={setAccentColor}
+            displayName={displayName}
+            avatarUrl={profileQ.data?.avatarUrl ?? null}
+          />
           <div>
             <Label>Support email</Label>
             <Input

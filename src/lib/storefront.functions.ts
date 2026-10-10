@@ -10,7 +10,7 @@ export const getSellerStorefront = createServerFn({ method: "GET" })
 
     const { data: profile, error } = await supabaseAdmin
       .from("profiles")
-      .select("id, handle, display_name, bio, avatar_url")
+      .select("id, handle, display_name, bio, avatar_url, accent_color")
       .eq("handle", data.handle.toLowerCase())
       .single();
     if (error || !profile) throw new Error("Storefront not found");

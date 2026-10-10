@@ -1,7 +1,9 @@
 import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, type CSSProperties } from "react";
+import { brandThemeStyle } from "@/lib/brand-color";
+import { cn } from "@/lib/utils";
 import { ShieldCheck, Mail, CircleCheck, Lock, Zap, CreditCard, KeyRound } from "lucide-react";
 import { getProductPublicView, listMoreFromSeller } from "@/lib/product-public.functions";
 import { recordProductView } from "@/lib/product-view.functions";
@@ -117,6 +119,7 @@ export const Route = createFileRoute("/p/$slug")({
 function ProductCheckoutPage() {
   const product = Route.useLoaderData();
   const { embed } = Route.useSearch();
+  const brandStyle = brandThemeStyle(product.accentColor);
   const reviewsFn = useServerFn(listProductReviews);
   const recordViewFn = useServerFn(recordProductView);
 
@@ -172,7 +175,12 @@ function ProductCheckoutPage() {
         </span>
       </header>
 
-      <main id="main-content" tabIndex={-1} className="mx-auto flex max-w-lg flex-col gap-4 px-4 pb-16 sm:px-6">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className={cn("mx-auto flex max-w-lg flex-col gap-4 px-4 pb-16 sm:px-6", brandStyle && "brand-theme")}
+        style={brandStyle as CSSProperties | undefined}
+      >
         {/* Product card */}
         <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
           {product.imageUrl ? (
