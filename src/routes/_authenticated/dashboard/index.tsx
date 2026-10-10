@@ -58,6 +58,9 @@ import {
 } from "@/lib/plans";
 import { StripeEmbeddedCheckoutView } from "@/components/stripe-embedded-checkout";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
+import { AdvancedOptions } from "@/components/advanced-options";
+import { ProductsEmptyState } from "@/components/products-empty-state";
+import { describeAdvancedOptions } from "@/lib/advanced-options";
 import { CopySnippet } from "@/components/copy-snippet";
 import { buildProductLink, buildButtonSnippet, buildIframeSnippet, buildOverlaySnippet } from "@/lib/share-snippets";
 import { Button } from "@/components/ui/button";
@@ -273,6 +276,7 @@ function DashboardHome() {
   const paidSales = sales.filter((s) => s.status === "success" && !s.disputed);
   const revenueCents = paidSales.reduce((sum, s) => sum + s.amountPaidCents, 0);
   const productCount = productsQ.data?.length ?? 0;
+  const firstLive = productsQ.data?.find((p) => p.url_slug) ?? null;
 
   // One row per sale, for the seller's own bookkeeping/VAT records. Built
   // client-side from data already loaded — no extra request, no new surface.
@@ -481,35 +485,6 @@ function DashboardHome() {
             </div>
 
             <div>
-              <Label>Refund policy for this product (optional)</Label>
-              <Textarea
-                value={newRefundPolicy}
-                onChange={(e) => setNewRefundPolicy(e.target.value)}
-                rows={2}
-                placeholder="e.g. 14-day money-back guarantee"
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                Leave blank to use your account-wide policy from Settings.
-              </p>
-            </div>
-
-            <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3">
-              <input
-                type="checkbox"
-                className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
-                checked={newLicenseEnabled}
-                onChange={(e) => setNewLicenseEnabled(e.target.checked)}
-              />
-              <span className="min-w-0">
-                <span className="block text-sm font-medium">Deliver a unique license key</span>
-                <span className="mt-0.5 block text-xs text-muted-foreground">
-                  For software, plugins, fonts or presets. Each buyer gets their own key on the download page, which
-                  your app can verify at halvo.io/api/public/license/validate. Refunds revoke it automatically.
-                </span>
-              </span>
-            </label>
-
-            <div>
               <Label>File buyers receive</Label>
               <label
                 className="mt-1 flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed px-4 py-6 text-center transition-colors hover:border-primary/50 hover:bg-primary/5"
@@ -543,6 +518,39 @@ function DashboardHome() {
               </label>
             </div>
 
+            <AdvancedOptions
+              activeSummary={describeAdvancedOptions({ refundPolicy: newRefundPolicy, licenseEnabled: newLicenseEnabled })}
+            >
+              <div>
+                <Label>Refund policy for this product</Label>
+                <Textarea
+                  value={newRefundPolicy}
+                  onChange={(e) => setNewRefundPolicy(e.target.value)}
+                  rows={2}
+                  placeholder="e.g. 14-day money-back guarantee"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Leave blank to use your account-wide policy from Settings.
+                </p>
+              </div>
+
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+                  checked={newLicenseEnabled}
+                  onChange={(e) => setNewLicenseEnabled(e.target.checked)}
+                />
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium">Deliver a unique license key</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    For software, plugins, fonts or presets. Each buyer gets their own key on the download page, which
+                    your app can verify at halvo.io/api/public/license/validate. Refunds revoke it automatically.
+                  </span>
+                </span>
+              </label>
+            </AdvancedOptions>
+
             <Button onClick={() => createMut.mutate()} disabled={!name || !price || createMut.isPending}>
               {createMut.isPending ? "Publishing…" : newFile ? "Create & publish" : "Create as draft"}
             </Button>
@@ -559,8 +567,17 @@ function DashboardHome() {
           {(productsQ.data ?? []).map((product) => (
             <ProductRow key={product.id} product={product} onDelete={() => deleteMut.mutate(product.id)} />
           ))}
-          {productsQ.data?.length === 0 ? (
-            <EmptyState icon={Package} message="No products yet — create your first one above." />
+          {productsQ.data?.length === 0 && !showNewProduct ? (
+            <ProductsEmptyState
+              onCreate={() => setShowNewProduct(true)}
+              onUseExample={(example) => {
+                setName(example.name);
+                setDescription(example.description);
+                setPrice(example.price);
+                setShowNewProduct(true);
+                toast.info("Example filled in — edit anything, then add your file.");
+              }}
+            />
           ) : null}
         </div>
       </section>
@@ -644,7 +661,30 @@ function DashboardHome() {
               </CardContent>
             </Card>
           ))}
-          {salesQ.data?.length === 0 ? <EmptyState icon={ShoppingBag} message="No sales yet." /> : null}
+          {salesQ.data?.length === 0 ? (
+            firstLive ? (
+              <EmptyState
+                icon={ShoppingBag}
+                message="No sales yet — sales come from people seeing your link. Put it in your bio, a post, or an email."
+                action={{
+                  label: "Copy your product link",
+                  onClick: () => {
+                    const link = buildProductLink(BASE_URL, {
+                      slug: firstLive.url_slug as string,
+                      name: firstLive.name,
+                      priceCents: firstLive.price_cents,
+                    });
+                    navigator.clipboard
+                      .writeText(link)
+                      .then(() => toast.success("Link copied — paste it wherever your audience is."))
+                      .catch(() => toast.error("Couldn't copy automatically — use the Share button on the product."));
+                  },
+                }}
+              />
+            ) : (
+              <EmptyState icon={ShoppingBag} message="Sales show up here once a product is published." />
+            )
+          ) : null}
           {refundMut.error ? (
             <p className="text-sm text-destructive">{(refundMut.error as Error).message}</p>
           ) : null}
@@ -817,11 +857,24 @@ function DashboardHome() {
   );
 }
 
-function EmptyState({ icon: Icon, message }: { icon: typeof Package; message: string }) {
+function EmptyState({
+  icon: Icon,
+  message,
+  action,
+}: {
+  icon: typeof Package;
+  message: string;
+  action?: { label: string; onClick: () => void };
+}) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-10 text-center">
-      <Icon className="h-8 w-8 text-muted-foreground/50" />
-      <p className="text-sm text-muted-foreground">{message}</p>
+    <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed px-4 py-10 text-center">
+      <Icon className="h-8 w-8 text-muted-foreground/50" aria-hidden="true" />
+      <p className="max-w-sm text-sm text-muted-foreground">{message}</p>
+      {action ? (
+        <Button size="sm" variant="outline" onClick={action.onClick}>
+          {action.label}
+        </Button>
+      ) : null}
     </div>
   );
 }
@@ -1131,30 +1184,35 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
                 <Input value={editCategory} onChange={(e) => setEditCategory(e.target.value)} placeholder="e.g. templates" />
               </div>
             </div>
-            <div>
-              <Label>Refund policy for this product (optional)</Label>
-              <Textarea
-                value={editRefundPolicy}
-                onChange={(e) => setEditRefundPolicy(e.target.value)}
-                rows={2}
-                placeholder="Leave blank to use your account-wide policy from Settings"
-              />
-            </div>
-            <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3">
-              <input
-                type="checkbox"
-                className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
-                checked={editLicenseEnabled}
-                onChange={(e) => setEditLicenseEnabled(e.target.checked)}
-              />
-              <span className="min-w-0">
-                <span className="block text-sm font-medium">Deliver a unique license key</span>
-                <span className="mt-0.5 block text-xs text-muted-foreground">
-                  Each buyer gets their own key on the download page; your app can verify it at
-                  halvo.io/api/public/license/validate. Refunds revoke it automatically.
+            <AdvancedOptions
+              activeSummary={describeAdvancedOptions({ refundPolicy: editRefundPolicy, licenseEnabled: editLicenseEnabled })}
+              defaultOpen={!!(product.refund_policy?.trim() || product.license_key_enabled)}
+            >
+              <div>
+                <Label>Refund policy for this product</Label>
+                <Textarea
+                  value={editRefundPolicy}
+                  onChange={(e) => setEditRefundPolicy(e.target.value)}
+                  rows={2}
+                  placeholder="Leave blank to use your account-wide policy from Settings"
+                />
+              </div>
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+                  checked={editLicenseEnabled}
+                  onChange={(e) => setEditLicenseEnabled(e.target.checked)}
+                />
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium">Deliver a unique license key</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    Each buyer gets their own key on the download page; your app can verify it at
+                    halvo.io/api/public/license/validate. Refunds revoke it automatically.
+                  </span>
                 </span>
-              </span>
-            </label>
+              </label>
+            </AdvancedOptions>
             <Button size="sm" className="self-start" onClick={() => updateMut.mutate()} disabled={updateMut.isPending}>
               Save changes
             </Button>
