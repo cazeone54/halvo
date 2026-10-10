@@ -107,6 +107,54 @@ export type Database = {
         };
         Relationships: [];
       };
+      broadcasts: {
+        Row: {
+          id: string;
+          seller_id: string;
+          product_id: string | null;
+          subject: string;
+          body: string;
+          recipient_count: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          seller_id: string;
+          product_id?: string | null;
+          subject: string;
+          body: string;
+          recipient_count?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          seller_id?: string;
+          product_id?: string | null;
+          subject?: string;
+          body?: string;
+          recipient_count?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      broadcast_unsubscribes: {
+        Row: {
+          seller_id: string;
+          email: string;
+          created_at: string;
+        };
+        Insert: {
+          seller_id: string;
+          email: string;
+          created_at?: string;
+        };
+        Update: {
+          seller_id?: string;
+          email?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       license_keys: {
         Row: {
           id: string;

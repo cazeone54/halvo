@@ -23,6 +23,7 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SuccessRouteImport } from './routes/success'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as AuthenticatedDashboardRouteRouteImport } from './routes/_authenticated/dashboard/route'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
@@ -38,6 +39,7 @@ import { Route as AuthenticatedDashboardDiscountsRouteImport } from './routes/_a
 import { Route as AuthenticatedDashboardPurchasesRouteImport } from './routes/_authenticated/dashboard/purchases'
 import { Route as AuthenticatedDashboardReferralsRouteImport } from './routes/_authenticated/dashboard/referrals'
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard/settings'
+import { Route as ApiPublicUnsubscribeRouteImport } from './routes/api/public/unsubscribe'
 import { Route as ImgAvatarUserIdRouteImport } from './routes/img.avatar.$userId'
 import { Route as ImgProductProductIdRouteImport } from './routes/img.product.$productId'
 import { Route as AuthenticatedDashboardStripeRefreshRouteImport } from './routes/_authenticated/dashboard/stripe.refresh'
@@ -112,6 +114,11 @@ const SuccessRoute = SuccessRouteImport.update({
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UnsubscribeRoute = UnsubscribeRouteImport.update({
+  id: '/unsubscribe',
+  path: '/unsubscribe',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedDashboardRouteRoute =
@@ -197,6 +204,11 @@ const AuthenticatedDashboardSettingsRoute =
     path: '/settings',
     getParentRoute: () => AuthenticatedDashboardRouteRoute,
   } as any)
+const ApiPublicUnsubscribeRoute = ApiPublicUnsubscribeRouteImport.update({
+  id: '/api/public/unsubscribe',
+  path: '/api/public/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ImgAvatarUserIdRoute = ImgAvatarUserIdRouteImport.update({
   id: '/img/avatar/$userId',
   path: '/img/avatar/$userId',
@@ -246,6 +258,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/success': typeof SuccessRoute
   '/terms': typeof TermsRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/dashboard': typeof AuthenticatedDashboardRouteRouteWithChildren
   '/blog/$slug': typeof BlogSlugRoute
   '/for/$slug': typeof ForSlugRoute
@@ -260,6 +273,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/purchases': typeof AuthenticatedDashboardPurchasesRoute
   '/dashboard/referrals': typeof AuthenticatedDashboardReferralsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
+  '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
   '/img/avatar/$userId': typeof ImgAvatarUserIdRoute
   '/img/product/$productId': typeof ImgProductProductIdRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
@@ -282,6 +296,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/success': typeof SuccessRoute
   '/terms': typeof TermsRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/for/$slug': typeof ForSlugRoute
   '/guides/$slug': typeof GuidesSlugRoute
@@ -295,6 +310,7 @@ export interface FileRoutesByTo {
   '/dashboard/purchases': typeof AuthenticatedDashboardPurchasesRoute
   '/dashboard/referrals': typeof AuthenticatedDashboardReferralsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
+  '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
   '/img/avatar/$userId': typeof ImgAvatarUserIdRoute
   '/img/product/$productId': typeof ImgProductProductIdRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
@@ -319,6 +335,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/success': typeof SuccessRoute
   '/terms': typeof TermsRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteRouteWithChildren
   '/blog/$slug': typeof BlogSlugRoute
   '/for/$slug': typeof ForSlugRoute
@@ -333,6 +350,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/purchases': typeof AuthenticatedDashboardPurchasesRoute
   '/_authenticated/dashboard/referrals': typeof AuthenticatedDashboardReferralsRoute
   '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
+  '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
   '/img/avatar/$userId': typeof ImgAvatarUserIdRoute
   '/img/product/$productId': typeof ImgProductProductIdRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
@@ -357,6 +375,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/success'
     | '/terms'
+    | '/unsubscribe'
     | '/dashboard'
     | '/blog/$slug'
     | '/for/$slug'
@@ -371,6 +390,7 @@ export interface FileRouteTypes {
     | '/dashboard/purchases'
     | '/dashboard/referrals'
     | '/dashboard/settings'
+    | '/api/public/unsubscribe'
     | '/img/avatar/$userId'
     | '/img/product/$productId'
     | '/dashboard/'
@@ -393,6 +413,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/success'
     | '/terms'
+    | '/unsubscribe'
     | '/blog/$slug'
     | '/for/$slug'
     | '/guides/$slug'
@@ -406,6 +427,7 @@ export interface FileRouteTypes {
     | '/dashboard/purchases'
     | '/dashboard/referrals'
     | '/dashboard/settings'
+    | '/api/public/unsubscribe'
     | '/img/avatar/$userId'
     | '/img/product/$productId'
     | '/dashboard'
@@ -429,6 +451,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/success'
     | '/terms'
+    | '/unsubscribe'
     | '/_authenticated/dashboard'
     | '/blog/$slug'
     | '/for/$slug'
@@ -443,6 +466,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/purchases'
     | '/_authenticated/dashboard/referrals'
     | '/_authenticated/dashboard/settings'
+    | '/api/public/unsubscribe'
     | '/img/avatar/$userId'
     | '/img/product/$productId'
     | '/_authenticated/dashboard/'
@@ -467,6 +491,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SuccessRoute: typeof SuccessRoute
   TermsRoute: typeof TermsRoute
+  UnsubscribeRoute: typeof UnsubscribeRoute
   BlogSlugRoute: typeof BlogSlugRoute
   ForSlugRoute: typeof ForSlugRoute
   GuidesSlugRoute: typeof GuidesSlugRoute
@@ -474,6 +499,7 @@ export interface RootRouteChildren {
   UHandleRoute: typeof UHandleRoute
   BlogIndexRoute: typeof BlogIndexRoute
   GuidesIndexRoute: typeof GuidesIndexRoute
+  ApiPublicUnsubscribeRoute: typeof ApiPublicUnsubscribeRoute
   ImgAvatarUserIdRoute: typeof ImgAvatarUserIdRoute
   ImgProductProductIdRoute: typeof ImgProductProductIdRoute
   ApiPublicLicenseValidateRoute: typeof ApiPublicLicenseValidateRoute
@@ -578,6 +604,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/unsubscribe': {
+      id: '/unsubscribe'
+      path: '/unsubscribe'
+      fullPath: '/unsubscribe'
+      preLoaderRoute: typeof UnsubscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/dashboard': {
@@ -685,6 +718,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardSettingsRouteImport
       parentRoute: typeof AuthenticatedDashboardRouteRoute
     }
+    '/api/public/unsubscribe': {
+      id: '/api/public/unsubscribe'
+      path: '/api/public/unsubscribe'
+      fullPath: '/api/public/unsubscribe'
+      preLoaderRoute: typeof ApiPublicUnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/img/avatar/$userId': {
       id: '/img/avatar/$userId'
       path: '/img/avatar/$userId'
@@ -789,6 +829,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SuccessRoute: SuccessRoute,
   TermsRoute: TermsRoute,
+  UnsubscribeRoute: UnsubscribeRoute,
   BlogSlugRoute: BlogSlugRoute,
   ForSlugRoute: ForSlugRoute,
   GuidesSlugRoute: GuidesSlugRoute,
@@ -796,6 +837,7 @@ const rootRouteChildren: RootRouteChildren = {
   UHandleRoute: UHandleRoute,
   BlogIndexRoute: BlogIndexRoute,
   GuidesIndexRoute: GuidesIndexRoute,
+  ApiPublicUnsubscribeRoute: ApiPublicUnsubscribeRoute,
   ImgAvatarUserIdRoute: ImgAvatarUserIdRoute,
   ImgProductProductIdRoute: ImgProductProductIdRoute,
   ApiPublicLicenseValidateRoute: ApiPublicLicenseValidateRoute,

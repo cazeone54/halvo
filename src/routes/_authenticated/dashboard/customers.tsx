@@ -9,6 +9,7 @@ import { formatCents } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { BroadcastComposer } from "@/components/broadcast-composer";
 
 export const Route = createFileRoute("/_authenticated/dashboard/customers")({
   component: CustomersPage,
@@ -60,6 +61,8 @@ function CustomersPage() {
           <Download className="h-3.5 w-3.5" /> Export CSV
         </Button>
       </div>
+
+      {all.length > 0 ? <BroadcastComposer /> : null}
 
       {all.length > 0 ? (
         <Input
