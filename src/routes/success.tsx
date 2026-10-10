@@ -1,11 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { z } from "zod";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getVerifiedTransaction } from "@/lib/checkout.functions";
 import { useState, useEffect } from "react";
-import { CircleCheck, Download, Mail } from "lucide-react";
+import { BookOpen, CircleCheck, Download, Mail } from "lucide-react";
 import { getDownloadUrlForTransaction } from "@/lib/downloads.functions";
 import { getLicenseKeyForTransaction } from "@/lib/license.functions";
 import { submitReview } from "@/lib/reviews.functions";
@@ -102,13 +102,30 @@ function SuccessPage() {
             <p className="text-sm text-muted-foreground">Preparing your download…</p>
           ) : files.length > 0 ? (
             <>
-              {files.map((file) => (
-                <Button key={file.id} asChild size="lg">
-                  <a href={file.url} download>
-                    <Download className="h-4 w-4" /> Download {file.fileName ?? "file"}
-                  </a>
-                </Button>
-              ))}
+              {files.map((file) =>
+                file.readable ? (
+                  // A text course: reading it in the browser (with lessons and
+                  // progress) is the main way in; the raw file stays one tap away.
+                  <div key={file.id} className="flex flex-col gap-2 sm:flex-row">
+                    <Button asChild size="lg" className="flex-1">
+                      <Link to="/learn" search={{ id, file: file.id }}>
+                        <BookOpen className="h-4 w-4" /> Start reading
+                      </Link>
+                    </Button>
+                    <Button asChild size="lg" variant="outline">
+                      <a href={file.url} download aria-label={`Download ${file.fileName ?? "file"}`}>
+                        <Download className="h-4 w-4" /> Download
+                      </a>
+                    </Button>
+                  </div>
+                ) : (
+                  <Button key={file.id} asChild size="lg">
+                    <a href={file.url} download>
+                      <Download className="h-4 w-4" /> Download {file.fileName ?? "file"}
+                    </a>
+                  </Button>
+                ),
+              )}
               <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 We've emailed this page too. Lost it later?{" "}

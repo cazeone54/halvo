@@ -15,6 +15,7 @@ import { Route as AccessRouteImport } from './routes/access'
 import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as FeaturesRouteImport } from './routes/features'
+import { Route as LearnRouteImport } from './routes/learn'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -74,6 +75,11 @@ const FaqRoute = FaqRouteImport.update({
 const FeaturesRoute = FeaturesRouteImport.update({
   id: '/features',
   path: '/features',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LearnRoute = LearnRouteImport.update({
+  id: '/learn',
+  path: '/learn',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -250,6 +256,7 @@ export interface FileRoutesByFullPath {
   '/discover': typeof DiscoverRoute
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
+  '/learn': typeof LearnRoute
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
@@ -288,6 +295,7 @@ export interface FileRoutesByTo {
   '/discover': typeof DiscoverRoute
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
+  '/learn': typeof LearnRoute
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
@@ -327,6 +335,7 @@ export interface FileRoutesById {
   '/discover': typeof DiscoverRoute
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
+  '/learn': typeof LearnRoute
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
@@ -367,6 +376,7 @@ export interface FileRouteTypes {
     | '/discover'
     | '/faq'
     | '/features'
+    | '/learn'
     | '/login'
     | '/pricing'
     | '/privacy'
@@ -405,6 +415,7 @@ export interface FileRouteTypes {
     | '/discover'
     | '/faq'
     | '/features'
+    | '/learn'
     | '/login'
     | '/pricing'
     | '/privacy'
@@ -443,6 +454,7 @@ export interface FileRouteTypes {
     | '/discover'
     | '/faq'
     | '/features'
+    | '/learn'
     | '/login'
     | '/pricing'
     | '/privacy'
@@ -483,6 +495,7 @@ export interface RootRouteChildren {
   DiscoverRoute: typeof DiscoverRoute
   FaqRoute: typeof FaqRoute
   FeaturesRoute: typeof FeaturesRoute
+  LearnRoute: typeof LearnRoute
   LoginRoute: typeof LoginRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -548,6 +561,13 @@ declare module '@tanstack/react-router' {
       path: '/features'
       fullPath: '/features'
       preLoaderRoute: typeof FeaturesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/learn': {
+      id: '/learn'
+      path: '/learn'
+      fullPath: '/learn'
+      preLoaderRoute: typeof LearnRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -821,6 +841,7 @@ const rootRouteChildren: RootRouteChildren = {
   DiscoverRoute: DiscoverRoute,
   FaqRoute: FaqRoute,
   FeaturesRoute: FeaturesRoute,
+  LearnRoute: LearnRoute,
   LoginRoute: LoginRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
