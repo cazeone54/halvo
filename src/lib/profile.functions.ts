@@ -97,6 +97,10 @@ export const setMyAvatar = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data, context }) => {
+    // Avatars are served publicly, so only accept a file from this user's own avatar folder.
+    if (!data.storageFilePath.startsWith(`${context.userId}/avatar/`) || data.storageFilePath.split("/").includes("..")) {
+      throw new Error("Invalid image path");
+    }
     const { data: existing } = await context.supabase
       .from("profiles")
       .select("avatar_url")

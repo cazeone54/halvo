@@ -6,6 +6,7 @@ import { resolveUserTier } from "@/lib/user-plan.functions";
 import { PLAN_LIMITS } from "@/lib/plans";
 import { checkUploadAgainstLimits } from "@/lib/upload-limits";
 import { productImageUrl } from "@/lib/public-image-url";
+import { isOwnProductPath } from "@/lib/product-media";
 import type { Database } from "@/integrations/supabase/types";
 
 async function currentUploadUsage(
@@ -188,6 +189,11 @@ export const setProductImage = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data, context }) => {
+    // The cover is served publicly, so it must be a file from this product's
+    // own folder — never another seller's (or this seller's paid) file.
+    if (!isOwnProductPath(data.storageFilePath, context.userId, data.productId)) {
+      throw new Error("Invalid image path");
+    }
     const { data: product } = await context.supabase
       .from("products")
       .select("id, image_url")
@@ -246,6 +252,12 @@ export const deleteProduct = createServerFn({ method: "POST" })
       .select("storage_file_path")
       .eq("product_id", data.productId)
       .eq("owner_id", context.userId);
+    const { data: media } = await context.supabase
+      .from("products")
+      .select("*")
+      .eq("id", data.productId)
+      .eq("owner_id", context.userId)
+      .maybeSingle();
 
     const { error } = await context.supabase
       .from("products")
@@ -254,8 +266,13 @@ export const deleteProduct = createServerFn({ method: "POST" })
       .eq("owner_id", context.userId);
     if (error) throw new Error(error.message);
 
-    if (files && files.length > 0) {
-      await context.supabase.storage.from("digital-assets").remove(files.map((f) => f.storage_file_path));
+    const paths = [
+      ...(files ?? []).map((f) => f.storage_file_path),
+      ...(media?.image_url ? [media.image_url] : []),
+      ...(media?.gallery_paths ?? []),
+    ];
+    if (paths.length > 0) {
+      await context.supabase.storage.from("digital-assets").remove(paths);
     }
     return { ok: true };
   });

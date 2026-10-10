@@ -59,6 +59,7 @@ import {
 import { StripeEmbeddedCheckoutView } from "@/components/stripe-embedded-checkout";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
 import { AdvancedOptions } from "@/components/advanced-options";
+import { ProductMediaEditor } from "@/components/product-media-editor";
 import { ProductsEmptyState } from "@/components/products-empty-state";
 import { describeAdvancedOptions } from "@/lib/advanced-options";
 import { CopySnippet } from "@/components/copy-snippet";
@@ -909,6 +910,9 @@ type ProductRowData = {
   refund_policy?: string | null;
   // Present once migration 0016 is applied.
   license_key_enabled?: boolean | null;
+  // Present once migration 0018 is applied.
+  preview_video_url?: string | null;
+  gallery_paths?: string[] | null;
 };
 
 function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: () => void }) {
@@ -1184,6 +1188,11 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
                 <Input value={editCategory} onChange={(e) => setEditCategory(e.target.value)} placeholder="e.g. templates" />
               </div>
             </div>
+            <ProductMediaEditor
+              productId={product.id}
+              videoUrl={product.preview_video_url ?? null}
+              galleryPaths={product.gallery_paths ?? []}
+            />
             <AdvancedOptions
               activeSummary={describeAdvancedOptions({ refundPolicy: editRefundPolicy, licenseEnabled: editLicenseEnabled })}
               defaultOpen={!!(product.refund_policy?.trim() || product.license_key_enabled)}

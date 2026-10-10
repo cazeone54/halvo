@@ -72,6 +72,8 @@ export type Database = {
           category: string | null;
           refund_policy: string | null;
           license_key_enabled: boolean;
+          preview_video_url: string | null;
+          gallery_paths: string[];
           created_at: string;
           updated_at: string;
         };
@@ -87,6 +89,8 @@ export type Database = {
           category?: string | null;
           refund_policy?: string | null;
           license_key_enabled?: boolean;
+          preview_video_url?: string | null;
+          gallery_paths?: string[];
           created_at?: string;
           updated_at?: string;
         };
@@ -102,6 +106,8 @@ export type Database = {
           category?: string | null;
           refund_policy?: string | null;
           license_key_enabled?: boolean;
+          preview_video_url?: string | null;
+          gallery_paths?: string[];
           created_at?: string;
           updated_at?: string;
         };

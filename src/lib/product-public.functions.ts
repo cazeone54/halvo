@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { productImageUrl } from "@/lib/public-image-url";
 import { summarizeRatings } from "@/lib/ratings";
+import { galleryImageUrls, parseVideoUrl } from "@/lib/product-media";
 
 // Other published products by the same seller — powers a "More from this
 // seller" cross-sell on the product page (and a discovery nudge post-purchase).
@@ -113,6 +114,9 @@ export const getProductPublicView = createServerFn({ method: "GET" })
       priceCents: product.price_cents,
       payWhatYouWant: product.pay_what_you_want,
       imageUrl: productImageUrl(product.id, product.image_url),
+      // Both absent until migration 0018 — the page then shows just the cover.
+      video: parseVideoUrl(product.preview_video_url),
+      galleryUrls: galleryImageUrls(product.id, product.gallery_paths),
       sellerName,
       sellerHandle,
       accentColor: seller?.accent_color ?? null,

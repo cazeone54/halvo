@@ -3,6 +3,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, type CSSProperties } from "react";
 import { brandThemeStyle } from "@/lib/brand-color";
+import { buildMediaItems } from "@/lib/product-media";
+import { ProductMedia } from "@/components/product-media";
 import { cn } from "@/lib/utils";
 import { ShieldCheck, Mail, CircleCheck, Lock, Zap, CreditCard, KeyRound } from "lucide-react";
 import { getProductPublicView, listMoreFromSeller } from "@/lib/product-public.functions";
@@ -183,9 +185,14 @@ function ProductCheckoutPage() {
       >
         {/* Product card */}
         <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-          {product.imageUrl ? (
-            <img src={product.imageUrl} alt={product.name} className="aspect-video w-full object-cover" />
-          ) : null}
+          <ProductMedia
+            items={buildMediaItems({
+              name: product.name,
+              coverUrl: product.imageUrl,
+              video: product.video,
+              galleryUrls: product.galleryUrls,
+            })}
+          />
           <div className="flex flex-col gap-3 p-5">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">

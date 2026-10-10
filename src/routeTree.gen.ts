@@ -47,6 +47,7 @@ import { Route as AuthenticatedDashboardStripeRefreshRouteImport } from './route
 import { Route as AuthenticatedDashboardStripeReturnRouteImport } from './routes/_authenticated/dashboard/stripe.return'
 import { Route as ApiPublicLicenseValidateRouteImport } from './routes/api/public/license/validate'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
+import { Route as ImgGalleryProductIdIndexRouteImport } from './routes/img.gallery.$productId.$index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -249,6 +250,12 @@ const ApiPublicPaymentsWebhookRoute =
     path: '/api/public/payments/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ImgGalleryProductIdIndexRoute =
+  ImgGalleryProductIdIndexRouteImport.update({
+    id: '/img/gallery/$productId/$index',
+    path: '/img/gallery/$productId/$index',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -288,6 +295,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/stripe/return': typeof AuthenticatedDashboardStripeReturnRoute
   '/api/public/license/validate': typeof ApiPublicLicenseValidateRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/img/gallery/$productId/$index': typeof ImgGalleryProductIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -326,6 +334,7 @@ export interface FileRoutesByTo {
   '/dashboard/stripe/return': typeof AuthenticatedDashboardStripeReturnRoute
   '/api/public/license/validate': typeof ApiPublicLicenseValidateRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/img/gallery/$productId/$index': typeof ImgGalleryProductIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -367,6 +376,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/stripe/return': typeof AuthenticatedDashboardStripeReturnRoute
   '/api/public/license/validate': typeof ApiPublicLicenseValidateRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/img/gallery/$productId/$index': typeof ImgGalleryProductIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -408,6 +418,7 @@ export interface FileRouteTypes {
     | '/dashboard/stripe/return'
     | '/api/public/license/validate'
     | '/api/public/payments/webhook'
+    | '/img/gallery/$productId/$index'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -446,6 +457,7 @@ export interface FileRouteTypes {
     | '/dashboard/stripe/return'
     | '/api/public/license/validate'
     | '/api/public/payments/webhook'
+    | '/img/gallery/$productId/$index'
   id:
     | '__root__'
     | '/'
@@ -486,6 +498,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/stripe/return'
     | '/api/public/license/validate'
     | '/api/public/payments/webhook'
+    | '/img/gallery/$productId/$index'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -517,6 +530,7 @@ export interface RootRouteChildren {
   ImgProductProductIdRoute: typeof ImgProductProductIdRoute
   ApiPublicLicenseValidateRoute: typeof ApiPublicLicenseValidateRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
+  ImgGalleryProductIdIndexRoute: typeof ImgGalleryProductIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -787,6 +801,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/img/gallery/$productId/$index': {
+      id: '/img/gallery/$productId/$index'
+      path: '/img/gallery/$productId/$index'
+      fullPath: '/img/gallery/$productId/$index'
+      preLoaderRoute: typeof ImgGalleryProductIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -863,6 +884,7 @@ const rootRouteChildren: RootRouteChildren = {
   ImgProductProductIdRoute: ImgProductProductIdRoute,
   ApiPublicLicenseValidateRoute: ApiPublicLicenseValidateRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
+  ImgGalleryProductIdIndexRoute: ImgGalleryProductIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
