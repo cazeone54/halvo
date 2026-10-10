@@ -3,10 +3,12 @@ import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Elements,
+  ExpressCheckoutElement,
   PaymentElement,
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
+import type { StripeExpressCheckoutElementConfirmEvent } from "@stripe/stripe-js";
 import { Lock } from "lucide-react";
 import { getStripe } from "@/lib/stripe";
 import { createProductPaymentIntent, recordSuccessfulTransaction } from "@/lib/checkout.functions";
@@ -283,13 +285,45 @@ function PaymentForm({ productId, amountCents }: { productId: string; amountCent
   const recordFn = useServerFn(recordSuccessfulTransaction);
   const [email, setEmail] = useState("");
   const [acknowledged, setAcknowledged] = useState(false);
+  const [ackNudge, setAckNudge] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // True once Stripe reports at least one wallet (Apple Pay, Google Pay, Link)
+  // on this device. Until then the express row renders nothing visible.
+  const [expressAvailable, setExpressAvailable] = useState(false);
   // The payment succeeded at Stripe but we couldn't hand the buyer their
   // download link (a transient error recording the order). The server-side
   // webhook still records the sale and emails the link, so this is NOT a
   // failure the buyer should retry — reassure them instead of re-arming Pay.
-  const [paidPendingDelivery, setPaidPendingDelivery] = useState(false);
+  // Holds the email the link is going to, since a wallet buyer never typed one.
+  const [paidPendingDelivery, setPaidPendingDelivery] = useState<string | null>(null);
+
+  // Shared by the card form and the express wallets: from here on the buyer
+  // HAS been charged. One retry for a flaky connection gets them to /success;
+  // if it still fails, show the reassurance panel rather than an alarming
+  // error next to a re-armed Pay button.
+  const finishPurchase = async (paymentIntentId: string, buyerEmail: string) => {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const { transactionId } = await recordFn({
+          data: {
+            paymentIntentId,
+            productId,
+            buyerEmail,
+            referralCode: getActiveReferralCode() ?? undefined,
+            acknowledgedTerms: acknowledged,
+            ...captureArrival(),
+          },
+        });
+        navigate({ to: "/success", search: { id: transactionId } });
+        return;
+      } catch {
+        if (attempt === 0) continue;
+        setPaidPendingDelivery(buyerEmail);
+        setSubmitting(false);
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -313,39 +347,48 @@ function PaymentForm({ productId, amountCents }: { productId: string; amountCent
       setSubmitting(false);
       return;
     }
-
-    // From here on the buyer HAS been charged. A retry (with a one-off retry
-    // for a flaky connection) gets them to /success; if it still fails, we
-    // show the reassurance panel rather than an alarming error + Pay button.
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        const { transactionId } = await recordFn({
-          data: {
-            paymentIntentId: paymentIntent.id,
-            productId,
-            buyerEmail: email,
-            referralCode: getActiveReferralCode() ?? undefined,
-            acknowledgedTerms: acknowledged,
-            ...captureArrival(),
-          },
-        });
-        navigate({ to: "/success", search: { id: transactionId } });
-        return;
-      } catch {
-        if (attempt === 0) continue;
-        setPaidPendingDelivery(true);
-        setSubmitting(false);
-      }
-    }
+    await finishPurchase(paymentIntent.id, email);
   };
 
-  if (paidPendingDelivery) {
+  // Wallet payments confirm the same PaymentIntent as the card form. No
+  // elements.submit() here: that validates the (empty) card fields and would
+  // reject a perfectly good Apple Pay payment.
+  const handleExpressConfirm = async (event: StripeExpressCheckoutElementConfirmEvent) => {
+    if (!stripe || !elements) return;
+    const walletEmail = event.billingDetails?.email ?? "";
+    if (!walletEmail) {
+      event.paymentFailed({ reason: "fail" });
+      setError("Your wallet didn't share an email address — please pay by card below instead.");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    const { error: confirmError, paymentIntent } = await stripe.confirmPayment({
+      elements,
+      confirmParams: { receipt_email: walletEmail },
+      redirect: "if_required",
+    });
+    if (confirmError) {
+      setError(confirmError.message ?? "Payment failed");
+      setSubmitting(false);
+      return;
+    }
+    if (!paymentIntent || paymentIntent.status !== "succeeded") {
+      setError("Payment did not complete.");
+      setSubmitting(false);
+      return;
+    }
+    await finishPurchase(paymentIntent.id, walletEmail);
+  };
+
+  if (paidPendingDelivery !== null) {
     return (
       <div className="rounded-lg border border-primary/30 bg-primary/5 p-5 text-center">
         <p className="text-sm font-medium">Payment received — you're all set.</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          We're emailing your download link to <span className="font-medium text-foreground">{email}</span> now.
-          It can take a minute to arrive; check your spam folder if you don't see it.
+          We're emailing your download link to{" "}
+          <span className="font-medium text-foreground">{paidPendingDelivery}</span> now. It can take a minute to
+          arrive; check your spam folder if you don't see it.
         </p>
       </div>
     );
@@ -353,6 +396,72 @@ function PaymentForm({ productId, amountCents }: { productId: string; amountCent
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      {/* First, because it gates BOTH ways to pay — the recorded final-sale
+          acknowledgement is part of the chargeback defense, so a one-tap
+          wallet must not skip it. */}
+      <label
+        className={`flex items-start gap-2 rounded-md text-sm text-muted-foreground transition-shadow ${
+          ackNudge ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""
+        }`}
+      >
+        <input
+          id="final-sale-ack"
+          type="checkbox"
+          className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+          checked={acknowledged}
+          onChange={(e) => {
+            setAcknowledged(e.target.checked);
+            setAckNudge(false);
+          }}
+        />
+        <span>
+          I understand this is a digital product delivered instantly, and I agree that all sales are final once
+          I download it.
+        </span>
+      </label>
+
+      <div className="relative">
+        <div className={acknowledged ? "" : "opacity-50"}>
+          <ExpressCheckoutElement
+            options={{ buttonHeight: 44, layout: { maxColumns: 1, maxRows: 3, overflow: "never" } }}
+            onReady={(e) => setExpressAvailable(!!e.availablePaymentMethods)}
+            onClick={(e) => {
+              // The actual gate, for every input method (tap, mouse, keyboard):
+              // the wallet sheet never opens without the acknowledgement.
+              if (!acknowledged) {
+                e.reject();
+                setAckNudge(true);
+                document.getElementById("final-sale-ack")?.focus();
+                return;
+              }
+              e.resolve({ emailRequired: true });
+            }}
+            onConfirm={handleExpressConfirm}
+          />
+        </div>
+        {/* Friendlier for taps than a silent reject: a transparent layer over
+            the dimmed buttons that points the buyer at the box above. */}
+        {expressAvailable && !acknowledged ? (
+          <button
+            type="button"
+            className="absolute inset-0 cursor-pointer rounded-md"
+            aria-label="Tick the final-sale box above to pay with your wallet"
+            onClick={() => {
+              setAckNudge(true);
+              document.getElementById("final-sale-ack")?.focus();
+            }}
+          />
+        ) : null}
+      </div>
+
+      {expressAvailable ? (
+        <div className="flex items-center gap-3 text-xs text-muted-foreground" aria-hidden="true">
+          <span className="h-px flex-1 bg-border" />
+          or pay with card
+          <span className="h-px flex-1 bg-border" />
+        </div>
+      ) : null}
+
       <div>
         <Label>Email</Label>
         <Input
@@ -363,19 +472,8 @@ function PaymentForm({ productId, amountCents }: { productId: string; amountCent
           onChange={(e) => setEmail(e.target.value)}
         />
       </div>
-      <PaymentElement />
-      <label className="flex items-start gap-2 text-sm text-muted-foreground">
-        <input
-          type="checkbox"
-          className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
-          checked={acknowledged}
-          onChange={(e) => setAcknowledged(e.target.checked)}
-        />
-        <span>
-          I understand this is a digital product delivered instantly, and I agree that all sales are final once
-          I download it.
-        </span>
-      </label>
+      {/* Wallets live in the express row above, so they're not repeated as tabs here. */}
+      <PaymentElement options={{ wallets: { applePay: "never", googlePay: "never" } }} />
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       <Button type="submit" size="lg" disabled={!stripe || submitting || !acknowledged}>
         {submitting ? "Processing…" : `Pay $${(amountCents / 100).toFixed(2)}`}
