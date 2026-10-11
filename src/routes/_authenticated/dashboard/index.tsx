@@ -65,6 +65,7 @@ import { ProductMediaEditor } from "@/components/product-media-editor";
 import { ProductOfferEditor } from "@/components/product-offer-editor";
 import { ProductBillingEditor } from "@/components/product-billing-editor";
 import { ConfirmAction } from "@/components/confirm-action";
+import { PurchasesShortcut } from "@/components/purchases-shortcut";
 import { ProductsEmptyState } from "@/components/products-empty-state";
 import { describeAdvancedOptions } from "@/lib/advanced-options";
 import { CopySnippet } from "@/components/copy-snippet";
@@ -363,6 +364,8 @@ function DashboardHome() {
           </CardContent>
         </Card>
       ) : null}
+
+      <PurchasesShortcut />
 
       <OnboardingChecklist
         savedHandle={profile?.handle ?? null}
