@@ -9,6 +9,7 @@ import { BookOpen, CircleCheck, Download, Mail } from "lucide-react";
 import { getDownloadUrlForTransaction } from "@/lib/downloads.functions";
 import { getLicenseKeyForTransaction } from "@/lib/license.functions";
 import { submitReview } from "@/lib/reviews.functions";
+import { getBillingForTransaction } from "@/lib/recurring.functions";
 import { trackEvent } from "@/lib/ad-pixels";
 import { StarInput } from "@/components/stars";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +28,7 @@ function SuccessPage() {
   const transactionFn = useServerFn(getVerifiedTransaction);
   const downloadFn = useServerFn(getDownloadUrlForTransaction);
   const licenseFn = useServerFn(getLicenseKeyForTransaction);
+  const billingFn = useServerFn(getBillingForTransaction);
 
   const transactionQ = useQuery({
     queryKey: ["transaction", id],
@@ -43,6 +45,13 @@ function SuccessPage() {
   const licenseQ = useQuery({
     queryKey: ["license-key", id],
     queryFn: () => licenseFn({ data: { transactionId: id! } }),
+    enabled: !!id && !!transactionQ.data,
+  });
+
+  // Memberships and payment plans: where the buyer manages billing.
+  const billingQ = useQuery({
+    queryKey: ["billing-for-transaction", id],
+    queryFn: () => billingFn({ data: { transactionId: id! } }),
     enabled: !!id && !!transactionQ.data,
   });
 
@@ -100,6 +109,11 @@ function SuccessPage() {
         <CardContent className="flex flex-col gap-3">
           {filesQ.isLoading ? (
             <p className="text-sm text-muted-foreground">Preparing your download…</p>
+          ) : filesQ.isError ? (
+            // e.g. a membership whose payment failed past the grace period.
+            <p className="text-sm text-muted-foreground">
+              {filesQ.error instanceof Error ? filesQ.error.message : "Your download isn't available right now."}
+            </p>
           ) : files.length > 0 ? (
             <>
               {files.map((file) =>
@@ -142,6 +156,18 @@ function SuccessPage() {
           )}
 
           {licenseQ.data?.licenseKey ? <LicenseKeyBlock licenseKey={licenseQ.data.licenseKey} /> : null}
+
+          {billingQ.data ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/40 p-3 text-sm">
+              <span className="min-w-0">
+                <span className="block font-medium capitalize">{billingQ.data.planLabel.split(",")[0]}</span>
+                <span className="block text-xs text-muted-foreground">{billingQ.data.planLabel}</span>
+              </span>
+              <Button asChild variant="outline" size="sm">
+                <a href={billingQ.data.manageUrl}>Manage billing</a>
+              </Button>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 

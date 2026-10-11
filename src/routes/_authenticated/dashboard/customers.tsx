@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { BroadcastComposer } from "@/components/broadcast-composer";
+import { SubscribersCard } from "@/components/subscribers-card";
 
 export const Route = createFileRoute("/_authenticated/dashboard/customers")({
   component: CustomersPage,
@@ -61,6 +62,8 @@ function CustomersPage() {
           <Download className="h-3.5 w-3.5" /> Export CSV
         </Button>
       </div>
+
+      <SubscribersCard />
 
       {all.length > 0 ? <BroadcastComposer /> : null}
 

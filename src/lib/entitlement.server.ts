@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { resolveDeliverableProductIds } from "@/lib/bundle.server";
+import { accessForSubscriptionRow } from "@/lib/recurring.server";
 
 type Admin = SupabaseClient<Database>;
 
@@ -25,13 +26,23 @@ export async function resolveEntitledFiles(
   admin: Admin,
   transactionId: string,
 ): Promise<{ transaction: { id: string; seller_id: string | null }; files: EntitledFile[] } | null> {
-  const { data: transaction, error } = await admin
-    .from("transactions")
-    .select("id, status, refunded_at, disputed_at, product_id, seller_id")
-    .eq("id", transactionId)
-    .single();
+  // select("*") so buyer_subscription_id (migration 0020) comes through when present.
+  const { data: transaction, error } = await admin.from("transactions").select("*").eq("id", transactionId).single();
   if (error || !transaction || transaction.status !== "success" || transaction.refunded_at || transaction.disputed_at) {
     return null;
+  }
+
+  // Memberships and payment plans: access follows the subscription (7-day
+  // grace after a failed payment; a finished plan is owned outright).
+  if (transaction.buyer_subscription_id) {
+    const access = await accessForSubscriptionRow(admin, transaction.buyer_subscription_id);
+    if (access && !access.access) {
+      throw new Error(
+        access.state === "suspended"
+          ? "Access is paused because a payment didn't go through. Update your card from the billing link in your email to restore it."
+          : "This membership has ended.",
+      );
+    }
   }
 
   const deliverableIds = new Set(await resolveDeliverableProductIds(admin, transaction.product_id));

@@ -61,6 +61,7 @@ import { OnboardingChecklist } from "@/components/onboarding-checklist";
 import { AdvancedOptions } from "@/components/advanced-options";
 import { ProductMediaEditor } from "@/components/product-media-editor";
 import { ProductOfferEditor } from "@/components/product-offer-editor";
+import { ProductBillingEditor } from "@/components/product-billing-editor";
 import { ProductsEmptyState } from "@/components/products-empty-state";
 import { describeAdvancedOptions } from "@/lib/advanced-options";
 import { CopySnippet } from "@/components/copy-snippet";
@@ -919,6 +920,10 @@ type ProductRowData = {
   stock_limit?: number | null;
   sale_price_cents?: number | null;
   sale_ends_at?: string | null;
+  // Present once migration 0020 is applied.
+  billing_type?: string | null;
+  billing_interval?: string | null;
+  installment_count?: number | null;
 };
 
 function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: () => void }) {
@@ -1194,6 +1199,14 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
                 <Input value={editCategory} onChange={(e) => setEditCategory(e.target.value)} placeholder="e.g. templates" />
               </div>
             </div>
+            <ProductBillingEditor
+              productId={product.id}
+              priceCents={product.price_cents}
+              payWhatYouWant={!!product.pay_what_you_want}
+              billingType={product.billing_type}
+              billingInterval={product.billing_interval}
+              installmentCount={product.installment_count}
+            />
             <ProductMediaEditor
               productId={product.id}
               videoUrl={product.preview_video_url ?? null}

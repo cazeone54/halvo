@@ -4,13 +4,14 @@ import { stockRemaining } from "@/lib/offer";
 
 export const SOLD_OUT_MESSAGE = "Sold out — every copy has been claimed.";
 
+// New sales only — membership renewals and later installments aren't another copy sold.
 export async function countSuccessfulSales(admin: SupabaseClient<Database>, productId: string): Promise<number> {
-  const { count } = await admin
-    .from("transactions")
-    .select("id", { count: "exact", head: true })
-    .eq("product_id", productId)
-    .eq("status", "success");
-  return count ?? 0;
+  const query = () =>
+    admin.from("transactions").select("id", { count: "exact", head: true }).eq("product_id", productId).eq("status", "success");
+  const { count, error } = await query().eq("is_renewal", false);
+  if (!error) return count ?? 0;
+  // is_renewal arrives with migration 0020; before that every sale is a new sale.
+  return (await query()).count ?? 0;
 }
 
 // Checked when a payment is created, so a sold-out product can't be paid for.

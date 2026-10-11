@@ -4,6 +4,7 @@ import { productImageUrl } from "@/lib/public-image-url";
 import { summarizeRatings } from "@/lib/ratings";
 import { galleryImageUrls, parseVideoUrl } from "@/lib/product-media";
 import { activeSalePriceCents, stockRemaining } from "@/lib/offer";
+import { countSuccessfulSales } from "@/lib/offer.server";
 
 // Other published products by the same seller — powers a "More from this
 // seller" cross-sell on the product page (and a discovery nudge post-purchase).
@@ -76,11 +77,7 @@ export const getProductPublicView = createServerFn({ method: "GET" })
             .eq("id", product.owner_id)
             .single()
         : Promise.resolve({ data: null }),
-      supabaseAdmin
-        .from("transactions")
-        .select("id", { count: "exact", head: true })
-        .eq("product_id", product.id)
-        .eq("status", "success"),
+      countSuccessfulSales(supabaseAdmin, product.id).then((count) => ({ count })),
       // Review summary, computed server-side so the page can emit an
       // aggregateRating in its structured data (star ratings in search results).
       // Best-effort: the table may be unmigrated, so any failure yields no rating
@@ -139,5 +136,9 @@ export const getProductPublicView = createServerFn({ method: "GET" })
       // Lets the checkout page advertise "includes a license key" to buyers.
       // Absent (undefined) until migration 0016 → coerced to false.
       licenseKeyEnabled: product.license_key_enabled === true,
+      // Absent until migration 0020 → a normal one-time product.
+      billingType: product.billing_type === "membership" ? ("membership" as const) : ("one_time" as const),
+      billingInterval: product.billing_interval === "year" ? ("year" as const) : ("month" as const),
+      installmentCount: product.billing_type === "membership" ? null : (product.installment_count ?? null),
     };
   });

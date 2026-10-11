@@ -3,6 +3,7 @@ import { verifyStripeWebhook, getStripeClient } from "@/lib/stripe.server";
 import { sendPurchaseConfirmationEmail } from "@/lib/email.server";
 import { decideDisputeClose } from "@/lib/dispute-liability";
 import type Stripe from "stripe";
+import { BUYER_SUB_KIND, recordFailedInvoice, recordPaidInvoice, syncSubscriptionRow } from "@/lib/recurring.server";
 
 // Reconciliation fallback: purchases are normally recorded synchronously by
 // `recordSuccessfulTransaction` right after the client confirms payment (for
@@ -179,7 +180,24 @@ async function handleDisputeClosed(dispute: Stripe.Dispute) {
 
 // The subscriptions table is the single source of truth for plan tier —
 // this is the only place that ever writes to it.
+// Buyer memberships and payment plans: each paid invoice is recorded (the first
+// one too, in case the browser never called back), failures start the grace period.
+async function handleInvoicePaid(invoice: Stripe.Invoice) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await recordPaidInvoice(supabaseAdmin, getStripeClient(), invoice);
+}
+
+async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await recordFailedInvoice(supabaseAdmin, invoice);
+}
+
 async function upsertSubscription(subscription: Stripe.Subscription) {
+  if (subscription.metadata?.halvo_kind === BUYER_SUB_KIND) {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await syncSubscriptionRow(supabaseAdmin, subscription);
+    return;
+  }
   const userId = subscription.metadata?.userId;
   if (!userId) {
     console.error("Webhook: subscription has no userId in metadata", subscription.id);
@@ -213,6 +231,10 @@ async function upsertSubscription(subscription: Stripe.Subscription) {
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  if (subscription.metadata?.halvo_kind === BUYER_SUB_KIND) {
+    await syncSubscriptionRow(supabaseAdmin, subscription);
+    return;
+  }
   await supabaseAdmin
     .from("subscriptions")
     .update({ status: "canceled" })
@@ -250,6 +272,12 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
             case "customer.subscription.created":
             case "customer.subscription.updated":
               await upsertSubscription(event.data.object as Stripe.Subscription);
+              break;
+            case "invoice.paid":
+              await handleInvoicePaid(event.data.object as Stripe.Invoice);
+              break;
+            case "invoice.payment_failed":
+              await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
               break;
             case "customer.subscription.deleted":
               await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);

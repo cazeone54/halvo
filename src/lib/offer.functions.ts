@@ -18,11 +18,14 @@ export const setProductOffer = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: product } = await context.supabase
       .from("products")
-      .select("id, price_cents, pay_what_you_want")
+      .select("*")
       .eq("id", data.productId)
       .eq("owner_id", context.userId)
       .maybeSingle();
     if (!product) throw new Error("Product not found");
+    if (product.billing_type === "membership" && data.salePriceCents != null) {
+      throw new Error("Memberships bill the regular price every period, so they can't have a launch price.");
+    }
 
     const { count } = await context.supabase
       .from("transactions")

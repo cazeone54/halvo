@@ -18,6 +18,9 @@ import { isFreeProduct } from "@/lib/checkout-math";
 import { useQuery } from "@tanstack/react-query";
 import { applyCouponPreview } from "@/lib/coupons.functions";
 import { getActiveReferralCode } from "@/lib/referral-attribution";
+import { createSubscriptionCheckout, recordSubscriptionPurchase } from "@/lib/recurring.functions";
+import { GRACE_DAYS, installmentAmountCents, intervalLabel } from "@/lib/recurring";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,7 +30,18 @@ type Product = {
   name: string;
   priceCents: number;
   payWhatYouWant: boolean;
+  billingType?: "one_time" | "membership";
+  billingInterval?: "month" | "year";
+  installmentCount?: number | null;
 };
+
+// "full" = one payment; the other two are Stripe subscriptions.
+type Plan = "full" | "installments" | "membership";
+
+// What the buyer agrees to — shown on the checkbox that gates payment.
+export type PlanTerms = { kind: "full" } | { kind: "membership"; label: string } | { kind: "installments"; label: string };
+
+const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
 // Read once, at module scope on the client, because document.referrer is only
 // meaningful for the page the buyer actually landed on — any in-app navigation
@@ -84,6 +98,10 @@ function FreeClaimForm({ productId }: { productId: string }) {
 }
 
 export function CheckoutWidget({ product }: { product: Product }) {
+  const isMembership = product.billingType === "membership";
+  const installments = !isMembership && product.installmentCount ? product.installmentCount : null;
+  const [plan, setPlan] = useState<Plan>(isMembership ? "membership" : "full");
+  const [subscriptionId, setSubscriptionId] = useState<string | null>(null);
   const [amountCents, setAmountCents] = useState(product.priceCents);
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountedAmountCents: number } | null>(null);
@@ -94,6 +112,7 @@ export function CheckoutWidget({ product }: { product: Product }) {
   const [error, setError] = useState<string | null>(null);
   const [bumpTaken, setBumpTaken] = useState(false);
   const createIntentFn = useServerFn(createProductPaymentIntent);
+  const createSubFn = useServerFn(createSubscriptionCheckout);
   const previewCouponFn = useServerFn(applyCouponPreview);
   const bumpFn = useServerFn(getProductBump);
   const free = isFreeProduct({ price_cents: product.priceCents, pay_what_you_want: product.payWhatYouWant });
@@ -101,15 +120,27 @@ export function CheckoutWidget({ product }: { product: Product }) {
   const bumpQ = useQuery({
     queryKey: ["product-bump", product.id],
     queryFn: () => bumpFn({ data: { productId: product.id } }),
-    enabled: !free,
+    enabled: !free && !isMembership,
   });
-  const bump = bumpQ.data;
+  // Coupons, order bumps and name-your-price apply to single payments only.
+  const bump = plan === "full" ? bumpQ.data : null;
 
   useEffect(() => {
     if (free) return; // nothing to charge, so never create a PaymentIntent
     setClientSecret(null);
     setChargedCents(null);
+    setSubscriptionId(null);
     setError(null);
+    if (plan !== "full") {
+      createSubFn({ data: { productId: product.id, plan } })
+        .then((res) => {
+          setChargedCents(res.amountCents);
+          setSubscriptionId(res.subscriptionId);
+          setClientSecret(res.clientSecret);
+        })
+        .catch((e: Error) => setError(e.message));
+      return;
+    }
     // The referral code and bump both go in at intent time — that's where the
     // affiliate commission is withheld and where the bump price is resolved.
     createIntentFn({
@@ -128,7 +159,7 @@ export function CheckoutWidget({ product }: { product: Product }) {
       .catch((e: Error) => setError(e.message));
     // Recreate the intent whenever amount, coupon or the bump selection changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product.id, amountCents, appliedCoupon?.code, free, bumpTaken]);
+  }, [product.id, amountCents, appliedCoupon?.code, free, bumpTaken, plan]);
 
   // Warm Stripe.js immediately, in parallel with creating the PaymentIntent, so
   // the payment form mounts the instant the client secret arrives instead of
@@ -162,10 +193,27 @@ export function CheckoutWidget({ product }: { product: Product }) {
     return (
       <div className="rounded-lg border border-dashed p-5 text-center">
         <p className="text-sm font-medium">{error}</p>
-        <p className="mt-1 text-xs text-muted-foreground">Check back soon.</p>
+        {plan === "installments" ? (
+          <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => setPlan("full")}>
+            Pay in full instead
+          </Button>
+        ) : (
+          <p className="mt-1 text-xs text-muted-foreground">Check back soon.</p>
+        )}
       </div>
     );
   }
+
+  const installmentCents = installments ? installmentAmountCents(product.priceCents, installments) : 0;
+  const terms: PlanTerms =
+    plan === "membership"
+      ? {
+          kind: "membership",
+          label: `${money(product.priceCents)} every ${intervalLabel(product.billingInterval ?? "month")}`,
+        }
+      : plan === "installments" && installments
+        ? { kind: "installments", label: `${installments} monthly payments of ${money(installmentCents)}` }
+        : { kind: "full" };
 
   const baseAmountCents = appliedCoupon?.discountedAmountCents ?? amountCents;
   // Once the payment exists, show exactly what it will charge (e.g. if a launch
@@ -174,7 +222,46 @@ export function CheckoutWidget({ product }: { product: Product }) {
 
   return (
     <div className="flex flex-col gap-4">
-      {product.payWhatYouWant ? (
+      {installments ? (
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-1.5 text-sm font-medium">How would you like to pay?</legend>
+          {(
+            [
+              { value: "full", title: "Pay in full", detail: money(product.priceCents) },
+              {
+                value: "installments",
+                title: `${installments} monthly payments`,
+                detail: `${money(installmentCents)} today, then ${money(installmentCents)}/month · ${money(
+                  installmentCents * installments,
+                )} total`,
+              },
+            ] as const
+          ).map((opt) => (
+            <label
+              key={opt.value}
+              className={cn(
+                "flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors",
+                plan === opt.value ? "border-primary bg-primary/5" : "hover:bg-muted/50",
+              )}
+            >
+              <input
+                type="radio"
+                name={`plan-${product.id}`}
+                value={opt.value}
+                checked={plan === opt.value}
+                onChange={() => setPlan(opt.value)}
+                className="h-4 w-4 accent-primary"
+              />
+              <span className="min-w-0">
+                <span className="block text-sm font-medium">{opt.title}</span>
+                <span className="block text-xs text-muted-foreground">{opt.detail}</span>
+              </span>
+            </label>
+          ))}
+        </fieldset>
+      ) : null}
+
+      {plan === "full" && product.payWhatYouWant ? (
         <div>
           <Label>Name your price (min ${(product.priceCents / 100).toFixed(2)})</Label>
           <Input
@@ -197,6 +284,7 @@ export function CheckoutWidget({ product }: { product: Product }) {
         </div>
       ) : null}
 
+      {plan === "full" ? (
       <div>
         <Label>Coupon code</Label>
         <div className="flex gap-2">
@@ -233,6 +321,7 @@ export function CheckoutWidget({ product }: { product: Product }) {
           </p>
         ) : null}
       </div>
+      ) : null}
 
       {bump ? (
         <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-primary/40 bg-primary/5 p-3">
@@ -261,7 +350,12 @@ export function CheckoutWidget({ product }: { product: Product }) {
           stripe={getStripe()}
           options={{ clientSecret, appearance: { theme: "stripe" }, locale: "en" }}
         >
-          <PaymentForm productId={product.id} amountCents={displayAmountCents} />
+          <PaymentForm
+            productId={product.id}
+            amountCents={displayAmountCents}
+            subscriptionId={subscriptionId}
+            terms={terms}
+          />
         </Elements>
       ) : (
         <CheckoutSkeleton />
@@ -285,11 +379,22 @@ function CheckoutSkeleton() {
   );
 }
 
-function PaymentForm({ productId, amountCents }: { productId: string; amountCents: number }) {
+function PaymentForm({
+  productId,
+  amountCents,
+  subscriptionId,
+  terms,
+}: {
+  productId: string;
+  amountCents: number;
+  subscriptionId: string | null;
+  terms: PlanTerms;
+}) {
   const stripe = useStripe();
   const elements = useElements();
   const navigate = useNavigate();
   const recordFn = useServerFn(recordSuccessfulTransaction);
+  const recordSubFn = useServerFn(recordSubscriptionPurchase);
   const [email, setEmail] = useState("");
   const [acknowledged, setAcknowledged] = useState(false);
   const [ackNudge, setAckNudge] = useState(false);
@@ -312,16 +417,20 @@ function PaymentForm({ productId, amountCents }: { productId: string; amountCent
   const finishPurchase = async (paymentIntentId: string, buyerEmail: string) => {
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const { transactionId } = await recordFn({
-          data: {
-            paymentIntentId,
-            productId,
-            buyerEmail,
-            referralCode: getActiveReferralCode() ?? undefined,
-            acknowledgedTerms: acknowledged,
-            ...captureArrival(),
-          },
-        });
+        const { transactionId } = subscriptionId
+          ? await recordSubFn({
+              data: { subscriptionId, productId, buyerEmail, acknowledgedTerms: acknowledged, ...captureArrival() },
+            })
+          : await recordFn({
+              data: {
+                paymentIntentId,
+                productId,
+                buyerEmail,
+                referralCode: getActiveReferralCode() ?? undefined,
+                acknowledgedTerms: acknowledged,
+                ...captureArrival(),
+              },
+            });
         navigate({ to: "/success", search: { id: transactionId } });
         return;
       } catch {
@@ -422,8 +531,22 @@ function PaymentForm({ productId, amountCents }: { productId: string; amountCent
           }}
         />
         <span>
-          I understand this is a digital product delivered instantly, and I agree that all sales are final once
-          I download it.
+          {terms.kind === "membership" ? (
+            <>
+              I agree to be charged {terms.label} until I cancel. I can cancel any time from the billing link in my
+              email, and keep access to the end of the period I've paid for.
+            </>
+          ) : terms.kind === "installments" ? (
+            <>
+              I agree to pay {terms.label}, charged automatically, starting today. If a payment fails and isn't fixed
+              within {GRACE_DAYS} days, access pauses until it is. Payments made are final once I download.
+            </>
+          ) : (
+            <>
+              I understand this is a digital product delivered instantly, and I agree that all sales are final once I
+              download it.
+            </>
+          )}
         </span>
       </label>
 
@@ -483,7 +606,13 @@ function PaymentForm({ productId, amountCents }: { productId: string; amountCent
       <PaymentElement options={{ wallets: { applePay: "never", googlePay: "never" } }} />
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       <Button type="submit" size="lg" disabled={!stripe || submitting || !acknowledged}>
-        {submitting ? "Processing…" : `Pay $${(amountCents / 100).toFixed(2)}`}
+        {submitting
+          ? "Processing…"
+          : terms.kind === "membership"
+            ? `Subscribe — ${money(amountCents)} today`
+            : terms.kind === "installments"
+              ? `Pay ${money(amountCents)} today`
+              : `Pay ${money(amountCents)}`}
       </Button>
       <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
         <Lock className="h-3 w-3" /> Payments are secure and encrypted

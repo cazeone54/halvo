@@ -99,6 +99,21 @@ function TermsPage() {
         the seller's stated policy plus any rights you have under law. Chargebacks and disputes are handled through
         Stripe; abusive chargebacks may result in loss of access.
       </p>
+      <ul>
+        <li>
+          <strong>Memberships</strong> renew automatically at the price shown when you joined, until you cancel. You
+          can cancel any time from the billing link in your email and keep access until the end of the period you've
+          paid for.
+        </li>
+        <li>
+          <strong>Payment plans</strong> charge the stated number of payments automatically, then stop. Once every
+          payment is made, the product is yours like any other purchase.
+        </li>
+        <li>
+          If a recurring payment fails, you keep access for 7 days while it's retried and you can update your card.
+          After that, access pauses until the payment goes through.
+        </li>
+      </ul>
 
       <h2>8. Availability and liability</h2>
       <p>

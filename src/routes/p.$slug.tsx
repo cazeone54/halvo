@@ -6,6 +6,7 @@ import { brandThemeStyle } from "@/lib/brand-color";
 import { buildMediaItems } from "@/lib/product-media";
 import { ProductMedia } from "@/components/product-media";
 import { OfferBanner } from "@/components/offer-banner";
+import { installmentAmountCents } from "@/lib/recurring";
 import { cn } from "@/lib/utils";
 import { ShieldCheck, Mail, CircleCheck, Lock, Zap, CreditCard, KeyRound } from "lucide-react";
 import { getProductPublicView, listMoreFromSeller } from "@/lib/product-public.functions";
@@ -158,7 +159,9 @@ function ProductCheckoutPage() {
   const isFree = !product.payWhatYouWant && product.priceCents === 0;
   const priceLabel = isFree
     ? "Free"
-    : `${product.payWhatYouWant ? "From " : ""}$${(product.priceCents / 100).toFixed(2)}`;
+    : `${product.payWhatYouWant ? "From " : ""}$${(product.priceCents / 100).toFixed(2)}${
+        product.billingType === "membership" ? ` / ${product.billingInterval}` : ""
+      }`;
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -228,6 +231,11 @@ function ProductCheckoutPage() {
                   <p className="text-sm text-muted-foreground">
                     <span className="sr-only">Regular price </span>
                     <s>${(product.regularPriceCents / 100).toFixed(2)}</s>
+                  </p>
+                ) : null}
+                {product.installmentCount ? (
+                  <p className="text-xs text-muted-foreground">
+                    or {product.installmentCount} × ${(installmentAmountCents(product.priceCents, product.installmentCount) / 100).toFixed(2)}
                   </p>
                 ) : null}
               </div>
@@ -303,6 +311,9 @@ function ProductCheckoutPage() {
                 name: product.name,
                 priceCents: product.priceCents,
                 payWhatYouWant: product.payWhatYouWant,
+                billingType: product.billingType,
+                billingInterval: product.billingInterval,
+                installmentCount: product.installmentCount,
               }}
             />
           )}

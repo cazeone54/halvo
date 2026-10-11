@@ -56,6 +56,48 @@ export async function sendPurchaseConfirmationEmail(params: {
   await sendEmail({ to: params.buyerEmail, subject, html, text });
 }
 
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+// Sent with a new membership or payment plan, alongside the normal purchase
+// email: the buyer has no account, so this link is how they manage billing.
+export async function sendBillingLinkEmail(params: {
+  buyerEmail: string;
+  productName: string;
+  planLabel: string;
+  manageUrl: string;
+}): Promise<void> {
+  if (params.buyerEmail.endsWith("@buyer.reconciled")) return;
+  const name = escapeHtml(params.productName);
+  const html = `<div style="font-family:system-ui,sans-serif;line-height:1.6;color:#0a1c1a">
+    <p>You're subscribed to <strong>${name}</strong> — ${escapeHtml(params.planLabel)}.</p>
+    <p>Keep this email. Use the link below any time to update your card, see your payments${
+      params.planLabel.includes("membership") ? " or cancel" : ""
+    }:</p>
+    <p><a href="${params.manageUrl}" style="color:#0d7a70;font-weight:600">Manage your billing</a></p>
+  </div>`;
+  const text = `You're subscribed to ${params.productName} — ${params.planLabel}.\n\nManage your billing (update card, see payments): ${params.manageUrl}`;
+  await sendEmail({ to: params.buyerEmail, subject: `Manage your ${params.productName} billing`, html, text });
+}
+
+export async function sendPaymentFailedEmail(params: {
+  buyerEmail: string;
+  productName: string;
+  manageUrl: string;
+  graceEndsAt: string;
+}): Promise<void> {
+  if (params.buyerEmail.endsWith("@buyer.reconciled")) return;
+  const date = new Date(params.graceEndsAt).toLocaleDateString("en-US", { month: "long", day: "numeric" });
+  const name = escapeHtml(params.productName);
+  const html = `<div style="font-family:system-ui,sans-serif;line-height:1.6;color:#0a1c1a">
+    <p>We couldn't take your latest payment for <strong>${name}</strong>.</p>
+    <p>You still have full access until <strong>${date}</strong>. Update your card before then to keep it — we'll retry automatically:</p>
+    <p><a href="${params.manageUrl}" style="color:#0d7a70;font-weight:600">Update your payment method</a></p>
+  </div>`;
+  const text = `We couldn't take your latest payment for ${params.productName}. You keep access until ${date}. Update your card: ${params.manageUrl}`;
+  await sendEmail({ to: params.buyerEmail, subject: `Payment failed for ${params.productName}`, html, text });
+}
+
 // Re-sends a buyer the links to everything they've bought, when they've lost the
 // original confirmation email. Only ever sent to the address that actually made
 // the purchases (that's the proof of ownership), and only when there's at least

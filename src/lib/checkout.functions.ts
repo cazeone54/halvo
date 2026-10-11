@@ -92,6 +92,11 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
     if (!product.owner_id) {
       throw new Error("This product has no seller and can't be purchased.");
     }
+    // A membership is only ever sold as a subscription (createSubscriptionCheckout) —
+    // a one-off payment here would grant it forever.
+    if (product.billing_type === "membership") {
+      throw new Error("This product is a membership.");
+    }
     // Free products are delivered through claimFreeProduct — there's nothing to
     // charge, and Stripe rejects a zero-amount PaymentIntent outright.
     if (isFreeProduct(product)) {

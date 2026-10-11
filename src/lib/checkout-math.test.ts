@@ -111,15 +111,16 @@ describe("buildDestinationChargeParams", () => {
     expect(params.on_behalf_of).toBe("acct_123");
   });
 
-  it("charges paid tiers a real but cheaper fee than free", () => {
+  it("charges every tier the same real fee under single-tier pricing", () => {
     const free = buildDestinationChargeParams(10_00, "acct_123", "free").application_fee_amount;
     const creator = buildDestinationChargeParams(10_00, "acct_123", "creator").application_fee_amount;
     const pro = buildDestinationChargeParams(10_00, "acct_123", "pro").application_fee_amount;
     // Paid tiers used to be 0 here, which made every such sale a loss once
-    // Stripe's own cut came out of the platform's balance.
+    // Stripe's own cut came out of the platform's balance. They're now all one
+    // rate (see SINGLE_TIER_PRICING) — but the fee must still never be zero.
     expect(pro).toBeGreaterThan(0);
-    expect(pro).toBeLessThan(creator);
-    expect(creator).toBeLessThan(free);
+    expect(creator).toBe(free);
+    expect(pro).toBe(free);
   });
 
   it("never sends a zero-amount destination charge with a nonzero fee", () => {
