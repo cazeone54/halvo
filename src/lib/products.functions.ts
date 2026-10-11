@@ -38,13 +38,27 @@ export const listMyProducts = createServerFn({ method: "GET" })
     // select("*") (rather than an explicit column list) so refund_policy comes
     // through when migration 0015 is applied and is simply absent when it isn't —
     // no query error either way. It's the seller's own rows, so nothing extra leaks.
-    const { data, error } = await context.supabase
-      .from("products")
-      .select("*")
-      .eq("owner_id", context.userId)
-      .order("created_at", { ascending: false });
+    // Files come back with the products (one extra query for all of them),
+    // so the product list doesn't fire a separate request per row.
+    const [{ data, error }, { data: files }] = await Promise.all([
+      context.supabase.from("products").select("*").eq("owner_id", context.userId).order("created_at", { ascending: false }),
+      context.supabase
+        .from("product_files")
+        .select("id, product_id, file_name, storage_file_path, size_bytes")
+        .eq("owner_id", context.userId),
+    ]);
     if (error) throw new Error(error.message);
-    return data.map((product) => ({ ...product, imageUrl: productImageUrl(product.id, product.image_url) }));
+    const filesByProduct = new Map<string, Array<{ id: string; file_name: string | null; storage_file_path: string; size_bytes: number | null }>>();
+    for (const { product_id, ...f } of files ?? []) {
+      const list = filesByProduct.get(product_id) ?? [];
+      list.push(f);
+      filesByProduct.set(product_id, list);
+    }
+    return data.map((product) => ({
+      ...product,
+      imageUrl: productImageUrl(product.id, product.image_url),
+      files: filesByProduct.get(product.id) ?? [],
+    }));
   });
 
 export const createProduct = createServerFn({ method: "POST" })

@@ -103,24 +103,28 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
       throw new Error("This product is free — no payment is needed.");
     }
 
-    // Belt-and-braces against the worst possible outcome on a digital-goods
-    // platform: a buyer paying for a product with nothing to download. Products
-    // are only published once they have a file (see attachProductFile), but this
-    // re-checks at the point money would actually move.
-    // Counts bundled products too, so a bundle whose own file list is empty
-    // still qualifies as long as it delivers something.
-    if ((await countDeliverableFiles(supabaseAdmin, product.id)) === 0) {
+    // Everything below depends only on the product, so it runs in parallel —
+    // done one after another it was ~8 round trips before the payment form
+    // could even appear on the product page.
+    //
+    // countDeliverableFiles is belt-and-braces against the worst outcome on a
+    // digital-goods platform: a buyer paying for a product with nothing to
+    // download (bundles count their items). assertInStock throws if sold out.
+    const [deliverableCount, { data: sellerProfile }, sellerTier, , coupon, bumpRes, referral] = await Promise.all([
+      countDeliverableFiles(supabaseAdmin, product.id),
+      supabaseAdmin.from("profiles").select("stripe_connect_id").eq("id", product.owner_id).single(),
+      resolveUserTier(supabaseAdmin, product.owner_id),
+      assertInStock(supabaseAdmin, product),
+      data.couponCode ? findValidCoupon(supabaseAdmin, data.couponCode, product.id) : Promise.resolve(null),
+      data.bumpTaken
+        ? supabaseAdmin.from("product_bumps").select("bump_product_id, price_cents").eq("product_id", product.id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      data.referralCode ? resolveReferralCode(supabaseAdmin, data.referralCode, product.id) : Promise.resolve(null),
+    ]);
+    if (deliverableCount === 0 || !sellerProfile?.stripe_connect_id) {
       throw new Error(UNAVAILABLE_MESSAGE);
     }
-
-    const { data: sellerProfile } = await supabaseAdmin
-      .from("profiles")
-      .select("stripe_connect_id")
-      .eq("id", product.owner_id)
-      .single();
-    if (!sellerProfile?.stripe_connect_id) {
-      throw new Error(UNAVAILABLE_MESSAGE);
-    }
+    if (data.couponCode && !coupon) throw new Error("Invalid or expired coupon code.");
 
     const stripe = getStripeClient();
     let sellerAccount;
@@ -133,63 +137,40 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
       throw new Error(UNAVAILABLE_MESSAGE);
     }
 
-    await assertInStock(supabaseAdmin, product);
-
     // A running launch price replaces the base price. It's stamped into the
     // intent's metadata so verification accepts it even if the sale ends
     // between creating the payment and the buyer completing it.
     const salePriceCents = activeSalePriceCents(product, new Date());
     let chargeAmountCents = computeChargeAmountCents(effectivePricing(product, new Date()), data.amountCents);
+    if (coupon) chargeAmountCents = applyCouponDiscount(chargeAmountCents, coupon);
 
-    if (data.couponCode) {
-      const coupon = await findValidCoupon(supabaseAdmin, data.couponCode, product.id);
-      if (!coupon) throw new Error("Invalid or expired coupon code.");
-      chargeAmountCents = applyCouponDiscount(chargeAmountCents, coupon);
-    }
-
-    // Order bump: resolve its price server-side and add it after the coupon,
+    // Order bump: its price is resolved server-side and added after the coupon,
     // so a coupon can't also discount the (already-discounted) add-on. Stamped
     // into metadata as the source of truth, exactly like the coupon and
     // referral, so the recorded amount and the delivered files agree.
     let bumpProductId: string | null = null;
     let bumpPriceCents = 0;
-    if (data.bumpTaken) {
-      const { data: bump } = await supabaseAdmin
-        .from("product_bumps")
-        .select("bump_product_id, price_cents")
-        .eq("product_id", product.id)
-        .maybeSingle();
-      if (bump) {
-        bumpProductId = bump.bump_product_id;
-        bumpPriceCents = Math.max(0, bump.price_cents);
-        chargeAmountCents = composeChargeAmount({
-          baseAfterCouponCents: chargeAmountCents,
-          bumpPriceCents,
-        });
-      }
+    const bump = bumpRes.data;
+    if (bump) {
+      bumpProductId = bump.bump_product_id;
+      bumpPriceCents = Math.max(0, bump.price_cents);
+      chargeAmountCents = composeChargeAmount({ baseAfterCouponCents: chargeAmountCents, bumpPriceCents });
     }
 
     if (!isAboveMinimumCharge(chargeAmountCents)) {
       throw new Error("The charge amount is below the minimum allowed.");
     }
 
-    const sellerTier = await resolveUserTier(supabaseAdmin, product.owner_id);
-
-    // Resolve the affiliate here, at charge time, so the commission can be
-    // withheld from the sale rather than paid out of the platform's margin.
-    // The code is stamped into metadata and that becomes the source of truth
-    // when the commission is recorded — we only ever pay a commission we
-    // actually held money back for.
+    // The affiliate is resolved at charge time so the commission is withheld
+    // from the sale rather than paid out of the platform's margin. The code is
+    // stamped into metadata and that becomes the source of truth when the
+    // commission is recorded — we only ever pay a commission we held money back for.
     let commissionCents = 0;
     let referralCodeForMetadata: string | null = null;
-    if (data.referralCode) {
-      const referral = await resolveReferralCode(supabaseAdmin, data.referralCode, product.id);
-      if (referral && referral.userId !== product.owner_id) {
-        commissionCents = calcCommissionCents(chargeAmountCents);
-        referralCodeForMetadata = data.referralCode;
-      }
+    if (referral && referral.userId !== product.owner_id) {
+      commissionCents = calcCommissionCents(chargeAmountCents);
+      referralCodeForMetadata = data.referralCode ?? null;
     }
-
     try {
       const intent = await stripe.paymentIntents.create({
         currency: "usd",

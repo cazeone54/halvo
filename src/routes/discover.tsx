@@ -153,9 +153,8 @@ function DiscoverPage() {
                   ) : null}
                   <div className="mt-2 flex items-center justify-between gap-2">
                     <p className="font-semibold text-primary">
-                      {!product.pay_what_you_want && product.price_cents === 0
-                        ? "Free"
-                        : `${product.pay_what_you_want ? "From " : ""}$${(product.price_cents / 100).toFixed(2)}`}
+                      {product.price.label}
+                      {product.price.regularLabel ? (<s className="ml-1.5 text-xs font-normal text-muted-foreground">{product.price.regularLabel}</s>) : null}
                     </p>
                     {product.salesCount > 0 ? (
                       <span className="shrink-0 text-xs text-muted-foreground">{product.salesCount} sold</span>

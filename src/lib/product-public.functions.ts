@@ -5,6 +5,7 @@ import { summarizeRatings } from "@/lib/ratings";
 import { galleryImageUrls, parseVideoUrl } from "@/lib/product-media";
 import { activeSalePriceCents, stockRemaining } from "@/lib/offer";
 import { countSuccessfulSales } from "@/lib/offer.server";
+import { listingPrice } from "@/lib/format";
 
 // Other published products by the same seller — powers a "More from this
 // seller" cross-sell on the product page (and a discovery nudge post-purchase).
@@ -25,7 +26,7 @@ export const listMoreFromSeller = createServerFn({ method: "GET" })
 
       const { data: others } = await supabaseAdmin
         .from("products")
-        .select("id, name, price_cents, pay_what_you_want, url_slug, image_url")
+        .select("id, name, price_cents, pay_what_you_want, url_slug, image_url, sale_price_cents, sale_ends_at, billing_type, billing_interval")
         .eq("owner_id", current.owner_id)
         .neq("id", data.productId)
         .not("url_slug", "is", null) // published only
@@ -38,6 +39,7 @@ export const listMoreFromSeller = createServerFn({ method: "GET" })
           name: p.name,
           priceCents: p.price_cents,
           payWhatYouWant: p.pay_what_you_want,
+          price: listingPrice(p),
           slug: p.url_slug as string,
           imageUrl: productImageUrl(p.id, p.image_url),
         })),
@@ -115,6 +117,7 @@ export const getProductPublicView = createServerFn({ method: "GET" })
       description: product.description,
       // The price checkout will charge now; regularPriceCents is set only during a sale.
       priceCents: salePriceCents ?? product.price_cents,
+      price: listingPrice(product),
       regularPriceCents: salePriceCents != null ? product.price_cents : null,
       saleEndsAt: salePriceCents != null ? (product.sale_ends_at ?? null) : null,
       stockLimit: product.stock_limit ?? null,

@@ -1,3 +1,4 @@
+import { isPaidFeatureLocked } from "@/lib/feature-gates";
 import { createServerFn } from "@tanstack/react-start";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -48,11 +49,11 @@ export const getMyPlan = createServerFn({ method: "GET" })
     return { tier, limits: PLAN_LIMITS[tier] };
   });
 
-// Coupons and the affiliate program are Creator/Pro perks — Free sellers
-// can't run discounts or recruit affiliates, matching Kitsly's own gating.
+// Coupons and the affiliate program are Creator/Pro perks when tiers are sold;
+// under single-tier pricing they're open to everyone (see feature-gates.ts).
 export async function requireCreatorTier(supabase: SupabaseClient<Database>, userId: string): Promise<void> {
   const tier = await resolveUserTier(supabase, userId);
-  if (tier === "free") {
+  if (isPaidFeatureLocked(tier)) {
     throw new Error("This feature requires the Creator or Pro plan.");
   }
 }

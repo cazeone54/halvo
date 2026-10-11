@@ -116,9 +116,8 @@ function StorefrontPage() {
                       </div>
                     ) : null}
                     <p className="mt-2 font-semibold text-primary">
-                      {!product.pay_what_you_want && product.price_cents === 0
-                        ? "Free"
-                        : `${product.pay_what_you_want ? "From " : ""}$${(product.price_cents / 100).toFixed(2)}`}
+                      {product.price.label}
+                      {product.price.regularLabel ? (<s className="ml-1.5 text-xs font-normal text-muted-foreground">{product.price.regularLabel}</s>) : null}
                     </p>
                   </CardContent>
                 </Card>

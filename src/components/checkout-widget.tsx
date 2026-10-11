@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -55,6 +55,7 @@ function captureArrival(): { referrer?: string; utmSource?: string } {
 // A free product skips Stripe entirely — no payment form, no card, and the
 // seller doesn't need Connect onboarding finished for it to work.
 function FreeClaimForm({ productId }: { productId: string }) {
+  const uid = useId();
   const navigate = useNavigate();
   const claimFn = useServerFn(claimFreeProduct);
   const [email, setEmail] = useState("");
@@ -79,8 +80,8 @@ function FreeClaimForm({ productId }: { productId: string }) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div>
-        <Label>Email</Label>
-        <Input
+        <Label htmlFor={`${uid}-f1`}>Email</Label>
+        <Input id={`${uid}-f1`}
           type="email"
           autoComplete="email"
           required
@@ -98,6 +99,7 @@ function FreeClaimForm({ productId }: { productId: string }) {
 }
 
 export function CheckoutWidget({ product }: { product: Product }) {
+  const uid = useId();
   const isMembership = product.billingType === "membership";
   const installments = !isMembership && product.installmentCount ? product.installmentCount : null;
   const [plan, setPlan] = useState<Plan>(isMembership ? "membership" : "full");
@@ -263,8 +265,8 @@ export function CheckoutWidget({ product }: { product: Product }) {
 
       {plan === "full" && product.payWhatYouWant ? (
         <div>
-          <Label>Name your price (min ${(product.priceCents / 100).toFixed(2)})</Label>
-          <Input
+          <Label htmlFor={`${uid}-f2`}>Name your price (min ${(product.priceCents / 100).toFixed(2)})</Label>
+          <Input id={`${uid}-f2`}
             type="number"
             inputMode="decimal"
             min={product.priceCents / 100}
@@ -286,9 +288,10 @@ export function CheckoutWidget({ product }: { product: Product }) {
 
       {plan === "full" ? (
       <div>
-        <Label>Coupon code</Label>
+        <Label htmlFor={`${uid}-coupon`}>Coupon code</Label>
         <div className="flex gap-2">
           <Input
+            id={`${uid}-coupon`}
             value={couponCode}
             onChange={(e) => setCouponCode(e.target.value)}
             placeholder="Optional"
@@ -390,6 +393,7 @@ function PaymentForm({
   subscriptionId: string | null;
   terms: PlanTerms;
 }) {
+  const uid = useId();
   const stripe = useStripe();
   const elements = useElements();
   const navigate = useNavigate();
@@ -593,8 +597,8 @@ function PaymentForm({
       ) : null}
 
       <div>
-        <Label>Email</Label>
-        <Input
+        <Label htmlFor={`${uid}-f3`}>Email</Label>
+        <Input id={`${uid}-f3`}
           type="email"
           autoComplete="email"
           required

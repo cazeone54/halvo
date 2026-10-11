@@ -35,24 +35,26 @@ function SuccessPage() {
     queryFn: () => transactionFn({ data: { transactionId: id! } }),
     enabled: !!id,
   });
+  // These each verify the purchase server-side, so they start in parallel with
+  // the transaction lookup instead of waiting for it (one round trip, not two).
   const filesQ = useQuery({
     queryKey: ["download-files", id],
     queryFn: () => downloadFn({ data: { transactionId: id! } }),
-    enabled: !!id && !!transactionQ.data,
+    enabled: !!id,
   });
   // Only products that opted into license keys return one; everyone else gets
   // null and this block never renders. Safe/dormant until migration 0016.
   const licenseQ = useQuery({
     queryKey: ["license-key", id],
     queryFn: () => licenseFn({ data: { transactionId: id! } }),
-    enabled: !!id && !!transactionQ.data,
+    enabled: !!id,
   });
 
   // Memberships and payment plans: where the buyer manages billing.
   const billingQ = useQuery({
     queryKey: ["billing-for-transaction", id],
     queryFn: () => billingFn({ data: { transactionId: id! } }),
-    enabled: !!id && !!transactionQ.data,
+    enabled: !!id,
   });
 
   // Report the sale as a conversion to any ad pixel the visitor consented to.

@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { productImageUrl, avatarImageUrl } from "@/lib/public-image-url";
 import { summarizeRatings } from "@/lib/ratings";
+import { listingPrice } from "@/lib/format";
 
 export const getSellerStorefront = createServerFn({ method: "GET" })
   .validator((data) => z.object({ handle: z.string().min(1) }).parse(data))
@@ -17,7 +18,7 @@ export const getSellerStorefront = createServerFn({ method: "GET" })
 
     const { data: products } = await supabaseAdmin
       .from("products")
-      .select("id, name, description, price_cents, pay_what_you_want, url_slug, category, image_url")
+      .select("id, name, description, price_cents, pay_what_you_want, url_slug, category, image_url, sale_price_cents, sale_ends_at, billing_type, billing_interval")
       .eq("owner_id", profile.id)
       .not("url_slug", "is", null)
       .order("created_at", { ascending: false });
@@ -54,6 +55,7 @@ export const getSellerStorefront = createServerFn({ method: "GET" })
         return {
           ...p,
           imageUrl: productImageUrl(p.id, p.image_url),
+          price: listingPrice(p),
           ratingAverage: summary.average,
           ratingRounded: summary.rounded,
           ratingCount: summary.count,

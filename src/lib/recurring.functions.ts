@@ -56,15 +56,14 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
     if (data.plan === "installments" && (isMembership || !product.installment_count)) {
       throw new Error("This product doesn't offer a payment plan.");
     }
-    if ((await countDeliverableFiles(supabaseAdmin, product.id)) === 0) throw new Error(UNAVAILABLE_MESSAGE);
-    await assertInStock(supabaseAdmin, product);
-
-    const { data: seller } = await supabaseAdmin
-      .from("profiles")
-      .select("stripe_connect_id")
-      .eq("id", product.owner_id)
-      .single();
-    if (!seller?.stripe_connect_id) throw new Error(UNAVAILABLE_MESSAGE);
+    // Independent lookups, in parallel (see createProductPaymentIntent).
+    const [deliverableCount, { data: seller }, tier] = await Promise.all([
+      countDeliverableFiles(supabaseAdmin, product.id),
+      supabaseAdmin.from("profiles").select("stripe_connect_id").eq("id", product.owner_id).single(),
+      resolveUserTier(supabaseAdmin, product.owner_id),
+      assertInStock(supabaseAdmin, product),
+    ]);
+    if (deliverableCount === 0 || !seller?.stripe_connect_id) throw new Error(UNAVAILABLE_MESSAGE);
     const stripe = getStripeClient();
     const account = await stripe.accounts.retrieve(seller.stripe_connect_id).catch(() => null);
     if (!account?.charges_enabled) throw new Error(UNAVAILABLE_MESSAGE);
@@ -85,7 +84,6 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
     });
     if (problem) throw new Error(UNAVAILABLE_MESSAGE);
 
-    const tier = await resolveUserTier(supabaseAdmin, product.owner_id);
     const feePercent = applicationFeePercent(calcPlatformFeeCents(tier, amountCents), amountCents);
 
     try {

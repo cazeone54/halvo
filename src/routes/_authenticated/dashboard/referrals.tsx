@@ -1,3 +1,4 @@
+import { isPaidFeatureLocked } from "@/lib/feature-gates";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -53,7 +54,7 @@ function ReferralsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  if (planQ.data && planQ.data.tier === "free") {
+  if (planQ.data && isPaidFeatureLocked(planQ.data.tier)) {
     return (
       <Card>
         <CardHeader>

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useId } from "react";
 import { toast } from "sonner";
 import { User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,12 +18,13 @@ export const Route = createFileRoute("/_authenticated/dashboard/settings")({
 });
 
 function SettingsPage() {
+  const uid = useId();
   const qc = useQueryClient();
   const profileFn = useServerFn(getMyProfile);
   const updateSettingsFn = useServerFn(updateMySettings);
   const setAvatarFn = useServerFn(setMyAvatar);
 
-  const profileQ = useQuery({ queryKey: ["my-profile-settings"], queryFn: () => profileFn() });
+  const profileQ = useQuery({ queryKey: ["my-profile"], queryFn: () => profileFn() });
 
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
@@ -33,8 +34,12 @@ function SettingsPage() {
   const [thankYouRedirectUrl, setThankYouRedirectUrl] = useState("");
   const [accentColor, setAccentColor] = useState("");
 
+  // Fill the form once. Re-filling on every refetch (the profile reloads when
+  // the tab regains focus, or after an avatar upload) wiped unsaved edits.
+  const filled = useRef(false);
   useEffect(() => {
-    if (!profileQ.data) return;
+    if (!profileQ.data || filled.current) return;
+    filled.current = true;
     setDisplayName(profileQ.data.display_name ?? "");
     setBio(profileQ.data.bio ?? "");
     setSupportEmail(profileQ.data.support_email ?? "");
@@ -51,7 +56,7 @@ function SettingsPage() {
       }),
     onSuccess: () => {
       toast.success("Settings saved.");
-      qc.invalidateQueries({ queryKey: ["my-profile-settings"] });
+      qc.invalidateQueries({ queryKey: ["my-profile"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -69,7 +74,7 @@ function SettingsPage() {
     },
     onSuccess: () => {
       toast.success("Avatar updated.");
-      qc.invalidateQueries({ queryKey: ["my-profile-settings"] });
+      qc.invalidateQueries({ queryKey: ["my-profile"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -115,12 +120,12 @@ function SettingsPage() {
           </div>
 
           <div>
-            <Label>Display name</Label>
-            <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} autoComplete="name" />
+            <Label htmlFor={`${uid}-f1`}>Display name</Label>
+            <Input id={`${uid}-f1`} value={displayName} onChange={(e) => setDisplayName(e.target.value)} autoComplete="name" />
           </div>
           <div>
-            <Label>Bio</Label>
-            <Textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} placeholder="Shown on your storefront" />
+            <Label htmlFor={`${uid}-f2`}>Bio</Label>
+            <Textarea id={`${uid}-f2`} value={bio} onChange={(e) => setBio(e.target.value)} rows={3} placeholder="Shown on your storefront" />
           </div>
           <BrandColorPicker
             value={accentColor}
@@ -129,8 +134,8 @@ function SettingsPage() {
             avatarUrl={profileQ.data?.avatarUrl ?? null}
           />
           <div>
-            <Label>Support email</Label>
-            <Input
+            <Label htmlFor={`${uid}-f3`}>Support email</Label>
+            <Input id={`${uid}-f3`}
               type="email"
               autoComplete="email"
               value={supportEmail}
@@ -139,8 +144,8 @@ function SettingsPage() {
             />
           </div>
           <div>
-            <Label>Refund policy</Label>
-            <Textarea
+            <Label htmlFor={`${uid}-f4`}>Refund policy</Label>
+            <Textarea id={`${uid}-f4`}
               value={refundPolicy}
               onChange={(e) => setRefundPolicy(e.target.value)}
               rows={3}
@@ -148,8 +153,8 @@ function SettingsPage() {
             />
           </div>
           <div>
-            <Label>Thank-you note</Label>
-            <Textarea
+            <Label htmlFor={`${uid}-f5`}>Thank-you note</Label>
+            <Textarea id={`${uid}-f5`}
               value={thankYouMessage}
               onChange={(e) => setThankYouMessage(e.target.value)}
               rows={3}
@@ -158,8 +163,8 @@ function SettingsPage() {
             <p className="mt-1 text-xs text-muted-foreground">Shown right after every purchase, across all your products.</p>
           </div>
           <div>
-            <Label>Next-step link (optional)</Label>
-            <Input
+            <Label htmlFor={`${uid}-f6`}>Next-step link (optional)</Label>
+            <Input id={`${uid}-f6`}
               type="url"
               inputMode="url"
               value={thankYouRedirectUrl}

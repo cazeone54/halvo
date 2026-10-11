@@ -1,7 +1,9 @@
+import { isPaidFeatureLocked } from "@/lib/feature-gates";
+import { SINGLE_TIER_PRICING } from "@/lib/plans";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useId } from "react";
 import { toast } from "sonner";
 import {
   CreditCard,
@@ -62,6 +64,7 @@ import { AdvancedOptions } from "@/components/advanced-options";
 import { ProductMediaEditor } from "@/components/product-media-editor";
 import { ProductOfferEditor } from "@/components/product-offer-editor";
 import { ProductBillingEditor } from "@/components/product-billing-editor";
+import { ConfirmAction } from "@/components/confirm-action";
 import { ProductsEmptyState } from "@/components/products-empty-state";
 import { describeAdvancedOptions } from "@/lib/advanced-options";
 import { CopySnippet } from "@/components/copy-snippet";
@@ -84,6 +87,7 @@ export const Route = createFileRoute("/_authenticated/dashboard/")({
 const FIRST_SALE_KEY = `${BRAND_KEY}:first-sale-celebrated`;
 
 function DashboardHome() {
+  const uid = useId();
   const qc = useQueryClient();
 
   const profileFn = useServerFn(getMyProfile);
@@ -107,7 +111,7 @@ function DashboardHome() {
   const bandwidthFn = useServerFn(getMyBandwidthUsage);
   const bandwidthQ = useQuery({ queryKey: ["my-bandwidth"], queryFn: () => bandwidthFn() });
   const featuresFn = useServerFn(getServerFeatures);
-  const featuresQ = useQuery({ queryKey: ["server-features"], queryFn: () => featuresFn() });
+  const featuresQ = useQuery({ queryKey: ["server-features"], queryFn: () => featuresFn(), staleTime: Infinity });
 
   const [checkoutTier, setCheckoutTier] = useState<PlanTier | null>(null);
   const [billingInterval, setBillingInterval] = useState<"month" | "year">("month");
@@ -435,12 +439,12 @@ function DashboardHome() {
               ) : null}
             </div>
             <div>
-              <Label>Name</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} />
+              <Label htmlFor={`${uid}-f1`}>Name</Label>
+              <Input id={`${uid}-f1`} value={name} onChange={(e) => setName(e.target.value)} />
             </div>
             <div>
-              <Label>Description</Label>
-              <Textarea
+              <Label htmlFor={`${uid}-f2`}>Description</Label>
+              <Textarea id={`${uid}-f2`}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
@@ -448,8 +452,8 @@ function DashboardHome() {
               />
             </div>
             <div>
-              <Label>Price (USD)</Label>
-              <Input type="number" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} />
+              <Label htmlFor={`${uid}-f3`}>Price (USD)</Label>
+              <Input id={`${uid}-f3`} type="number" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} />
               <p className="mt-1 text-xs text-muted-foreground">
                 Set <span className="font-medium">0</span> to give it away as a free lead magnet — buyers just
                 leave an email, and you don&apos;t need Stripe connected for it.
@@ -525,8 +529,8 @@ function DashboardHome() {
               activeSummary={describeAdvancedOptions({ refundPolicy: newRefundPolicy, licenseEnabled: newLicenseEnabled })}
             >
               <div>
-                <Label>Refund policy for this product</Label>
-                <Textarea
+                <Label htmlFor={`${uid}-f4`}>Refund policy for this product</Label>
+                <Textarea id={`${uid}-f4`}
                   value={newRefundPolicy}
                   onChange={(e) => setNewRefundPolicy(e.target.value)}
                   rows={2}
@@ -641,24 +645,18 @@ function DashboardHome() {
                   {sale.disputed ? <Badge variant="destructive">Disputed</Badge> : null}
                   <Badge variant={sale.status === "refunded" ? "secondary" : "default"}>{sale.status}</Badge>
                   {sale.status === "success" && !sale.disputed ? (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      // Refunds are irreversible (buyer refunded via Stripe,
-                      // transfer reversed, access revoked) — confirm before firing.
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            `Refund ${formatCents(sale.amountPaidCents)} to the buyer? They're refunded through Stripe and lose access to the download. This can't be undone.`,
-                          )
-                        ) {
-                          refundMut.mutate(sale.id);
-                        }
-                      }}
-                      disabled={refundMut.isPending}
-                    >
-                      Refund
-                    </Button>
+                    // Refunds are irreversible (buyer refunded via Stripe,
+                    // transfer reversed, access revoked) — confirm before firing.
+                    <ConfirmAction
+                      message={`Refund ${formatCents(sale.amountPaidCents)} to the buyer? They're refunded through Stripe and lose access to the download. This can't be undone.`}
+                      confirmLabel="Refund"
+                      onConfirm={() => refundMut.mutate(sale.id)}
+                      trigger={
+                        <Button variant="destructive" size="sm" disabled={refundMut.isPending}>
+                          Refund
+                        </Button>
+                      }
+                    />
                   ) : null}
                 </div>
               </CardContent>
@@ -739,13 +737,14 @@ function DashboardHome() {
                 {bandwidthQ.data.level !== "ok" && bandwidthQ.data.tier !== "pro" ? (
                   <p className="text-xs text-muted-foreground">
                     You’re {bandwidthQ.data.level === "over" ? "over" : "near"} your plan’s monthly download bandwidth —
-                    upgrade for more headroom. Your buyers are never blocked.
+                    {SINGLE_TIER_PRICING ? " email us if you need more." : " upgrade for more headroom."} Your buyers are never
+                    blocked.
                   </p>
                 ) : null}
               </div>
             ) : null}
 
-            {planQ.data?.tier === "free" && productCount > 0 ? (
+            {planQ.data && isPaidFeatureLocked(planQ.data.tier) && productCount > 0 ? (
               <div className="flex flex-col gap-2">
                 {annualBillingConfigured() ? (
                   <div className="flex w-fit gap-1 rounded-full border p-0.5 text-xs">
@@ -924,9 +923,12 @@ type ProductRowData = {
   billing_type?: string | null;
   billing_interval?: string | null;
   installment_count?: number | null;
+  // Loaded with the product list, so rows don't each fetch their files.
+  files?: Array<{ id: string; file_name: string | null; storage_file_path: string; size_bytes: number | null }>;
 };
 
 function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: () => void }) {
+  const uid = useId();
   const qc = useQueryClient();
   const filesFn = useServerFn(listMyProductFiles);
   const checkCanUploadFn = useServerFn(checkCanUploadFile);
@@ -951,6 +953,7 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
   const filesQ = useQuery({
     queryKey: ["product-files", product.id],
     queryFn: () => filesFn({ data: { productId: product.id } }),
+    initialData: product.files,
   });
 
   const bundleEditorFn = useServerFn(getBundleEditor);
@@ -1159,22 +1162,16 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
             >
               <Layers className="h-3.5 w-3.5" />
             </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => {
-                if (
-                  window.confirm(
-                    `Delete "${product.name}"? If it has sales it's unpublished and its history is kept; otherwise it's removed for good.`,
-                  )
-                ) {
-                  onDelete();
-                }
-              }}
-              aria-label="Delete product"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
+            <ConfirmAction
+              message={`Delete "${product.name}"? If it has sales it's unpublished and its history is kept; otherwise it's removed for good.`}
+              confirmLabel="Delete"
+              onConfirm={onDelete}
+              trigger={
+                <Button variant="destructive" size="sm" aria-label="Delete product">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              }
+            />
           </div>
         </div>
         {imageMut.error ? <p className="text-sm text-destructive">{(imageMut.error as Error).message}</p> : null}
@@ -1182,21 +1179,21 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
         {editing ? (
           <div className="flex flex-col gap-3 rounded-md border p-3">
             <div>
-              <Label>Name</Label>
-              <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+              <Label htmlFor={`${uid}-f5`}>Name</Label>
+              <Input id={`${uid}-f5`} value={editName} onChange={(e) => setEditName(e.target.value)} />
             </div>
             <div>
-              <Label>Description</Label>
-              <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={3} />
+              <Label htmlFor={`${uid}-f6`}>Description</Label>
+              <Textarea id={`${uid}-f6`} value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={3} />
             </div>
             <div className="flex gap-3">
               <div className="flex-1">
-                <Label>Price (USD)</Label>
-                <Input type="number" min="0" step="0.01" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} />
+                <Label htmlFor={`${uid}-f7`}>Price (USD)</Label>
+                <Input id={`${uid}-f7`} type="number" min="0" step="0.01" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} />
               </div>
               <div className="flex-1">
-                <Label>Category</Label>
-                <Input value={editCategory} onChange={(e) => setEditCategory(e.target.value)} placeholder="e.g. templates" />
+                <Label htmlFor={`${uid}-f8`}>Category</Label>
+                <Input id={`${uid}-f8`} value={editCategory} onChange={(e) => setEditCategory(e.target.value)} placeholder="e.g. templates" />
               </div>
             </div>
             <ProductBillingEditor
@@ -1225,8 +1222,8 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
               defaultOpen={!!(product.refund_policy?.trim() || product.license_key_enabled)}
             >
               <div>
-                <Label>Refund policy for this product</Label>
-                <Textarea
+                <Label htmlFor={`${uid}-f9`}>Refund policy for this product</Label>
+                <Textarea id={`${uid}-f9`}
                   value={editRefundPolicy}
                   onChange={(e) => setEditRefundPolicy(e.target.value)}
                   rows={2}
@@ -1431,17 +1428,16 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
                 <FileText className="h-3.5 w-3.5" />
                 {f.file_name}
               </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  if (window.confirm("Remove this file? Buyers of this product may lose access to this download.")) {
-                    removeMut.mutate(f.id);
-                  }
-                }}
-              >
-                Remove
-              </Button>
+              <ConfirmAction
+                message="Remove this file? Buyers of this product may lose access to this download."
+                confirmLabel="Remove"
+                onConfirm={() => removeMut.mutate(f.id)}
+                trigger={
+                  <Button variant="ghost" size="sm">
+                    Remove
+                  </Button>
+                }
+              />
             </div>
           ))}
           {/* w-full + min-w-0 so a long filename can't push the card wider

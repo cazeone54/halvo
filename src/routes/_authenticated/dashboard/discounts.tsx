@@ -1,7 +1,8 @@
+import { isPaidFeatureLocked } from "@/lib/feature-gates";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useId } from "react";
 import { toast } from "sonner";
 import { Tag, Ticket } from "lucide-react";
 import { listMyCoupons, createCoupon, setCouponActive, deleteCoupon } from "@/lib/coupons.functions";
@@ -10,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConfirmAction } from "@/components/confirm-action";
 import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/_authenticated/dashboard/discounts")({
@@ -17,6 +19,7 @@ export const Route = createFileRoute("/_authenticated/dashboard/discounts")({
 });
 
 function DiscountsPage() {
+  const uid = useId();
   const qc = useQueryClient();
   const planFn = useServerFn(getMyPlan);
   const couponsFn = useServerFn(listMyCoupons);
@@ -54,7 +57,7 @@ function DiscountsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  if (planQ.data && planQ.data.tier === "free") {
+  if (planQ.data && isPaidFeatureLocked(planQ.data.tier)) {
     return (
       <Card>
         <CardHeader>
@@ -79,8 +82,8 @@ function DiscountsPage() {
       <Card>
         <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-end">
           <div className="flex-1">
-            <Label>Code</Label>
-            <Input
+            <Label htmlFor={`${uid}-f1`}>Code</Label>
+            <Input id={`${uid}-f1`}
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               placeholder="SAVE20"
@@ -90,8 +93,8 @@ function DiscountsPage() {
             />
           </div>
           <div className="w-32">
-            <Label>% off</Label>
-            <Input
+            <Label htmlFor={`${uid}-f2`}>% off</Label>
+            <Input id={`${uid}-f2`}
               type="number"
               min="1"
               max="100"
@@ -136,17 +139,16 @@ function DiscountsPage() {
                 >
                   {coupon.active ? "Deactivate" : "Activate"}
                 </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => {
-                    if (window.confirm(`Delete coupon ${coupon.code}? Buyers will no longer be able to use it.`)) {
-                      deleteMut.mutate(coupon.id);
-                    }
-                  }}
-                >
-                  Delete
-                </Button>
+                <ConfirmAction
+                  message={`Delete coupon ${coupon.code}? Buyers will no longer be able to use it.`}
+                  confirmLabel="Delete"
+                  onConfirm={() => deleteMut.mutate(coupon.id)}
+                  trigger={
+                    <Button variant="destructive" size="sm">
+                      Delete
+                    </Button>
+                  }
+                />
               </div>
             </CardContent>
           </Card>

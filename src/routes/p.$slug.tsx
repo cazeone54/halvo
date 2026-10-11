@@ -7,6 +7,7 @@ import { buildMediaItems } from "@/lib/product-media";
 import { ProductMedia } from "@/components/product-media";
 import { OfferBanner } from "@/components/offer-banner";
 import { installmentAmountCents } from "@/lib/recurring";
+import { formatCents } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ShieldCheck, Mail, CircleCheck, Lock, Zap, CreditCard, KeyRound } from "lucide-react";
 import { getProductPublicView, listMoreFromSeller } from "@/lib/product-public.functions";
@@ -39,7 +40,7 @@ export const Route = createFileRoute("/p/$slug")({
   // signed URL, so the preview doesn't go stale.
   head: ({ loaderData, params }) => {
     if (!loaderData) return {};
-    const priceLabel = `$${(loaderData.priceCents / 100).toFixed(2)}`;
+    const priceLabel = loaderData.price.label;
     const title = `${loaderData.name} — ${priceLabel}${loaderData.sellerName ? ` | ${loaderData.sellerName}` : ""}`;
     const description = loaderData.description ?? `Buy ${loaderData.name} on ${BRAND_NAME}.`;
     const imageUrl = loaderData.imageUrl ? `${BASE_URL}${loaderData.imageUrl}` : undefined;
@@ -157,11 +158,7 @@ function ProductCheckoutPage() {
   const more = moreQ.data?.products ?? [];
 
   const isFree = !product.payWhatYouWant && product.priceCents === 0;
-  const priceLabel = isFree
-    ? "Free"
-    : `${product.payWhatYouWant ? "From " : ""}$${(product.priceCents / 100).toFixed(2)}${
-        product.billingType === "membership" ? ` / ${product.billingInterval}` : ""
-      }`;
+  const priceLabel = product.price.label;
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -227,15 +224,15 @@ function ProductCheckoutPage() {
                 <p className="font-[family-name:var(--font-display)] text-xl font-semibold text-primary sm:text-2xl">
                   {priceLabel}
                 </p>
-                {product.regularPriceCents != null ? (
+                {product.price.regularLabel ? (
                   <p className="text-sm text-muted-foreground">
                     <span className="sr-only">Regular price </span>
-                    <s>${(product.regularPriceCents / 100).toFixed(2)}</s>
+                    <s>{product.price.regularLabel}</s>
                   </p>
                 ) : null}
                 {product.installmentCount ? (
                   <p className="text-xs text-muted-foreground">
-                    or {product.installmentCount} × ${(installmentAmountCents(product.priceCents, product.installmentCount) / 100).toFixed(2)}
+                    or {product.installmentCount} × {formatCents(installmentAmountCents(product.priceCents, product.installmentCount))}
                   </p>
                 ) : null}
               </div>
@@ -386,9 +383,8 @@ function ProductCheckoutPage() {
                   </div>
                   <p className="mt-1.5 truncate text-sm font-medium">{p.name}</p>
                   <p className="text-xs text-primary">
-                    {!p.payWhatYouWant && p.priceCents === 0
-                      ? "Free"
-                      : `${p.payWhatYouWant ? "From " : ""}$${(p.priceCents / 100).toFixed(2)}`}
+                    {p.price.label}
+                    {p.price.regularLabel ? (<s className="ml-1.5 text-xs font-normal text-muted-foreground">{p.price.regularLabel}</s>) : null}
                   </p>
                 </Link>
               ))}
