@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildPurchaseEmail } from "@/lib/purchase-email";
+import { buildPurchaseEmail, FINAL_SALE_CONFIRMATION } from "@/lib/purchase-email";
 
 describe("buildPurchaseEmail", () => {
   it("includes the product name and download link in subject/html/text", () => {
@@ -49,5 +49,24 @@ describe("buildPurchaseEmail", () => {
     });
     expect(result.text).not.toContain("$");
     expect(result.text).not.toContain("Free");
+  });
+
+  it("confirms the withdrawal waiver on paid receipts (required for EU final-sale digital content)", () => {
+    const result = buildPurchaseEmail({ productName: "Ebook", downloadPageUrl: "https://halvo.io/success?id=x", amountCents: 1999 });
+    expect(result.html).toContain(FINAL_SALE_CONFIRMATION);
+    expect(result.text).toContain(FINAL_SALE_CONFIRMATION);
+    expect(FINAL_SALE_CONFIRMATION).toMatch(/14-day right of withdrawal/);
+    expect(FINAL_SALE_CONFIRMATION).toMatch(/faulty, missing or not as described/);
+  });
+
+  it("leaves the waiver out of free claims, where nothing was paid", () => {
+    const result = buildPurchaseEmail({ productName: "Lead magnet", downloadPageUrl: "https://halvo.io/success?id=x", amountCents: 0 });
+    expect(result.text).not.toContain(FINAL_SALE_CONFIRMATION);
+  });
+
+  it("escapes the seller-written product name in the HTML", () => {
+    const result = buildPurchaseEmail({ productName: '<img src=x onerror="a">Kit', downloadPageUrl: "https://halvo.io/success?id=x" });
+    expect(result.html).not.toContain("<img src=x");
+    expect(result.html).toContain("&lt;img src=x");
   });
 });

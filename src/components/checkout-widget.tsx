@@ -538,17 +538,21 @@ function PaymentForm({
           {terms.kind === "membership" ? (
             <>
               I agree to be charged {terms.label} until I cancel. I can cancel any time from the billing link in my
-              email, and keep access to the end of the period I've paid for.
+              email, and keep access to the end of the period I've paid for. I want access to start immediately and
+              understand that I lose my 14-day right of withdrawal once it does.
             </>
           ) : terms.kind === "installments" ? (
             <>
-              I agree to pay {terms.label}, charged automatically, starting today. If a payment fails and isn't fixed
-              within {GRACE_DAYS} days, access pauses until it is. Payments made are final once I download.
+              I agree to pay {terms.label}, charged automatically, starting today. I want immediate access and
+              understand that I lose my 14-day right of withdrawal once it's delivered, so payments are final. If a
+              payment fails and isn't fixed within {GRACE_DAYS} days, access pauses until it is.
             </>
           ) : (
+            // Must match the confirmation in the receipt (FINAL_SALE_CONFIRMATION in
+            // purchase-email.ts): together they make the EU withdrawal waiver valid.
             <>
-              I understand this is a digital product delivered instantly, and I agree that all sales are final once I
-              download it.
+              I want immediate access to this digital product and understand that I lose my 14-day right of withdrawal
+              once it's delivered. All sales are final.
             </>
           )}
         </span>
