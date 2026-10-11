@@ -694,13 +694,14 @@ function DashboardHome() {
         </div>
       </section>
 
-      {/* Account: plan + payouts */}
-      <section className="grid gap-3 sm:grid-cols-2">
+      {/* Account: payouts (plus the plan card, only while paid tiers are sold) */}
+      <section className={cn("grid gap-3", !SINGLE_TIER_PRICING && "sm:grid-cols-2")}>
+        {!SINGLE_TIER_PRICING ? (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <CreditCard className="h-4 w-4 text-muted-foreground" />
-              {SINGLE_TIER_PRICING ? "Fees & usage" : "Plan"}
+              Plan
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
@@ -826,6 +827,7 @@ function DashboardHome() {
             ) : null}
           </CardContent>
         </Card>
+        ) : null}
 
         <Card>
           <CardHeader>
