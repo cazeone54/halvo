@@ -700,10 +700,30 @@ function DashboardHome() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <CreditCard className="h-4 w-4 text-muted-foreground" />
-              Plan
+              {SINGLE_TIER_PRICING ? "Fees & usage" : "Plan"}
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
+            {/* With one plan for everyone there's nothing to manage — but an
+                account that subscribed to an old tier would keep being billed
+                for nothing, so it's told how to stop that instead. */}
+            {SINGLE_TIER_PRICING && planQ.data && planQ.data.tier !== "free" ? (
+              <div className="flex flex-col gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+                <p>
+                  You still have a subscription from the old Creator/Pro plans. It isn't needed any more: everyone now
+                  pays the same per-sale fee. Cancel it so you're not charged again.
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="self-start"
+                  onClick={() => portalMut.mutate()}
+                  disabled={portalMut.isPending}
+                >
+                  {portalMut.isPending ? "Opening…" : "Cancel old subscription"}
+                </Button>
+              </div>
+            ) : null}
             <div className="flex items-center justify-between">
               <p className="text-sm">
                 {SINGLE_TIER_PRICING ? (
@@ -717,7 +737,7 @@ function DashboardHome() {
                   </>
                 )}
               </p>
-              {planQ.data && planQ.data.tier !== "free" ? (
+              {!SINGLE_TIER_PRICING && planQ.data && planQ.data.tier !== "free" ? (
                 <Button size="sm" variant="outline" onClick={() => portalMut.mutate()} disabled={portalMut.isPending}>
                   Manage billing
                 </Button>
