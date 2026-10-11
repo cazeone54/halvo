@@ -22,6 +22,7 @@ import {
   composeChargeAmount,
 } from "@/lib/checkout-math";
 import { CURRENCY } from "@/lib/site";
+import { DIRECT_CHARGES } from "@/lib/plans";
 
 // Shown to a *buyer*, so it never leaks the seller's setup state (missing file,
 // unfinished Stripe onboarding). They only need to know it can't be bought yet.
@@ -232,20 +233,39 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const stripe = getStripeClient();
 
-    const intent = await stripe.paymentIntents.retrieve(data.paymentIntentId);
-    if (intent.status !== "succeeded") {
-      throw new Error("Payment has not succeeded yet.");
-    }
-    if (intent.metadata.productId !== data.productId) {
-      throw new Error("Payment does not match this product.");
-    }
-
+    // The product has to be resolved BEFORE the PaymentIntent: under direct
+    // charges the intent lives on the seller's connected account, and
+    // retrieving it on the platform account fails with "No such payment_intent"
+    // — which silently cost us the whole recording path (no transaction row,
+    // so no download, no email, no success page) until it was caught.
     const { data: product, error: productError } = await supabaseAdmin
       .from("products")
       .select("id, name, price_cents, pay_what_you_want, owner_id")
       .eq("id", data.productId)
       .single();
     if (productError || !product) throw new Error("Product not found");
+
+    let sellerAccount: string | null = null;
+    if (DIRECT_CHARGES && product.owner_id) {
+      const { data: sellerProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("stripe_connect_id")
+        .eq("id", product.owner_id)
+        .single();
+      sellerAccount = sellerProfile?.stripe_connect_id ?? null;
+    }
+
+    const intent = await stripe.paymentIntents.retrieve(
+      data.paymentIntentId,
+      undefined,
+      sellerAccount ? { stripeAccount: sellerAccount } : undefined,
+    );
+    if (intent.status !== "succeeded") {
+      throw new Error("Payment has not succeeded yet.");
+    }
+    if (intent.metadata.productId !== data.productId) {
+      throw new Error("Payment does not match this product.");
+    }
 
     const couponCode = intent.metadata.coupon_code as string | undefined;
     let coupon = null;
