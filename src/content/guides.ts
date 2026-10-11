@@ -1,6 +1,12 @@
 import { COMMISSION_PERCENT } from "@/lib/commission-math";
-import { BRAND_NAME } from "@/lib/site";
+import { BRAND_NAME, CURRENCY_SYMBOL } from "@/lib/site";
+import { DIRECT_CHARGES, PLAN_LIMITS } from "@/lib/plans";
 import type { ContentBlock } from "@/content/blocks";
+
+// The live platform fee, e.g. "5%" (the fixed part is 0 under direct charges).
+const GUIDE_FEE = PLAN_LIMITS.free.platformFeeFixedCents > 0
+  ? `${Math.round(PLAN_LIMITS.free.platformFeePct * 100)}% + ${PLAN_LIMITS.free.platformFeeFixedCents}¢`
+  : `${Math.round(PLAN_LIMITS.free.platformFeePct * 100)}%`;
 
 // Guides are documentation for people already using the product. Content is
 // structured blocks (see content/blocks.ts) rather than markdown so it stays
@@ -154,26 +160,40 @@ export const GUIDES: Guide[] = [
     minutes: 4,
     category: "Getting paid",
     body: [
-      {
-        type: "p",
-        text: "Just one thing comes out of every sale: our platform fee. We cover Stripe's card-processing cost out of that fee, so there's no separate Stripe charge to you — nothing hidden.",
-      },
-      { type: "h2", text: "Current plans" },
-      { type: "pricing" },
-      { type: "h2", text: "A worked example" },
-      {
-        type: "p",
-        text: "Say you're on Creator and you sell a $49 template. Our platform fee comes off the sale and the rest is transferred straight into your own Stripe account — usually within seconds of the payment clearing. Stripe's processing cost comes out of our fee, not yours, so the amount you see is the amount you keep.",
-      },
-      { type: "h2", text: "Why there's a fixed few cents as well as a percentage" },
-      {
-        type: "p",
-        text: "Card processing has a flat cost per transaction on top of a percentage. On a $3 sale a percentage alone wouldn't even cover it, so the fee has a small fixed part. It's the same reason every payment processor prices this way.",
-      },
-      {
-        type: "note",
-        text: "Upgrading lowers your percentage. If you sell regularly, the plan usually pays for itself — the Plan card on your dashboard shows what you're currently paying.",
-      },
+      // Follows the live charge model (plans.ts), so this guide can't drift
+      // from what checkout actually does again.
+      ...(DIRECT_CHARGES
+        ? ([
+            {
+              type: "p",
+              text: `Two things come out of a sale: ${BRAND_NAME}'s platform fee (${GUIDE_FEE}), and Stripe's standard card-processing fee, which Stripe charges to your own Stripe account. There's no monthly fee and nothing else.`,
+            },
+            { type: "h2", text: "What you pay" },
+            { type: "pricing" },
+            { type: "h2", text: "A worked example" },
+            {
+              type: "p",
+              text: `Say you sell a ${CURRENCY_SYMBOL}49 template. ${BRAND_NAME}'s ${GUIDE_FEE} comes off the sale, Stripe takes its card fee, and the rest is in your own Stripe balance within seconds of the payment clearing. Stripe's fee depends on the buyer's card; you can see it on every payment in your Stripe dashboard.`,
+            },
+          ] as ContentBlock[])
+        : ([
+            {
+              type: "p",
+              text: "Just one thing comes out of every sale: our platform fee. We cover Stripe's card-processing cost out of that fee, so there's no separate Stripe charge to you — nothing hidden.",
+            },
+            { type: "h2", text: "What you pay" },
+            { type: "pricing" },
+            { type: "h2", text: "A worked example" },
+            {
+              type: "p",
+              text: `Say you sell a ${CURRENCY_SYMBOL}49 template. Our platform fee comes off the sale and the rest is transferred straight into your own Stripe account, usually within seconds of the payment clearing. Stripe's processing cost comes out of our fee, not yours, so the amount you see is the amount you keep.`,
+            },
+            { type: "h2", text: "Why there's a fixed few cents as well as a percentage" },
+            {
+              type: "p",
+              text: "Card processing has a flat cost per transaction on top of a percentage. On a very cheap sale a percentage alone wouldn't even cover it, so the fee has a small fixed part. It's the same reason every payment processor prices this way.",
+            },
+          ] as ContentBlock[])),
     ],
   },
   {

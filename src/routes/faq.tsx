@@ -78,11 +78,13 @@ const FAQS: Array<{ group: string; items: Array<{ q: string; a: string }> }> = [
       },
       {
         q: "Is there a separate Stripe fee on top?",
-        a: "No — not to you. We cover Stripe's card-processing cost out of our fee, so the amount you see is the amount that reaches your Stripe. (Try the calculator on the pricing page.)",
+        a: DIRECT_CHARGES
+          ? "Yes. Stripe charges its standard card-processing fee directly to your own Stripe account, the same as if you used Stripe on your own site. It depends on the buyer's card, and you can see it on every payment in your Stripe dashboard. (Try the calculator on the pricing page.)"
+          : "No — not to you. We cover Stripe's card-processing cost out of our fee, so the amount you see is the amount that reaches your Stripe. (Try the calculator on the pricing page.)",
       },
       {
         q: "Can I cancel anytime?",
-        a: "Yes — manage or cancel your subscription anytime from the billing portal in your dashboard. There's no lock-in, and you keep your products and customer list.",
+        a: "There's nothing to cancel: there's no subscription, and you only pay a fee when you make a sale. You can stop selling whenever you like and keep your products and your customer list (export it from the Customers page).",
       },
     ],
   },

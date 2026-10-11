@@ -1,3 +1,5 @@
+import { formatCents } from "@/lib/format";
+import { CURRENCY_SYMBOL } from "@/lib/site";
 import { useEffect, useState } from "react";
 import { LogoMark } from "@/components/logo";
 
@@ -106,7 +108,7 @@ export function ExplainerAnimation() {
               <div className="hx-t1">Halvo</div>
               <div className="hx-t2">You made a sale</div>
             </div>
-            <div className="hx-amt">+$39.00</div>
+            <div className="hx-amt">+{formatCents(3900)}</div>
           </div>
           <div className="hx-sub">This took a weekend to make. It just made money while you slept.</div>
         </section>
@@ -136,7 +138,7 @@ export function ExplainerAnimation() {
               <div className="hx-drop"><div className="hx-file" />Drop your file</div>
             </div>
             <div className={`hx-frame${step === 1 ? " hx-show" : ""}`}>
-              <div className="hx-price">$39</div>
+              <div className="hx-price">{CURRENCY_SYMBOL}39</div>
             </div>
             <div className={`hx-frame${step === 2 ? " hx-show" : ""}`}>
               <div className="hx-link">
@@ -146,7 +148,7 @@ export function ExplainerAnimation() {
             <div className={`hx-frame${step === 3 ? " hx-show" : ""}`}>
               <div className="hx-paid">
                 <div className="hx-pay">Pay</div>
-                <div className="hx-plus">+$37.00 → your Stripe</div>
+                <div className="hx-plus">+{formatCents(3700)} → your Stripe</div>
               </div>
             </div>
           </div>

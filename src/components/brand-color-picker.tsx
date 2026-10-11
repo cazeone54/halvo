@@ -4,6 +4,7 @@ import { BRAND_PRESETS, brandTheme, brandThemeStyle, normalizeHex } from "@/lib/
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { formatCents } from "@/lib/format";
 
 // value is "" for the platform default, otherwise a normalized hex.
 export function BrandColorPicker({
@@ -112,7 +113,7 @@ export function BrandColorPicker({
         <div className="flex items-center justify-between gap-3 p-4">
           <div className="min-w-0">
             <p className="truncate text-sm font-medium">Your product</p>
-            <p className="text-sm font-semibold text-primary">$19.00</p>
+            <p className="text-sm font-semibold text-primary">{formatCents(1900)}</p>
           </div>
           <span className="inline-flex h-8 shrink-0 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground">
             Buy now
