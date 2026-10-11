@@ -5,6 +5,7 @@ import { isFreeProduct } from "@/lib/checkout-math";
 import { sendPurchaseConfirmationEmail } from "@/lib/email.server";
 import { recordSaleSource } from "@/lib/record-source.server";
 import { countDeliverableFiles } from "@/lib/bundle.server";
+import { assertInStock } from "@/lib/offer.server";
 
 // Claiming a free product (a lead magnet) deliberately never touches Stripe.
 // There is nothing to charge, so there is no PaymentIntent, no destination
@@ -27,7 +28,7 @@ export const claimFreeProduct = createServerFn({ method: "POST" })
 
     const { data: product, error: productError } = await supabaseAdmin
       .from("products")
-      .select("id, name, price_cents, pay_what_you_want, owner_id, url_slug")
+      .select("*")
       .eq("id", data.productId)
       .single();
     if (productError || !product || !product.url_slug) {
@@ -62,6 +63,10 @@ export const claimFreeProduct = createServerFn({ method: "POST" })
     if (existing) {
       return { transactionId: existing.id };
     }
+
+    // After the re-claim shortcut, so someone who already claimed a copy can
+    // still get back to it once the rest are gone.
+    await assertInStock(supabaseAdmin, product);
 
     const buyerId = await resolveOptionalUserId();
 

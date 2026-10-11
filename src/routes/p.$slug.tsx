@@ -5,6 +5,7 @@ import { useEffect, type CSSProperties } from "react";
 import { brandThemeStyle } from "@/lib/brand-color";
 import { buildMediaItems } from "@/lib/product-media";
 import { ProductMedia } from "@/components/product-media";
+import { OfferBanner } from "@/components/offer-banner";
 import { cn } from "@/lib/utils";
 import { ShieldCheck, Mail, CircleCheck, Lock, Zap, CreditCard, KeyRound } from "lucide-react";
 import { getProductPublicView, listMoreFromSeller } from "@/lib/product-public.functions";
@@ -54,7 +55,7 @@ export const Route = createFileRoute("/p/$slug")({
         "@type": "Offer",
         price: (loaderData.priceCents / 100).toFixed(2),
         priceCurrency: "USD",
-        availability: "https://schema.org/InStock",
+        availability: loaderData.soldOut ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
         url,
       },
       // Only when there are real, verified-purchase reviews — matches what's
@@ -219,9 +220,17 @@ function ProductCheckoutPage() {
                   </p>
                 ) : null}
               </div>
-              <p className="shrink-0 font-[family-name:var(--font-display)] text-xl font-semibold text-primary sm:text-2xl">
-                {priceLabel}
-              </p>
+              <div className="shrink-0 text-right">
+                <p className="font-[family-name:var(--font-display)] text-xl font-semibold text-primary sm:text-2xl">
+                  {priceLabel}
+                </p>
+                {product.regularPriceCents != null ? (
+                  <p className="text-sm text-muted-foreground">
+                    <span className="sr-only">Regular price </span>
+                    <s>${(product.regularPriceCents / 100).toFixed(2)}</s>
+                  </p>
+                ) : null}
+              </div>
             </div>
             {product.description ? (
               // whitespace-pre-line keeps the seller's paragraph/line breaks
@@ -256,16 +265,47 @@ function ProductCheckoutPage() {
           </div>
         ) : null}
 
+        <OfferBanner
+          saleEndsAt={product.saleEndsAt}
+          stockLimit={product.stockLimit}
+          stockRemaining={product.stockRemaining}
+        />
+
         {/* Checkout card */}
         <div className="rounded-2xl border bg-card p-5 shadow-sm">
-          <CheckoutWidget
-            product={{
-              id: product.id,
-              name: product.name,
-              priceCents: product.priceCents,
-              payWhatYouWant: product.payWhatYouWant,
-            }}
-          />
+          {product.soldOut ? (
+            <div className="py-3 text-center">
+              <p className="font-medium">Sold out</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Every copy has been claimed.
+                {product.sellerHandle && !embed ? (
+                  <>
+                    {" "}
+                    <Link
+                      to="/u/$handle"
+                      params={{ handle: product.sellerHandle }}
+                      className="text-primary underline underline-offset-2"
+                    >
+                      See what else {product.sellerName ?? "this seller"} offers
+                    </Link>
+                    .
+                  </>
+                ) : null}
+              </p>
+            </div>
+          ) : (
+            <CheckoutWidget
+              // Remount when the price changes (a launch price ending), so the
+              // widget's amount state starts from the new price.
+              key={product.priceCents}
+              product={{
+                id: product.id,
+                name: product.name,
+                priceCents: product.priceCents,
+                payWhatYouWant: product.payWhatYouWant,
+              }}
+            />
+          )}
         </div>
 
         {/* Trust strip — right where hesitation happens, all statements true */}

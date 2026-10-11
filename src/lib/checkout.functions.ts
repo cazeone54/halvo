@@ -11,6 +11,8 @@ import { computeTransactionBackfill } from "@/lib/transaction-race";
 import { sendPurchaseConfirmationEmail, sendSaleNotificationEmail } from "@/lib/email.server";
 import { recordSaleSource } from "@/lib/record-source.server";
 import { countDeliverableFiles } from "@/lib/bundle.server";
+import { activeSalePriceCents, effectivePricing } from "@/lib/offer";
+import { assertInStock } from "@/lib/offer.server";
 import {
   computeChargeAmountCents,
   isAboveMinimumCharge,
@@ -77,9 +79,11 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    // select("*") so the offer columns (migration 0019) come through when
+    // present; without them there's simply no stock limit and no sale.
     const { data: product, error: productError } = await supabaseAdmin
       .from("products")
-      .select("id, name, price_cents, pay_what_you_want, owner_id, url_slug")
+      .select("*")
       .eq("id", data.productId)
       .single();
     if (productError || !product || !product.url_slug) {
@@ -124,7 +128,13 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
       throw new Error(UNAVAILABLE_MESSAGE);
     }
 
-    let chargeAmountCents = computeChargeAmountCents(product, data.amountCents);
+    await assertInStock(supabaseAdmin, product);
+
+    // A running launch price replaces the base price. It's stamped into the
+    // intent's metadata so verification accepts it even if the sale ends
+    // between creating the payment and the buyer completing it.
+    const salePriceCents = activeSalePriceCents(product, new Date());
+    let chargeAmountCents = computeChargeAmountCents(effectivePricing(product, new Date()), data.amountCents);
 
     if (data.couponCode) {
       const coupon = await findValidCoupon(supabaseAdmin, data.couponCode, product.id);
@@ -185,6 +195,7 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
           ...(data.couponCode ? { coupon_code: data.couponCode.toUpperCase() } : {}),
           ...(referralCodeForMetadata ? { referral_code: referralCodeForMetadata } : {}),
           ...(bumpProductId ? { bump_product_id: bumpProductId, bump_price_cents: String(bumpPriceCents) } : {}),
+          ...(salePriceCents != null ? { sale_price_cents: String(salePriceCents) } : {}),
         },
         ...buildDestinationChargeParams(
           chargeAmountCents,
@@ -193,7 +204,8 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
           commissionCents,
         ),
       });
-      return { clientSecret: intent.client_secret };
+      // The amount actually charged, so the page shows exactly that.
+      return { clientSecret: intent.client_secret, amountCents: chargeAmountCents };
     } catch (error) {
       throw new Error(getStripeErrorMessage(error));
     }
@@ -240,7 +252,16 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
       coupon = await findValidCoupon(supabaseAdmin, couponCode, product.id);
     }
 
-    if (intent.amount_received < computeRequiredMinCents(product, coupon)) {
+    // Metadata is written only by our server (createProductPaymentIntent), so
+    // a launch price recorded there is trusted — but it can only ever lower a
+    // fixed price, never be used to undercut anything else.
+    const saleMeta = Number(intent.metadata?.sale_price_cents);
+    const pricing =
+      Number.isInteger(saleMeta) && saleMeta > 0 && saleMeta < product.price_cents && !product.pay_what_you_want
+        ? { ...product, price_cents: saleMeta }
+        : product;
+
+    if (intent.amount_received < computeRequiredMinCents(pricing, coupon)) {
       throw new Error("Payment amount is below the required minimum for this product.");
     }
 

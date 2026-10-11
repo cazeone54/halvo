@@ -90,6 +90,7 @@ export function CheckoutWidget({ product }: { product: Product }) {
   const [couponError, setCouponError] = useState<string | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [chargedCents, setChargedCents] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [bumpTaken, setBumpTaken] = useState(false);
   const createIntentFn = useServerFn(createProductPaymentIntent);
@@ -107,6 +108,7 @@ export function CheckoutWidget({ product }: { product: Product }) {
   useEffect(() => {
     if (free) return; // nothing to charge, so never create a PaymentIntent
     setClientSecret(null);
+    setChargedCents(null);
     setError(null);
     // The referral code and bump both go in at intent time — that's where the
     // affiliate commission is withheld and where the bump price is resolved.
@@ -119,7 +121,10 @@ export function CheckoutWidget({ product }: { product: Product }) {
         bumpTaken,
       },
     })
-      .then((res) => setClientSecret(res.clientSecret ?? null))
+      .then((res) => {
+        setChargedCents(res.amountCents);
+        setClientSecret(res.clientSecret ?? null);
+      })
       .catch((e: Error) => setError(e.message));
     // Recreate the intent whenever amount, coupon or the bump selection changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -163,7 +168,9 @@ export function CheckoutWidget({ product }: { product: Product }) {
   }
 
   const baseAmountCents = appliedCoupon?.discountedAmountCents ?? amountCents;
-  const displayAmountCents = baseAmountCents + (bumpTaken && bump ? bump.priceCents : 0);
+  // Once the payment exists, show exactly what it will charge (e.g. if a launch
+  // price ended while the page was open).
+  const displayAmountCents = chargedCents ?? baseAmountCents + (bumpTaken && bump ? bump.priceCents : 0);
 
   return (
     <div className="flex flex-col gap-4">

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { productImageUrl } from "@/lib/public-image-url";
 import { summarizeRatings } from "@/lib/ratings";
 import { galleryImageUrls, parseVideoUrl } from "@/lib/product-media";
+import { activeSalePriceCents, stockRemaining } from "@/lib/offer";
 
 // Other published products by the same seller — powers a "More from this
 // seller" cross-sell on the product page (and a discovery nudge post-purchase).
@@ -107,11 +108,21 @@ export const getProductPublicView = createServerFn({ method: "GET" })
     const reviewCount = reviewSummary.count;
     const reviewAverage = reviewSummary.average;
 
+    // Offer columns are absent until migration 0019 → no sale, no limit.
+    const salePriceCents = activeSalePriceCents(product, new Date());
+    const stockLeft = stockRemaining(product.stock_limit, salesCount);
+
     return {
       id: product.id,
       name: product.name,
       description: product.description,
-      priceCents: product.price_cents,
+      // The price checkout will charge now; regularPriceCents is set only during a sale.
+      priceCents: salePriceCents ?? product.price_cents,
+      regularPriceCents: salePriceCents != null ? product.price_cents : null,
+      saleEndsAt: salePriceCents != null ? (product.sale_ends_at ?? null) : null,
+      stockLimit: product.stock_limit ?? null,
+      stockRemaining: stockLeft,
+      soldOut: stockLeft === 0,
       payWhatYouWant: product.pay_what_you_want,
       imageUrl: productImageUrl(product.id, product.image_url),
       // Both absent until migration 0018 — the page then shows just the cover.

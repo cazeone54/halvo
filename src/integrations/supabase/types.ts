@@ -74,6 +74,9 @@ export type Database = {
           license_key_enabled: boolean;
           preview_video_url: string | null;
           gallery_paths: string[];
+          stock_limit: number | null;
+          sale_price_cents: number | null;
+          sale_ends_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -91,6 +94,9 @@ export type Database = {
           license_key_enabled?: boolean;
           preview_video_url?: string | null;
           gallery_paths?: string[];
+          stock_limit?: number | null;
+          sale_price_cents?: number | null;
+          sale_ends_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -108,6 +114,9 @@ export type Database = {
           license_key_enabled?: boolean;
           preview_video_url?: string | null;
           gallery_paths?: string[];
+          stock_limit?: number | null;
+          sale_price_cents?: number | null;
+          sale_ends_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };

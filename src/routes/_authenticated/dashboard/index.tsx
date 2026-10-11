@@ -60,6 +60,7 @@ import { StripeEmbeddedCheckoutView } from "@/components/stripe-embedded-checkou
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
 import { AdvancedOptions } from "@/components/advanced-options";
 import { ProductMediaEditor } from "@/components/product-media-editor";
+import { ProductOfferEditor } from "@/components/product-offer-editor";
 import { ProductsEmptyState } from "@/components/products-empty-state";
 import { describeAdvancedOptions } from "@/lib/advanced-options";
 import { CopySnippet } from "@/components/copy-snippet";
@@ -913,6 +914,11 @@ type ProductRowData = {
   // Present once migration 0018 is applied.
   preview_video_url?: string | null;
   gallery_paths?: string[] | null;
+  pay_what_you_want?: boolean | null;
+  // Present once migration 0019 is applied.
+  stock_limit?: number | null;
+  sale_price_cents?: number | null;
+  sale_ends_at?: string | null;
 };
 
 function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: () => void }) {
@@ -1192,6 +1198,14 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
               productId={product.id}
               videoUrl={product.preview_video_url ?? null}
               galleryPaths={product.gallery_paths ?? []}
+            />
+            <ProductOfferEditor
+              productId={product.id}
+              priceCents={product.price_cents}
+              payWhatYouWant={!!product.pay_what_you_want}
+              stockLimit={product.stock_limit ?? null}
+              salePriceCents={product.sale_price_cents ?? null}
+              saleEndsAt={product.sale_ends_at ?? null}
             />
             <AdvancedOptions
               activeSummary={describeAdvancedOptions({ refundPolicy: editRefundPolicy, licenseEnabled: editLicenseEnabled })}
