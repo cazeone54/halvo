@@ -43,7 +43,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: `${BRAND_NAME} — Sell digital products in minutes` },
       {
         property: "og:description",
-        content: `Instant Stripe checkout, instant delivery, and payouts to your own account. From 4% a sale.`,
+        content: `Instant Stripe checkout, instant delivery, and payouts to your own account. One fee per sale, no monthly cost.`,
       },
       { property: "og:image", content: `${BASE_URL}/og.png` },
       { name: "twitter:card", content: "summary_large_image" },

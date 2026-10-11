@@ -22,6 +22,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { BRAND_NAME, BASE_URL } from "@/lib/site";
+import { PLAN_LIMITS } from "@/lib/plans";
+
+// Derived so a copy change can never claim a rate the checkout doesn't charge.
+// This page previously advertised "from 4%" — the old Pro tier — which stopped
+// being true the moment tiers were retired.
+const FEE = `${Math.round(PLAN_LIMITS.free.platformFeePct * 100)}% + ${PLAN_LIMITS.free.platformFeeFixedCents}¢`;
 
 export const Route = createFileRoute("/features")({
   head: () => ({
@@ -29,7 +35,7 @@ export const Route = createFileRoute("/features")({
       { title: `Features — ${BRAND_NAME}` },
       {
         name: "description",
-        content: `Everything ${BRAND_NAME} does: instant Stripe checkout and delivery, payouts to your own Stripe, discounts, affiliates, bundles, order bumps, an AI copywriter, an embeddable buy button, and analytics — from 4% per sale.`,
+        content: `Everything ${BRAND_NAME} does: instant Stripe checkout and delivery, payouts to your own Stripe, discounts, affiliates, bundles, order bumps, an AI copywriter, an embeddable buy button, and analytics — ${FEE} per sale, no monthly fee.`,
       },
       { property: "og:title", content: `Features — ${BRAND_NAME}` },
       { property: "og:type", content: "website" },
@@ -54,7 +60,7 @@ const SELL: Feature[] = [
 
 const GET_PAID: Feature[] = [
   { icon: Wallet, title: "Payouts to your own Stripe", body: "Every sale routes through Stripe Connect straight to your account. We never hold your money." },
-  { icon: Percent, title: "Low fees, from 4%", body: "A simple percentage per sale — well below the 10% some marketplaces charge." },
+  { icon: Percent, title: `One fee, ${FEE}`, body: "No monthly charge and no tiers. That one fee covers card processing too, so it's your whole cost." },
   { icon: ShieldCheck, title: "Refunds & disputes handled", body: "Issue refunds in a click, and chargebacks are recorded with the evidence to fight them." },
   { icon: Users2, title: "Your customer list is yours", body: "Every buyer's email is yours to keep and export — not locked inside the platform." },
 ];
@@ -71,7 +77,8 @@ const GROW: Feature[] = [
 // Honest, widely-published competitor facts — the point is a fair comparison,
 // not spin. Verify current terms on each provider's site before relying on them.
 const COMPARISON: Array<{ label: string; halvo: string; gumroad: string; lemon: string }> = [
-  { label: "Platform fee", halvo: "From 4%", gumroad: "10% flat", lemon: "5% + 50¢" },
+  { label: "Platform fee", halvo: `${FEE}, all-in`, gumroad: "10% flat", lemon: "5% + 50¢" },
+  { label: "Monthly fee", halvo: "None", gumroad: "None", lemon: "None" },
   { label: "Where your money goes", halvo: "Your own Stripe", gumroad: "Held, then paid out", lemon: "Held (merchant of record)" },
   { label: "Instant download delivery", halvo: "yes", gumroad: "yes", lemon: "yes" },
   { label: "Order bumps at checkout", halvo: "yes", gumroad: "no", lemon: "yes" },
@@ -119,7 +126,8 @@ function FeaturesPage() {
               Everything you need to <span className="text-gradient">sell digital products</span>.
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
-              One tool for checkout, delivery, payouts and growth — paid straight to your own Stripe, from 4% a sale.
+              One tool for checkout, delivery, payouts and growth — paid straight to your own Stripe, {FEE} a sale
+              with no monthly fee.
             </p>
             <div className="mt-7 flex flex-wrap justify-center gap-3">
               <Button asChild size="lg">

@@ -21,13 +21,14 @@ Legend: 🔴 hard blocker · 🟡 strongly recommended · 🟢 nice-to-have
 - [ ] 🔴 **Test a refund** from the dashboard → Stripe shows the refund AND the transfer reversal; the buyer's download access is revoked; only then does the row flip to `refunded`.
 - [ ] 🔴 **Trigger a dispute** (`stripe trigger charge.dispute.created`) → it's recorded, the order is flagged, access suspended. Close it lost → transfer reversed. Close it won → access restored.
 - [ ] 🟡 Test the **free lead-magnet** path (price 0, no Stripe needed) and the **order bump** + **bundle** delivery.
-- [ ] 🟡 Test a **subscription upgrade** (Creator/Pro) end-to-end and the **billing portal** (cancel).
+- [ ] 🟡 ~~Test a subscription upgrade (Creator/Pro)~~ — not applicable under single-tier pricing; `createSubscriptionCheckout` now refuses while `SINGLE_TIER_PRICING` is on. Still test the **billing portal** (cancel) if any legacy subscription exists.
+- [ ] 🟡 Test a **seller-sold membership** (`recurring.functions.ts`) end-to-end — that's a different subscription path and is still live.
 
 ## Phase 2 — Go-live infrastructure
 
 - [ ] 🔴 **Own the domain.** Confirm the domain is registered to you, then set **`VITE_SITE_URL=https://yourdomain`** in the host's build env (no code edit — `BASE_URL`/`BRAND_DOMAIN`/`BRAND_EMAIL` all derive from it).
 - [ ] 🔴 **Add `public/og.png` (1200×630)** and `public/icon.png` — export them from the OG-cover artifact. The social-share meta already points at `/og.png`; without it, link previews and ad cards show no image.
-- [ ] 🔴 **Activate the Stripe account** (submit business details) and switch to **live** keys. Recreate the subscription **Price IDs in live mode** and update `STRIPE_PRICE_IDS` in `plans.ts`. Re-register the webhook in **live** mode with a fresh signing secret.
+- [ ] 🔴 **Activate the Stripe account** (submit business details) and switch to **live** keys. Re-register the webhook in **live** mode with a fresh signing secret. ~~Recreate the subscription Price IDs in live mode~~ — not needed under single-tier pricing (`SINGLE_TIER_PRICING` in `plans.ts`); there is no subscription to sell.
 - [ ] 🔴 **Verify the Resend sending domain** (SPF + DKIM DNS records) so purchase/sale emails actually deliver and don't land in spam. Confirm the `from` address uses that domain.
 - [ ] 🔴 Point the production domain at the deployed app; verify HTTPS + `www`/apex redirect.
 - [ ] 🔴 **Upgrade Supabase off the free tier before launch.** Free projects **auto-pause after ~1 week of inactivity** — in production that means the whole site (auth, checkout, data) goes dark until someone manually restores it. A paid plan (or at least active monitoring) is required for a live product.

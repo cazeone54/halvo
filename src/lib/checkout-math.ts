@@ -67,8 +67,17 @@ export type DestinationChargeParams = {
 // The actual Kitsly fix: every purchase charge routes through Stripe Connect
 // as a destination charge, so the seller is actually paid and the platform
 // actually collects its cut — instead of a plain platform-account charge
-// with no Connect routing at all. The fee percentage depends on the
-// *seller's* plan tier (Free pays a platform fee; Creator/Pro don't).
+// with no Connect routing at all.
+//
+// WHO PAYS WHAT: the seller's only cost is `application_fee_amount` (the
+// platform fee). On a destination charge Stripe debits its own processing fee
+// from the PLATFORM's balance, not the connected account — so the platform fee
+// has to clear it on every sale (enforced by a test in plans.test.ts). The
+// platform also eats the $15 dispute fee, which is never returned. Since
+// 2026-10-11 every tier pays the same rate; see SINGLE_TIER_PRICING in
+// plans.ts. (An older comment here claimed Creator/Pro pay no platform fee —
+// that described the bug that caused losses on paid-tier sales, not current
+// behaviour.)
 // `commissionCents` is an affiliate payout withheld on top of the platform fee.
 // It has to be held back *here*, at charge time, so it comes out of the sale —
 // i.e. the seller funds their affiliate, exactly as in any affiliate program.

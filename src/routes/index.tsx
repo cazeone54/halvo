@@ -239,14 +239,14 @@ function HomePage() {
               <h2 className="font-[family-name:var(--font-display)] text-2xl font-semibold sm:text-3xl">
                 Simple pricing
               </h2>
-              <p className="mt-2 text-muted-foreground">Start free. Upgrade when you outgrow it.</p>
+              <p className="mt-2 text-muted-foreground">One plan. No monthly fee. You pay only when you sell.</p>
             </div>
             <div className="mt-12">
               <PricingTiers />
             </div>
             <p className="mt-10 text-center text-sm text-muted-foreground">
               <Link to="/pricing" className="text-primary underline underline-offset-4">
-                Compare full plans
+                See what's included
               </Link>
             </p>
           </div>

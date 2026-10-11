@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getStripeClient, getStripeErrorMessage } from "@/lib/stripe.server";
-import { STRIPE_PRICE_IDS, STRIPE_PRICE_IDS_ANNUAL } from "@/lib/plans";
+import { STRIPE_PRICE_IDS, STRIPE_PRICE_IDS_ANNUAL, SINGLE_TIER_PRICING } from "@/lib/plans";
 import { BASE_URL } from "@/lib/site";
 import type Stripe from "stripe";
 
@@ -28,6 +28,14 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
     z.object({ tier: z.enum(["creator", "pro"]), interval: z.enum(["month", "year"]).optional() }).parse(data),
   )
   .handler(async ({ data, context }) => {
+    // Under single-tier pricing every tier charges the same rate and grants the
+    // same limits, so a subscription here would take $10–24/month for nothing.
+    // The pricing UI no longer links to this, but a server fn is reachable over
+    // HTTP regardless — refuse at the handler, not just in the UI.
+    if (SINGLE_TIER_PRICING) {
+      throw new Error("Halvo has a single plan — there is no subscription to buy.");
+    }
+
     const stripe = getStripeClient();
 
     const priceId =
