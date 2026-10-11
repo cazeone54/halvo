@@ -148,7 +148,6 @@ function DashboardHome() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
-  const [newRefundPolicy, setNewRefundPolicy] = useState("");
   const [newLicenseEnabled, setNewLicenseEnabled] = useState(false);
   // The deliverable is chosen here rather than in a second step on the product
   // row — creating a product and attaching its file used to be two separate
@@ -179,7 +178,6 @@ function DashboardHome() {
           name,
           description: description || undefined,
           priceCents: Math.round(Number(price) * 100),
-          refundPolicy: newRefundPolicy.trim() || undefined,
           licenseKeyEnabled: newLicenseEnabled,
         },
       });
@@ -221,7 +219,6 @@ function DashboardHome() {
       setName("");
       setDescription("");
       setPrice("");
-      setNewRefundPolicy("");
       setNewLicenseEnabled(false);
       setNewFile(null);
       setNewCoverFile(null);
@@ -526,21 +523,8 @@ function DashboardHome() {
             </div>
 
             <AdvancedOptions
-              activeSummary={describeAdvancedOptions({ refundPolicy: newRefundPolicy, licenseEnabled: newLicenseEnabled })}
+              activeSummary={describeAdvancedOptions({ licenseEnabled: newLicenseEnabled })}
             >
-              <div>
-                <Label htmlFor={`${uid}-f4`}>Refund policy for this product</Label>
-                <Textarea id={`${uid}-f4`}
-                  value={newRefundPolicy}
-                  onChange={(e) => setNewRefundPolicy(e.target.value)}
-                  rows={2}
-                  placeholder="e.g. 14-day money-back guarantee"
-                />
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Leave blank to use your account-wide policy from Settings.
-                </p>
-              </div>
-
               <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3">
                 <input
                   type="checkbox"
@@ -947,7 +931,6 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
   const [editDescription, setEditDescription] = useState(product.description ?? "");
   const [editPrice, setEditPrice] = useState((product.price_cents / 100).toFixed(2));
   const [editCategory, setEditCategory] = useState(product.category ?? "");
-  const [editRefundPolicy, setEditRefundPolicy] = useState(product.refund_policy ?? "");
   const [editLicenseEnabled, setEditLicenseEnabled] = useState(!!product.license_key_enabled);
 
   const filesQ = useQuery({
@@ -1082,7 +1065,6 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
           description: editDescription,
           priceCents: Math.round(Number(editPrice) * 100),
           category: editCategory,
-          refundPolicy: editRefundPolicy,
           licenseKeyEnabled: editLicenseEnabled,
         },
       }),
@@ -1218,18 +1200,9 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
               saleEndsAt={product.sale_ends_at ?? null}
             />
             <AdvancedOptions
-              activeSummary={describeAdvancedOptions({ refundPolicy: editRefundPolicy, licenseEnabled: editLicenseEnabled })}
-              defaultOpen={!!(product.refund_policy?.trim() || product.license_key_enabled)}
+              activeSummary={describeAdvancedOptions({ licenseEnabled: editLicenseEnabled })}
+              defaultOpen={!!product.license_key_enabled}
             >
-              <div>
-                <Label htmlFor={`${uid}-f9`}>Refund policy for this product</Label>
-                <Textarea id={`${uid}-f9`}
-                  value={editRefundPolicy}
-                  onChange={(e) => setEditRefundPolicy(e.target.value)}
-                  rows={2}
-                  placeholder="Leave blank to use your account-wide policy from Settings"
-                />
-              </div>
               <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3">
                 <input
                   type="checkbox"

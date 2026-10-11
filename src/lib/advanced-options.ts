@@ -1,11 +1,7 @@
 // One-line summary of which advanced product options are switched on, shown
 // on the collapsed "Advanced options" row so a seller can see what's set
-// without opening it. null when nothing is set.
-export function describeAdvancedOptions(opts: { refundPolicy: string; licenseEnabled: boolean }): string | null {
-  const parts: string[] = [];
-  if (opts.refundPolicy.trim()) parts.push("custom refund policy");
-  if (opts.licenseEnabled) parts.push("license keys on");
-  if (parts.length === 0) return null;
-  const text = parts.join(" · ");
-  return text.charAt(0).toUpperCase() + text.slice(1);
+// without opening it. null when nothing is set. (Refund policy used to live
+// here; every product now has Halvo's standard final-sale policy.)
+export function describeAdvancedOptions(opts: { licenseEnabled: boolean }): string | null {
+  return opts.licenseEnabled ? "License keys on" : null;
 }

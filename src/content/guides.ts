@@ -251,12 +251,16 @@ export const GUIDES: Guide[] = [
       { type: "h2", text: "Buyers agree the sale is final" },
       {
         type: "p",
-        text: "Before paying, every buyer must tick a box confirming they understand the product is delivered instantly and that the sale is final once downloaded. That agreement is recorded with a timestamp against the order.",
+        text: "Before paying, every buyer must tick a box confirming they want immediate access and understand they lose their 14-day right of withdrawal once the product is delivered. That agreement is recorded with a timestamp against the order, and the receipt email confirms it.",
       },
-      { type: "h2", text: "You control refunds" },
+      { type: "h2", text: "One refund policy for every product" },
       {
         type: "p",
-        text: "Buyers cannot refund themselves. You issue a refund from your dashboard if you choose to. When you do, the amount is returned to the buyer and their download access is revoked immediately.",
+        text: "Every product on Halvo has the same policy: sales are final. The exceptions are a file that's faulty, missing or not as described, and a buyer charged twice. In those cases you fix it or refund. You can't set a different policy, so your product page always matches what the buyer agreed to.",
+      },
+      {
+        type: "p",
+        text: "Buyers cannot refund themselves. You issue refunds from your dashboard. When you do, the amount is returned to the buyer and their download access is revoked immediately.",
       },
       {
         type: "note",

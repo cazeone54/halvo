@@ -6,6 +6,7 @@ import { galleryImageUrls, parseVideoUrl } from "@/lib/product-media";
 import { activeSalePriceCents, stockRemaining } from "@/lib/offer";
 import { countSuccessfulSales } from "@/lib/offer.server";
 import { listingPrice } from "@/lib/format";
+import { STANDARD_REFUND_POLICY } from "@/lib/refund-terms";
 
 // Other published products by the same seller — powers a "More from this
 // seller" cross-sell on the product page (and a discovery nudge post-purchase).
@@ -54,18 +55,14 @@ export const getProductPublicView = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // select("*") so a per-product refund_policy (migration 0015) comes through
-    // when present and is simply absent when it isn't — the curated return below
-    // never exposes the extra columns.
+    // select("*") so optional columns from later migrations come through when
+    // present — the curated return below never exposes the extra columns.
     const { data: product, error } = await supabaseAdmin
       .from("products")
       .select("*")
       .eq("url_slug", data.slug)
       .single();
     if (error || !product) throw new Error("Product not found");
-
-    // A per-product refund policy overrides the seller's account-wide one.
-    const productRefundPolicy = product.refund_policy ?? null;
 
     // The seller profile, sales count, and review summary each depend only on
     // the product row we already have — so run them concurrently rather than
@@ -75,7 +72,7 @@ export const getProductPublicView = createServerFn({ method: "GET" })
       product.owner_id
         ? supabaseAdmin
             .from("profiles")
-            .select("display_name, handle, refund_policy, support_email, accent_color")
+            .select("display_name, handle, support_email, accent_color")
             .eq("id", product.owner_id)
             .single()
         : Promise.resolve({ data: null }),
@@ -101,7 +98,10 @@ export const getProductPublicView = createServerFn({ method: "GET" })
     const seller = sellerRes.data;
     const sellerName = seller?.display_name ?? seller?.handle ?? null;
     const sellerHandle = seller?.handle ?? null;
-    const refundPolicy = productRefundPolicy ?? seller?.refund_policy ?? null;
+    // Every product on Halvo has the same final-sale policy (see refund-terms.ts);
+    // sellers' old free-text policies are no longer shown. Free products need none.
+    const isFreeProduct = !product.pay_what_you_want && product.price_cents === 0;
+    const refundPolicy = isFreeProduct ? null : STANDARD_REFUND_POLICY;
     const supportEmail = seller?.support_email ?? null;
     const salesCount = salesRes.count ?? 0;
     const reviewCount = reviewSummary.count;

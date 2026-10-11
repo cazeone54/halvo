@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useRef, useId } from "react";
@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrandColorPicker } from "@/components/brand-color-picker";
+import { STANDARD_REFUND_POLICY } from "@/lib/refund-terms";
 
 export const Route = createFileRoute("/_authenticated/dashboard/settings")({
   component: SettingsPage,
@@ -29,7 +30,6 @@ function SettingsPage() {
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [supportEmail, setSupportEmail] = useState("");
-  const [refundPolicy, setRefundPolicy] = useState("");
   const [thankYouMessage, setThankYouMessage] = useState("");
   const [thankYouRedirectUrl, setThankYouRedirectUrl] = useState("");
   const [accentColor, setAccentColor] = useState("");
@@ -43,7 +43,6 @@ function SettingsPage() {
     setDisplayName(profileQ.data.display_name ?? "");
     setBio(profileQ.data.bio ?? "");
     setSupportEmail(profileQ.data.support_email ?? "");
-    setRefundPolicy(profileQ.data.refund_policy ?? "");
     setThankYouMessage(profileQ.data.thank_you_message ?? "");
     setThankYouRedirectUrl(profileQ.data.thank_you_redirect_url ?? "");
     setAccentColor(profileQ.data.accent_color ?? "");
@@ -52,7 +51,7 @@ function SettingsPage() {
   const saveMut = useMutation({
     mutationFn: () =>
       updateSettingsFn({
-        data: { displayName, bio, supportEmail, refundPolicy, thankYouMessage, thankYouRedirectUrl, accentColor },
+        data: { displayName, bio, supportEmail, thankYouMessage, thankYouRedirectUrl, accentColor },
       }),
     onSuccess: () => {
       toast.success("Settings saved.");
@@ -143,14 +142,16 @@ function SettingsPage() {
               placeholder="Shown to buyers at checkout"
             />
           </div>
-          <div>
-            <Label htmlFor={`${uid}-f4`}>Refund policy</Label>
-            <Textarea id={`${uid}-f4`}
-              value={refundPolicy}
-              onChange={(e) => setRefundPolicy(e.target.value)}
-              rows={3}
-              placeholder="e.g. 14-day money-back guarantee"
-            />
+          <div className="rounded-lg border bg-muted/40 p-3">
+            <p className="text-sm font-medium">Refund policy</p>
+            <p className="mt-1 text-sm text-muted-foreground">{STANDARD_REFUND_POLICY}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              The same for every product on Halvo, and what buyers agree to at checkout. Refund faulty or wrong files
+              from your dashboard; buyers reach you at the support email above.{" "}
+              <Link to="/refund-policy" className="underline underline-offset-2">
+                Full policy
+              </Link>
+            </p>
           </div>
           <div>
             <Label htmlFor={`${uid}-f5`}>Thank-you note</Label>

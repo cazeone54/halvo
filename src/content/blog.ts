@@ -605,7 +605,7 @@ export const BLOG_POSTS: BlogPost[] = [
         items: [
           "Confusion — they couldn't open or use it. Help them; most withdraw the request.",
           "Mismatch — it wasn't what they expected. Refund it, then fix your description.",
-          "Regret — they simply changed their mind. Your policy decides.",
+          "Regret — they simply changed their mind. Sales on Halvo are final, so you can decline politely.",
         ],
       },
       { type: "h2", text: "How refunds work here" },
@@ -615,7 +615,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "note",
-        text: "Every buyer ticks a box before paying confirming the product is delivered instantly and the sale is final once downloaded. That agreement is recorded with a timestamp, alongside a log of every download — which is exactly the evidence that wins a dispute.",
+        text: "Every buyer ticks a box before paying confirming they want immediate access and lose their 14-day right of withdrawal once it's delivered. That agreement is recorded with a timestamp, alongside a log of every download — which is exactly the evidence that wins a dispute.",
       },
       { type: "h2", text: "Getting fewer requests" },
       {

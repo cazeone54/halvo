@@ -65,8 +65,10 @@ function TermsPage() {
       <ul>
         <li>You must deliver what your product page describes.</li>
         <li>
-          You set your own refund policy, and are responsible for honouring it. Buyers are told at checkout that a
-          digital purchase is final unless your policy says otherwise.
+          Every product on {BRAND_NAME} is sold under the same <Link to="/refund-policy">refund policy</Link>: sales
+          are final, because buyers ask for immediate access and acknowledge losing their 14-day right of withdrawal
+          at checkout. You must still fix or refund a file that is faulty, missing or not as described, and a duplicate
+          charge. Don't promise buyers a different refund policy on your product pages or elsewhere.
         </li>
         <li>
           You act as the data controller for your buyers' information and must use it lawfully — for example, only

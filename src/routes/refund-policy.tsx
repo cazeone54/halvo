@@ -46,10 +46,10 @@ function RefundPolicyPage() {
         can't be cancelled part-way in exchange for a refund, because you receive the whole product on the first payment.
       </p>
 
-      <h2>Sellers can be more generous</h2>
+      <h2>One policy for every product</h2>
       <p>
-        A seller may offer a refund window on their own products. If they do, it's shown on the product page and it
-        applies on top of this policy.
+        This policy applies to every product sold on {BRAND_NAME}, whoever the seller is. Sellers can't set different
+        refund terms, so what you agree to at checkout is always what applies.
       </p>
 
       <h2>Chargebacks</h2>
