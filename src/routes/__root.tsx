@@ -106,7 +106,10 @@ function RootError({ error, reset }: { error: Error; reset: () => void }) {
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    // suppressHydrationWarning: themeBootScript sets the theme class/color-scheme
+    // on <html> before React loads (to avoid a flash), so the server's <html>
+    // attributes legitimately differ. This only silences that one element.
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
         <HeadContent />
