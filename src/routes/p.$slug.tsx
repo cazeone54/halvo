@@ -9,19 +9,8 @@ import { OfferBanner } from "@/components/offer-banner";
 import { installmentAmountCents } from "@/lib/recurring";
 import { formatCents } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import {
-  ShieldCheck,
-  Mail,
-  CircleCheck,
-  Lock,
-  Zap,
-  CreditCard,
-  KeyRound,
-} from "lucide-react";
-import {
-  getProductPublicView,
-  listMoreFromSeller,
-} from "@/lib/product-public.functions";
+import { ShieldCheck, Mail, CircleCheck, Lock, Zap, CreditCard, KeyRound } from "lucide-react";
+import { getProductPublicView, listMoreFromSeller } from "@/lib/product-public.functions";
 import { recordProductView } from "@/lib/product-view.functions";
 import { listProductReviews } from "@/lib/reviews.functions";
 import { Stars } from "@/components/stars";
@@ -41,10 +30,7 @@ export const Route = createFileRoute("/p/$slug")({
   // seller's own site (see public/embed.js). In that mode we don't want brand
   // links to hijack the iframe — they open Halvo in a new tab instead.
   validateSearch: (search: Record<string, unknown>): { embed?: boolean } => ({
-    embed:
-      search.embed === "1" || search.embed === 1 || search.embed === true
-        ? true
-        : undefined,
+    embed: search.embed === "1" || search.embed === 1 || search.embed === true ? true : undefined,
   }),
   // Per-product SEO/social metadata — every checkout page used to inherit
   // the same generic "Halvo" title/description from the root layout, so a
@@ -56,11 +42,8 @@ export const Route = createFileRoute("/p/$slug")({
     if (!loaderData) return {};
     const priceLabel = loaderData.price.label;
     const title = `${loaderData.name} — ${priceLabel}${loaderData.sellerName ? ` | ${loaderData.sellerName}` : ""}`;
-    const description =
-      loaderData.description ?? `Buy ${loaderData.name} on ${BRAND_NAME}.`;
-    const imageUrl = loaderData.imageUrl
-      ? `${BASE_URL}${loaderData.imageUrl}`
-      : undefined;
+    const description = loaderData.description ?? `Buy ${loaderData.name} on ${BRAND_NAME}.`;
+    const imageUrl = loaderData.imageUrl ? `${BASE_URL}${loaderData.imageUrl}` : undefined;
     const url = `${BASE_URL}/p/${params.slug}`;
 
     // Product structured data → price/availability rich results in search.
@@ -68,17 +51,13 @@ export const Route = createFileRoute("/p/$slug")({
       "@context": "https://schema.org",
       "@type": "Product",
       name: loaderData.name,
-      ...(loaderData.description
-        ? { description: loaderData.description }
-        : {}),
+      ...(loaderData.description ? { description: loaderData.description } : {}),
       ...(imageUrl ? { image: imageUrl } : {}),
       offers: {
         "@type": "Offer",
         price: (loaderData.priceCents / 100).toFixed(2),
         priceCurrency: "USD",
-        availability: loaderData.soldOut
-          ? "https://schema.org/SoldOut"
-          : "https://schema.org/InStock",
+        availability: loaderData.soldOut ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
         url,
       },
       // Only when there are real, verified-purchase reviews — matches what's
@@ -99,9 +78,7 @@ export const Route = createFileRoute("/p/$slug")({
     // Breadcrumb trail → breadcrumb rich results, and reinforces the
     // Home → storefront → product hierarchy. The storefront rung is included
     // only when we know the seller's handle.
-    const crumbs: Array<{ name: string; item: string }> = [
-      { name: BRAND_NAME, item: BASE_URL },
-    ];
+    const crumbs: Array<{ name: string; item: string }> = [{ name: BRAND_NAME, item: BASE_URL }];
     if (loaderData.sellerHandle) {
       crumbs.push({
         name: loaderData.sellerName ?? loaderData.sellerHandle,
@@ -134,10 +111,7 @@ export const Route = createFileRoute("/p/$slug")({
         { property: "og:type", content: "product" },
         { property: "og:url", content: url },
         ...(imageUrl ? [{ property: "og:image", content: imageUrl }] : []),
-        {
-          name: "twitter:card",
-          content: imageUrl ? "summary_large_image" : "summary",
-        },
+        { name: "twitter:card", content: imageUrl ? "summary_large_image" : "summary" },
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: description },
         ...(imageUrl ? [{ name: "twitter:image", content: imageUrl }] : []),
@@ -207,10 +181,7 @@ function ProductCheckoutPage() {
       <main
         id="main-content"
         tabIndex={-1}
-        className={cn(
-          "mx-auto flex max-w-lg flex-col gap-4 px-4 pb-16 sm:px-6",
-          brandStyle && "brand-theme",
-        )}
+        className={cn("mx-auto flex max-w-lg flex-col gap-4 px-4 pb-16 sm:px-6", brandStyle && "brand-theme")}
         style={brandStyle as CSSProperties | undefined}
       >
         {/* Product card */}
@@ -261,13 +232,7 @@ function ProductCheckoutPage() {
                 ) : null}
                 {product.installmentCount ? (
                   <p className="text-xs text-muted-foreground">
-                    or {product.installmentCount} ×{" "}
-                    {formatCents(
-                      installmentAmountCents(
-                        product.priceCents,
-                        product.installmentCount,
-                      ),
-                    )}
+                    or {product.installmentCount} × {formatCents(installmentAmountCents(product.priceCents, product.installmentCount))}
                   </p>
                 ) : null}
               </div>
@@ -276,24 +241,19 @@ function ProductCheckoutPage() {
               // whitespace-pre-line keeps the seller's paragraph/line breaks
               // instead of collapsing a multi-line description into one block;
               // break-words stops a pasted long URL from overflowing the card.
-              <p className="whitespace-pre-line break-words text-sm text-muted-foreground">
-                {product.description}
-              </p>
+              <p className="whitespace-pre-line break-words text-sm text-muted-foreground">{product.description}</p>
             ) : null}
             <div className="flex flex-wrap items-center gap-2">
               {product.salesCount > 0 ? (
                 <div className="flex w-fit items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-sm text-primary">
                   <CircleCheck className="h-4 w-4" />
-                  <span className="font-medium">{product.salesCount}</span>{" "}
-                  already sold
+                  <span className="font-medium">{product.salesCount}</span> already sold
                 </div>
               ) : null}
               {summary && summary.count > 0 ? (
                 <div className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground">
                   <Stars value={summary.rounded} />
-                  <span className="font-medium text-foreground">
-                    {summary.average}
-                  </span>
+                  <span className="font-medium text-foreground">{summary.average}</span>
                   <span>
                     ({summary.count} review{summary.count === 1 ? "" : "s"})
                   </span>
@@ -305,13 +265,8 @@ function ProductCheckoutPage() {
 
         {product.licenseKeyEnabled ? (
           <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
-            <KeyRound
-              className="h-4 w-4 shrink-0 text-primary"
-              aria-hidden="true"
-            />
-            <span>
-              Includes a unique license key, delivered instantly after purchase.
-            </span>
+            <KeyRound className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+            <span>Includes a unique license key, delivered instantly after purchase.</span>
           </div>
         ) : null}
 
@@ -362,8 +317,7 @@ function ProductCheckoutPage() {
           {product.sellerName ? (
             // The seller is the merchant of record (on_behalf_of), so say so plainly.
             <p className="mt-3 text-center text-xs text-muted-foreground">
-              Sold by {product.sellerName} · {BRAND_NAME} handles checkout and
-              delivery
+              Sold by {product.sellerName} · {BRAND_NAME} handles checkout and delivery
             </p>
           ) : null}
         </div>
@@ -371,40 +325,26 @@ function ProductCheckoutPage() {
         {/* Trust strip — right where hesitation happens, all statements true */}
         <div className="grid grid-cols-3 gap-2">
           <TrustItem icon={Zap} label="Instant download" />
-          <TrustItem
-            icon={Lock}
-            label={isFree ? "No card needed" : "Secure checkout"}
-          />
-          <TrustItem
-            icon={CreditCard}
-            label={isFree ? "No payment" : "Powered by Stripe"}
-          />
+          <TrustItem icon={Lock} label={isFree ? "No card needed" : "Secure checkout"} />
+          <TrustItem icon={CreditCard} label={isFree ? "No payment" : "Powered by Stripe"} />
         </div>
 
         {reviewsQ.data && reviewsQ.data.reviews.length > 0 ? (
           <div className="rounded-2xl border bg-card p-5">
-            <p className="font-[family-name:var(--font-display)] font-semibold">
-              What buyers say
-            </p>
+            <p className="font-[family-name:var(--font-display)] font-semibold">What buyers say</p>
             <div className="mt-4 flex flex-col gap-4">
               {reviewsQ.data.reviews.slice(0, 5).map((review) => (
-                <div
-                  key={review.id}
-                  className="border-b pb-4 last:border-b-0 last:pb-0"
-                >
+                <div key={review.id} className="border-b pb-4 last:border-b-0 last:pb-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <Stars value={review.rating} />
                     {/* Every review on Halvo is tied to a real, completed, non-
                         refunded purchase — server-enforced — so this label is
                         always truthful, and it's the strongest trust signal here. */}
                     <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
-                      <CircleCheck className="h-3.5 w-3.5" aria-hidden="true" />{" "}
-                      Verified purchase
+                      <CircleCheck className="h-3.5 w-3.5" aria-hidden="true" /> Verified purchase
                     </span>
                   </div>
-                  <p className="mt-1.5 text-sm text-muted-foreground">
-                    {review.body}
-                  </p>
+                  <p className="mt-1.5 text-sm text-muted-foreground">{review.body}</p>
                 </div>
               ))}
             </div>
@@ -429,12 +369,7 @@ function ProductCheckoutPage() {
             </div>
             <div className="mt-4 grid grid-cols-2 gap-3">
               {more.map((p) => (
-                <Link
-                  key={p.id}
-                  to="/p/$slug"
-                  params={{ slug: p.slug }}
-                  className="group"
-                >
+                <Link key={p.id} to="/p/$slug" params={{ slug: p.slug }} className="group">
                   <div className="aspect-video w-full overflow-hidden rounded-lg bg-muted">
                     {p.imageUrl ? (
                       <img
@@ -446,16 +381,10 @@ function ProductCheckoutPage() {
                       />
                     ) : null}
                   </div>
-                  <p className="mt-1.5 truncate text-sm font-medium">
-                    {p.name}
-                  </p>
+                  <p className="mt-1.5 truncate text-sm font-medium">{p.name}</p>
                   <p className="text-xs text-primary">
                     {p.price.label}
-                    {p.price.regularLabel ? (
-                      <s className="ml-1.5 text-xs font-normal text-muted-foreground">
-                        {p.price.regularLabel}
-                      </s>
-                    ) : null}
+                    {p.price.regularLabel ? (<s className="ml-1.5 text-xs font-normal text-muted-foreground">{p.price.regularLabel}</s>) : null}
                   </p>
                 </Link>
               ))}
@@ -490,48 +419,35 @@ function ProductCheckoutPage() {
         )}
 
         <div className="flex flex-col gap-2 rounded-xl border bg-card p-4 text-sm text-muted-foreground">
-          {product.refundPolicy ? (
-            <p className="flex items-start gap-2">
-              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-              <span className="whitespace-pre-line break-words">
-                {product.refundPolicy}
-              </span>
-            </p>
-          ) : null}
-          {/* The refund policy tells buyers to contact the seller about a
+            {product.refundPolicy ? (
+              <p className="flex items-start gap-2">
+                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <span className="whitespace-pre-line break-words">{product.refundPolicy}</span>
+              </p>
+            ) : null}
+            {/* The refund policy tells buyers to contact the seller about a
                 faulty file, so there must always be somewhere to write: the
                 seller's support email, or Halvo's if they haven't set one. */}
-          <p className="flex items-start gap-2">
-            <Mail className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            <span>
-              Questions or a problem with a file?{" "}
-              <a
-                href={`mailto:${product.supportEmail ?? BRAND_EMAIL}`}
-                className="break-all underline underline-offset-2"
-              >
-                {product.supportEmail ?? BRAND_EMAIL}
-              </a>
-            </span>
-          </p>
+            <p className="flex items-start gap-2">
+              <Mail className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <span>
+                Questions or a problem with a file?{" "}
+                <a href={`mailto:${product.supportEmail ?? BRAND_EMAIL}`} className="break-all underline underline-offset-2">
+                  {product.supportEmail ?? BRAND_EMAIL}
+                </a>
+              </span>
+            </p>
         </div>
       </main>
     </div>
   );
 }
 
-function TrustItem({
-  icon: Icon,
-  label,
-}: {
-  icon: typeof Lock;
-  label: string;
-}) {
+function TrustItem({ icon: Icon, label }: { icon: typeof Lock; label: string }) {
   return (
     <div className="flex flex-col items-center gap-1 rounded-xl border bg-card px-2 py-3 text-center">
       <Icon className="h-4 w-4 text-primary" />
-      <span className="text-[11px] leading-tight text-muted-foreground">
-        {label}
-      </span>
+      <span className="text-[11px] leading-tight text-muted-foreground">{label}</span>
     </div>
   );
 }
