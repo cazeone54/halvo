@@ -329,6 +329,29 @@ function ProductCheckoutPage() {
           <TrustItem icon={CreditCard} label={isFree ? "No payment" : "Powered by Stripe"} />
         </div>
 
+        {/* Policy and contact sit right under checkout, where the buyer decides —
+            they used to be the last thing on the page, after the footer link. */}
+        <div className="flex flex-col gap-2 rounded-xl border bg-card p-4 text-sm text-muted-foreground">
+          {product.refundPolicy ? (
+            <p className="flex items-start gap-2">
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <span className="whitespace-pre-line break-words">{product.refundPolicy}</span>
+            </p>
+          ) : null}
+          {/* The refund policy tells buyers to contact the seller about a
+              faulty file, so there must always be somewhere to write: the
+              seller's support email, or Halvo's if they haven't set one. */}
+          <p className="flex items-start gap-2">
+            <Mail className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            <span>
+              Questions or a problem with a file?{" "}
+              <a href={`mailto:${product.supportEmail ?? BRAND_EMAIL}`} className="underline underline-offset-2 [overflow-wrap:anywhere]">
+                {product.supportEmail ?? BRAND_EMAIL}
+              </a>
+            </span>
+          </p>
+        </div>
+
         {reviewsQ.data && reviewsQ.data.reviews.length > 0 ? (
           <div className="rounded-2xl border bg-card p-5">
             <p className="font-[family-name:var(--font-display)] font-semibold">What buyers say</p>
@@ -379,7 +402,12 @@ function ProductCheckoutPage() {
                         decoding="async"
                         className="h-full w-full object-cover transition-transform group-hover:scale-105"
                       />
-                    ) : null}
+                    ) : (
+                      // No cover: the product's initial instead of an empty grey box.
+                      <span className="flex h-full w-full items-center justify-center bg-primary/10 font-[family-name:var(--font-display)] text-2xl font-bold text-primary">
+                        {p.name.trim().charAt(0).toUpperCase()}
+                      </span>
+                    )}
                   </div>
                   <p className="mt-1.5 truncate text-sm font-medium">{p.name}</p>
                   <p className="text-xs text-primary">
@@ -417,27 +445,6 @@ function ProductCheckoutPage() {
             <span className="font-medium">{BRAND_NAME}</span>
           </Link>
         )}
-
-        <div className="flex flex-col gap-2 rounded-xl border bg-card p-4 text-sm text-muted-foreground">
-            {product.refundPolicy ? (
-              <p className="flex items-start gap-2">
-                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                <span className="whitespace-pre-line break-words">{product.refundPolicy}</span>
-              </p>
-            ) : null}
-            {/* The refund policy tells buyers to contact the seller about a
-                faulty file, so there must always be somewhere to write: the
-                seller's support email, or Halvo's if they haven't set one. */}
-            <p className="flex items-start gap-2">
-              <Mail className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-              <span>
-                Questions or a problem with a file?{" "}
-                <a href={`mailto:${product.supportEmail ?? BRAND_EMAIL}`} className="underline underline-offset-2 [overflow-wrap:anywhere]">
-                  {product.supportEmail ?? BRAND_EMAIL}
-                </a>
-              </span>
-            </p>
-        </div>
       </main>
     </div>
   );
