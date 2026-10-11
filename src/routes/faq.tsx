@@ -39,8 +39,6 @@ export const Route = createFileRoute("/faq")({
 
 // Kept in sync with plans.ts so a fee number here can never drift from reality.
 const freeFee = Math.round(PLAN_LIMITS.free.platformFeePct * 100);
-const creatorFee = Math.round(PLAN_LIMITS.creator.platformFeePct * 100);
-const proFee = Math.round(PLAN_LIMITS.pro.platformFeePct * 100);
 const fixedCents = PLAN_LIMITS.free.platformFeeFixedCents;
 
 const FAQS: Array<{ group: string; items: Array<{ q: string; a: string }> }> = [
@@ -70,7 +68,7 @@ const FAQS: Array<{ group: string; items: Array<{ q: string; a: string }> }> = [
     items: [
       {
         q: "How much does it cost to sell on " + BRAND_NAME + "?",
-        a: `A small platform fee per sale: ${freeFee}% on Free, ${creatorFee}% on ${PLAN_LABELS.creator} ($${PLAN_PRICE_USD.creator}/mo), and ${proFee}% on ${PLAN_LABELS.pro} ($${PLAN_PRICE_USD.pro}/mo), plus a flat ${fixedCents}¢. Paid plans lower the fee and raise your product, storage and file-size limits.`,
+        a: `One fee: ${freeFee}% + ${fixedCents}¢ per sale. There is no monthly charge and no tiers to choose between — if you don't sell anything, you pay nothing. That fee covers card processing too, so it's the whole cost, not a platform cut on top of Stripe's.`,
       },
       {
         q: "Is there a separate Stripe fee on top?",

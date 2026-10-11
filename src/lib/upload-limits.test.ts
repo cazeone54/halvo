@@ -14,10 +14,14 @@ describe("checkFileSize", () => {
     expect(checkFileSize(overBytes, PLAN_LIMITS.free)).not.toBeNull();
   });
 
-  it("free tier's max is smaller than creator/pro — a bigger file allowed on Creator is rejected on Free", () => {
-    const midSize = (PLAN_LIMITS.free.maxFileMb + 1) * 1024 * 1024;
-    expect(checkFileSize(midSize, PLAN_LIMITS.free)).not.toBeNull();
-    expect(checkFileSize(midSize, PLAN_LIMITS.creator)).toBeNull();
+  // Was "free's max is smaller than creator/pro". Under single-tier pricing
+  // there is nothing to upgrade to, so the limit is the same everywhere and a
+  // file at the limit must be accepted rather than hitting a wall with no exit.
+  it("accepts a file right at the limit on every tier", () => {
+    const atLimit = PLAN_LIMITS.free.maxFileMb * 1024 * 1024;
+    for (const tier of [PLAN_LIMITS.free, PLAN_LIMITS.creator, PLAN_LIMITS.pro]) {
+      expect(checkFileSize(atLimit, tier)).toBeNull();
+    }
   });
 });
 

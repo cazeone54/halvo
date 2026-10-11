@@ -11,7 +11,7 @@ export const Route = createFileRoute("/pricing")({
       { title: `Pricing — ${BRAND_NAME}` },
       {
         name: "description",
-        content: `${BRAND_NAME} pricing: start free with no monthly cost and pay one small fee per sale. Upgrade to Creator or Pro for lower fees. Payouts go to your own Stripe.`,
+        content: `${BRAND_NAME} pricing: one plan, no monthly fee. You pay a single small fee per sale and nothing when you don't sell. Payouts go to your own Stripe.`,
       },
       { property: "og:title", content: `Pricing — ${BRAND_NAME}` },
       { property: "og:type", content: "website" },
@@ -29,7 +29,7 @@ function PricingPage() {
       <main id="main-content" tabIndex={-1} className="flex-1 bg-hero-glow">
         <div className="mx-auto max-w-4xl px-4 py-16 text-center sm:px-6 sm:py-20">
           <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold sm:text-4xl">Pricing</h1>
-          <p className="mt-2 text-muted-foreground">Start free. Upgrade when you outgrow it.</p>
+          <p className="mt-2 text-muted-foreground">One plan. No monthly fee. You pay only when you sell.</p>
 
           <div className="mt-12">
             <PricingTiers />

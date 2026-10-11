@@ -25,16 +25,49 @@ export type PlanLimits = {
   aiGenerationsPerMonth: number;
 };
 
+// ─── Single-tier pricing ────────────────────────────────────────────────────
+// The paid tiers are built and tested but deliberately NOT sold. Everyone pays
+// one rate: UNIVERSAL_FEE. Why (decided 2026-10-11, from the modelling):
+//
+//  1. They help nobody we're recruiting. Creator only beats a flat 7% above
+//     ~$500/mo of sales and Pro above ~$800/mo. Every target seller is far
+//     below that, so a tier is strictly worse for them AND earns the platform
+//     less at volume (a seller picks the cheapest option by definition, so at
+//     100 sales/mo tiers cost the platform $123 against flat 7%).
+//  2. 7% is the only rate with FX headroom. Break-even Stripe cost is 7.10%
+//     for this rate but only 5.10%/4.10% for the old Creator/Pro rates — and
+//     STRIPE_PERCENT_FEE below is US-domestic pricing, while this account is
+//     Bulgarian charging USD. International cards plus currency conversion can
+//     plausibly exceed 4.1%, which made Pro loss-making on every sale.
+//  3. It keeps subscription machinery (dunning, proration, cancellation) out
+//     of the launch path.
+//
+// TO RE-ENABLE TIERS: set SINGLE_TIER_PRICING to false and restore the
+// commented per-tier rates below. Nothing else in the app needs to change —
+// pricing UI reads ACTIVE_TIERS, fees read PLAN_LIMITS.
+export const SINGLE_TIER_PRICING = true;
+
+export const UNIVERSAL_FEE_PCT = 0.07;
+export const UNIVERSAL_FEE_FIXED_CENTS = 35;
+
+// Which tiers the pricing UI offers. Tier rows already in the database still
+// resolve and keep their (more generous) limits — they just pay the same rate.
+export const ACTIVE_TIERS: PlanTier[] = SINGLE_TIER_PRICING
+  ? ["free"]
+  : ["free", "creator", "pro"];
+
 export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
   free: {
-    productsMax: 3,
-    filesPerProduct: 1,
-    maxFileMb: 100,
-    totalStorageMb: 500,
-    monthlyBandwidthGb: 5,
-    platformFeePct: 0.07,
-    platformFeeFixedCents: 35,
-    aiGenerationsPerMonth: 10,
+    // Raised from 3 / 1 / 100MB / 500MB / 5GB / 10 when tiers were retired —
+    // with nothing to upgrade to, the old free limits were just a wall.
+    productsMax: Number.POSITIVE_INFINITY,
+    filesPerProduct: 10,
+    maxFileMb: 2048,
+    totalStorageMb: 20480,
+    monthlyBandwidthGb: 150,
+    platformFeePct: UNIVERSAL_FEE_PCT, // was 0.07
+    platformFeeFixedCents: UNIVERSAL_FEE_FIXED_CENTS,
+    aiGenerationsPerMonth: 100,
   },
   creator: {
     productsMax: Number.POSITIVE_INFINITY,
@@ -42,8 +75,8 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxFileMb: 2048,
     totalStorageMb: 20480,
     monthlyBandwidthGb: 150,
-    platformFeePct: 0.05,
-    platformFeeFixedCents: 35,
+    platformFeePct: UNIVERSAL_FEE_PCT, // was 0.05
+    platformFeeFixedCents: UNIVERSAL_FEE_FIXED_CENTS,
     aiGenerationsPerMonth: 100,
   },
   pro: {
@@ -52,8 +85,8 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxFileMb: 10240,
     totalStorageMb: 204800,
     monthlyBandwidthGb: 1024,
-    platformFeePct: 0.04,
-    platformFeeFixedCents: 35,
+    platformFeePct: UNIVERSAL_FEE_PCT, // was 0.04
+    platformFeeFixedCents: UNIVERSAL_FEE_FIXED_CENTS,
     aiGenerationsPerMonth: 300,
   },
 };

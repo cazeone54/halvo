@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { PLAN_LABELS, calcPlatformFeeCents, type PlanTier } from "@/lib/plans";
+import { ACTIVE_TIERS, PLAN_LABELS, calcPlatformFeeCents, type PlanTier } from "@/lib/plans";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-const TIERS: PlanTier[] = ["free", "creator", "pro"];
+// Only the tiers actually on sale — otherwise single-tier pricing renders the
+// same number three times, which reads like a bug.
+const TIERS: PlanTier[] = ACTIVE_TIERS;
 
 // Uses the real fee model (plans.ts) so what it shows is exactly what a seller
 // receives. Because Halvo uses a Stripe destination charge, the payout is
@@ -42,7 +44,11 @@ export function EarningsCalculator() {
               key={tier}
               className="flex items-center justify-between rounded-lg border bg-muted/40 px-4 py-2.5"
             >
-              <span className="text-sm font-medium">{PLAN_LABELS[tier]}</span>
+              {/* The plan name only means something when there's a choice; on
+                  its own "Free" reads as if the product were free. */}
+              <span className="text-sm font-medium">
+                {TIERS.length === 1 ? "Your payout" : PLAN_LABELS[tier]}
+              </span>
               <span className="flex items-baseline gap-2">
                 <span className="font-[family-name:var(--font-display)] text-lg font-bold tabular-nums text-primary">
                   ${(keep / 100).toFixed(2)}

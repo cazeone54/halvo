@@ -4,6 +4,8 @@ import {
   calcPlatformFeeCents,
   STRIPE_PRICE_IDS,
   PLAN_LIMITS,
+  SINGLE_TIER_PRICING,
+  ACTIVE_TIERS,
   type PlanTier,
 } from "@/lib/plans";
 import { MIN_CHARGE_CENTS, estimateStripeFeeCents, STRIPE_FIXED_FEE_CENTS } from "@/lib/fees";
@@ -41,9 +43,24 @@ describe("calcPlatformFeeCents", () => {
     expect(calcPlatformFeeCents("pro", 1000)).toBeGreaterThan(0);
   });
 
-  it("gives higher tiers a cheaper rate, so upgrading still pays off", () => {
-    expect(calcPlatformFeeCents("pro", 5000)).toBeLessThan(calcPlatformFeeCents("creator", 5000));
-    expect(calcPlatformFeeCents("creator", 5000)).toBeLessThan(calcPlatformFeeCents("free", 5000));
+  // Replaced "higher tiers are cheaper" when tiers were retired. If
+  // SINGLE_TIER_PRICING is ever turned back off, restore that assertion.
+  it("charges one rate while single-tier pricing is on", () => {
+    expect(SINGLE_TIER_PRICING).toBe(true);
+    expect(ACTIVE_TIERS).toEqual(["free"]);
+    expect(calcPlatformFeeCents("creator", 5000)).toBe(calcPlatformFeeCents("free", 5000));
+    expect(calcPlatformFeeCents("pro", 5000)).toBe(calcPlatformFeeCents("free", 5000));
+  });
+
+  // The invariant that actually protects the business: the fee has to clear
+  // Stripe's cost on a destination charge, or the platform pays to process
+  // someone else's sale. Checked across the whole realistic price range.
+  it("never charges less than Stripe costs, at any price, on any tier", () => {
+    for (const tier of ["free", "creator", "pro"] as PlanTier[]) {
+      for (const amount of [MIN_CHARGE_CENTS, 100, 500, 1500, 4900, 9900, 49900, 100000]) {
+        expect(calcPlatformFeeCents(tier, amount)).toBeGreaterThan(estimateStripeFeeCents(amount));
+      }
+    }
   });
 
   it("returns 0 for zero or negative amounts regardless of tier", () => {
