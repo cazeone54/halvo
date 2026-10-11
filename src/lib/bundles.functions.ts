@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { deliverableBytes } from "@/lib/bundle.server";
+import { checkFreeBundleSize, isFreePricing } from "@/lib/upload-limits";
 
 // What's in a bundle, plus the seller's other products that could be added.
 export const getBundleEditor = createServerFn({ method: "GET" })
@@ -47,10 +49,20 @@ export const addBundleItem = createServerFn({ method: "POST" })
     // seller could bundle (and therefore give away) someone else's product.
     const { data: owned } = await context.supabase
       .from("products")
-      .select("id, url_slug, name")
+      .select("id, url_slug, name, price_cents, pay_what_you_want")
       .eq("owner_id", context.userId)
       .in("id", [data.bundleProductId, data.itemProductId]);
     if (!owned || owned.length !== 2) throw new Error("Product not found");
+
+    // A free bundle hands its items' files out free, so it's held to the
+    // free-product size cap across everything in it.
+    const bundleRow = owned.find((p) => p.id === data.bundleProductId);
+    if (bundleRow && isFreePricing(bundleRow)) {
+      const tooBig = checkFreeBundleSize(
+        await deliverableBytes(context.supabase, data.bundleProductId, [data.itemProductId]),
+      );
+      if (tooBig) throw new Error(tooBig);
+    }
 
     const { error } = await context.supabase.from("bundle_items").insert({
       bundle_product_id: data.bundleProductId,

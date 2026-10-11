@@ -23,6 +23,31 @@ export async function resolveDeliverableProductIds(admin: Admin, productId: stri
   }
 }
 
+// Total bytes a buyer of `productId` receives, counting bundled products, plus
+// any `extraProductIds` about to be bundled in.
+export async function deliverableBytes(client: Admin, productId: string, extraProductIds: string[] = []): Promise<number> {
+  const ids = Array.from(new Set([...(await resolveDeliverableProductIds(client, productId)), ...extraProductIds]));
+  const { data } = await client.from("product_files").select("size_bytes").in("product_id", ids);
+  return (data ?? []).reduce((sum, f) => sum + (f.size_bytes ?? 0), 0);
+}
+
+// Free bundles that include `productId` — a file added to it reaches their
+// buyers too. Best-effort like the resolver above: no bundles table, no bundles.
+export async function freeBundlesContaining(client: Admin, productId: string): Promise<string[]> {
+  try {
+    const { data: rows } = await client.from("bundle_items").select("bundle_product_id").eq("item_product_id", productId);
+    const ids = (rows ?? []).map((r) => r.bundle_product_id);
+    if (ids.length === 0) return [];
+    const { data: bundles } = await client
+      .from("products")
+      .select("id, price_cents, pay_what_you_want")
+      .in("id", ids);
+    return (bundles ?? []).filter((b) => !b.pay_what_you_want && b.price_cents === 0).map((b) => b.id);
+  } catch {
+    return [];
+  }
+}
+
 // How many files a purchase of this product would actually deliver, counting
 // bundled products. Used to refuse a checkout that would hand over nothing.
 export async function countDeliverableFiles(admin: Admin, productId: string): Promise<number> {

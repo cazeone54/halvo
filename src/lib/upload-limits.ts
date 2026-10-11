@@ -75,6 +75,16 @@ export function checkFreeProductSize(productBytesAfterUpload: number): string | 
   return null;
 }
 
+// A bundle delivers its items' files too, so a free bundle is held to the same
+// cap across everything in it — or a free bundle of big paid products would be
+// a free file host.
+export function checkFreeBundleSize(bundleBytesAfterChange: number): string | null {
+  if (bundleBytesAfterChange > FREE_PRODUCT_MAX_MB * MB) {
+    return `A free bundle can deliver up to ${FREE_PRODUCT_MAX_MB} MB in total, counting every product in it. Set a price on the bundle to include bigger files.`;
+  }
+  return null;
+}
+
 // Runs every check; returns the first failure message, or null if the upload
 // is allowed. Messages for unverified sellers say how to lift the limit.
 export function checkUploadAgainstLimits(

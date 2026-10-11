@@ -4,7 +4,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { resolveUserTier } from "@/lib/user-plan.functions";
 import { PLAN_LIMITS } from "@/lib/plans";
-import { checkUploadAgainstLimits, checkFreeProductSize, isFreePricing } from "@/lib/upload-limits";
+import { checkUploadAgainstLimits, checkFreeBundleSize, checkFreeProductSize, isFreePricing } from "@/lib/upload-limits";
+import { deliverableBytes, freeBundlesContaining } from "@/lib/bundle.server";
 import { productImageUrl } from "@/lib/public-image-url";
 import { isOwnProductPath } from "@/lib/product-media";
 import type { Database } from "@/integrations/supabase/types";
@@ -36,6 +37,26 @@ async function isVerifiedSeller(supabase: SupabaseClient<Database>, userId: stri
   } catch {
     return false;
   }
+}
+
+// Upload checks that depend on what a buyer of a free product receives: for a
+// free product that's its own files plus anything bundled into it, and a file
+// added to a product inside a free bundle reaches that bundle's buyers too.
+async function freeDeliveryUsage(
+  supabase: SupabaseClient<Database>,
+  productId: string,
+  productIsFree: boolean,
+  addBytes: number,
+): Promise<{ deliverableBytesForProduct: number | null; bundleRejection: string | null }> {
+  const [own, bundleIds] = await Promise.all([
+    productIsFree ? deliverableBytes(supabase, productId) : Promise.resolve(null),
+    freeBundlesContaining(supabase, productId),
+  ]);
+  for (const bundleId of bundleIds) {
+    const rejection = checkFreeBundleSize((await deliverableBytes(supabase, bundleId)) + addBytes);
+    if (rejection) return { deliverableBytesForProduct: own, bundleRejection: rejection };
+  }
+  return { deliverableBytesForProduct: own, bundleRejection: null };
 }
 
 const slugify = (name: string, suffix: string) =>
@@ -178,8 +199,8 @@ export const updateProduct = createServerFn({ method: "POST" })
         .eq("owner_id", context.userId)
         .single();
       if (current && !current.pay_what_you_want) {
-        const { usedBytesForProduct } = await currentUploadUsage(context.supabase, context.userId, productId);
-        const tooBig = checkFreeProductSize(usedBytesForProduct);
+        // Counts bundled products too — a bundle is free to everything in it.
+        const tooBig = checkFreeProductSize(await deliverableBytes(context.supabase, productId));
         if (tooBig) throw new Error(tooBig);
       }
     }
@@ -347,15 +368,24 @@ export const checkCanUploadFile = createServerFn({ method: "POST" })
       .eq("owner_id", context.userId)
       .single();
     if (!product) throw new Error("Product not found");
-    const [tier, usage, verified] = await Promise.all([
+    const productIsFree = isFreePricing(product);
+    const [tier, usage, verified, free] = await Promise.all([
       resolveUserTier(context.supabase, context.userId),
       currentUploadUsage(context.supabase, context.userId, data.productId),
       isVerifiedSeller(context.supabase, context.userId),
+      freeDeliveryUsage(context.supabase, data.productId, productIsFree, data.sizeBytes),
     ]);
-    const rejection = checkUploadAgainstLimits(
-      { sizeBytes: data.sizeBytes, ...usage, productIsFree: isFreePricing(product), verified },
-      PLAN_LIMITS[tier],
-    );
+    const rejection =
+      checkUploadAgainstLimits(
+        {
+          sizeBytes: data.sizeBytes,
+          ...usage,
+          usedBytesForProduct: free.deliverableBytesForProduct ?? usage.usedBytesForProduct,
+          productIsFree,
+          verified,
+        },
+        PLAN_LIMITS[tier],
+      ) ?? free.bundleRejection;
     if (rejection) throw new Error(rejection);
     return { ok: true };
   });
@@ -387,15 +417,24 @@ export const attachProductFile = createServerFn({ method: "POST" })
       .single();
     if (!product) throw new Error("Product not found");
 
-    const [tier, usage, verified] = await Promise.all([
+    const productIsFree = isFreePricing(product);
+    const [tier, usage, verified, free] = await Promise.all([
       resolveUserTier(context.supabase, context.userId),
       currentUploadUsage(context.supabase, context.userId, data.productId),
       isVerifiedSeller(context.supabase, context.userId),
+      freeDeliveryUsage(context.supabase, data.productId, productIsFree, data.sizeBytes),
     ]);
-    const rejection = checkUploadAgainstLimits(
-      { sizeBytes: data.sizeBytes, ...usage, productIsFree: isFreePricing(product), verified },
-      PLAN_LIMITS[tier],
-    );
+    const rejection =
+      checkUploadAgainstLimits(
+        {
+          sizeBytes: data.sizeBytes,
+          ...usage,
+          usedBytesForProduct: free.deliverableBytesForProduct ?? usage.usedBytesForProduct,
+          productIsFree,
+          verified,
+        },
+        PLAN_LIMITS[tier],
+      ) ?? free.bundleRejection;
     if (rejection) {
       await context.supabase.storage.from("digital-assets").remove([data.storageFilePath]);
       throw new Error(rejection);

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { checkFileSize, checkFileCount, checkTotalStorage, checkUploadAgainstLimits, effectiveLimits, FREE_PRODUCT_MAX_MB, UNVERIFIED_MAX_FILE_MB, UNVERIFIED_TOTAL_STORAGE_MB } from "@/lib/upload-limits";
+import { checkFileSize, checkFileCount, checkFreeBundleSize, checkTotalStorage, checkUploadAgainstLimits, effectiveLimits, FREE_PRODUCT_MAX_MB, UNVERIFIED_MAX_FILE_MB, UNVERIFIED_TOTAL_STORAGE_MB } from "@/lib/upload-limits";
 import { PLAN_LIMITS } from "@/lib/plans";
 
 describe("checkFileSize", () => {
@@ -107,5 +107,14 @@ describe("anti file-hosting limits", () => {
 
   it("calls without the new fields behave as before (verified, paid)", () => {
     expect(checkUploadAgainstLimits({ ...empty, sizeBytes: 300 * MB }, base)).toBeNull();
+  });
+});
+
+describe("checkFreeBundleSize", () => {
+  it("holds a free bundle to 250 MB across everything in it", () => {
+    const MB = 1024 * 1024;
+    expect(checkFreeBundleSize(FREE_PRODUCT_MAX_MB * MB)).toBeNull();
+    expect(checkFreeBundleSize(FREE_PRODUCT_MAX_MB * MB + 1)).toMatch(/free bundle/);
+    expect(checkFreeBundleSize(FREE_PRODUCT_MAX_MB * MB + 1)).toMatch(/Set a price on the bundle/);
   });
 });
