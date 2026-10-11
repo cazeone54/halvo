@@ -85,7 +85,8 @@ export const listDiscover = createServerFn({ method: "GET" })
       });
     }
 
-    const visible = ranked.slice(0, 60);
+    // Paged on the page itself (10 / 20 / 50), so return enough to page through.
+    const visible = ranked.slice(0, 200);
 
     // Star ratings for the shown cards — one batched read (no N+1), best-effort
     // so an unmigrated/failing reviews table just means no stars, never a broken

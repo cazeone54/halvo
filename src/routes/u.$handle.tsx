@@ -8,6 +8,9 @@ import { PublicFooter } from "@/components/public-footer";
 import { BRAND_NAME, BASE_URL } from "@/lib/site";
 import { brandThemeStyle } from "@/lib/brand-color";
 import { cn } from "@/lib/utils";
+import { usePagedList } from "@/lib/use-paged-list";
+import { PAGE_SIZES } from "@/lib/paginate";
+import { ListPager } from "@/components/list-pager";
 import type { CSSProperties } from "react";
 
 export const Route = createFileRoute("/u/$handle")({
@@ -47,6 +50,7 @@ export const Route = createFileRoute("/u/$handle")({
 function StorefrontPage() {
   const { profile, products } = Route.useLoaderData();
   const brandStyle = brandThemeStyle(profile.accent_color);
+  const paged = usePagedList(products, "halvo:storefront:per-page", profile.handle ?? "");
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -85,8 +89,8 @@ function StorefrontPage() {
 
         {/* Products */}
         <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {products.map((product) => (
+          <div id="storefront-products" className="grid scroll-mt-20 grid-cols-1 gap-4 sm:grid-cols-2">
+            {paged.items.map((product) => (
               <Link key={product.id} to="/p/$slug" params={{ slug: product.url_slug! }}>
                 <Card className="card-hover h-full overflow-hidden">
                   <div className="flex aspect-video w-full items-center justify-center bg-muted">
@@ -127,6 +131,24 @@ function StorefrontPage() {
               <p className="col-span-full py-10 text-center text-sm text-muted-foreground">No products yet.</p>
             ) : null}
           </div>
+          {paged.total > PAGE_SIZES[0] ? (
+            <div className="mt-6">
+              <ListPager
+                label="Products"
+                page={paged.page}
+                pageCount={paged.pageCount}
+                from={paged.from}
+                to={paged.to}
+                total={paged.total}
+                pageSize={paged.pageSize}
+                onPage={(p) => {
+                  paged.setPage(p);
+                  document.getElementById("storefront-products")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                onPageSize={paged.setPageSize}
+              />
+            </div>
+          ) : null}
         </div>
       </main>
       <PublicFooter />

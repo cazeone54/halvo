@@ -13,6 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { cn } from "@/lib/utils";
+import { usePagedList } from "@/lib/use-paged-list";
+import { PAGE_SIZES } from "@/lib/paginate";
+import { ListPager } from "@/components/list-pager";
 import { BRAND_NAME, BASE_URL } from "@/lib/site";
 
 const SORT_LABELS: Array<{ value: DiscoverSort; label: string }> = [
@@ -62,6 +65,7 @@ function DiscoverPage() {
       discoverFn({ data: { search: debouncedSearch || undefined, category: category ?? undefined, sort } }),
   });
   const categoriesQ = useQuery({ queryKey: ["discover-categories"], queryFn: () => categoriesFn() });
+  const paged = usePagedList(productsQ.data ?? [], "halvo:discover:per-page", `${debouncedSearch}|${category}|${sort}`);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -123,8 +127,8 @@ function DiscoverPage() {
           </div>
         ) : null}
 
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {(productsQ.data ?? []).map((product) => (
+        <div id="discover-results" className="mt-6 grid scroll-mt-20 grid-cols-1 gap-4 sm:grid-cols-2">
+          {paged.items.map((product) => (
             <Link key={product.id} to="/p/$slug" params={{ slug: product.url_slug! }}>
               <Card className="card-hover h-full overflow-hidden">
                 <div className="aspect-video w-full bg-muted">
@@ -168,6 +172,25 @@ function DiscoverPage() {
             <p className="col-span-full py-10 text-center text-sm text-muted-foreground">No products found.</p>
           ) : null}
         </div>
+
+        {paged.total > PAGE_SIZES[0] ? (
+          <div className="mt-6">
+            <ListPager
+              label="Products"
+              page={paged.page}
+              pageCount={paged.pageCount}
+              from={paged.from}
+              to={paged.to}
+              total={paged.total}
+              pageSize={paged.pageSize}
+              onPage={(p) => {
+                paged.setPage(p);
+                document.getElementById("discover-results")?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              onPageSize={paged.setPageSize}
+            />
+          </div>
+        ) : null}
       </main>
       <PublicFooter />
     </div>
