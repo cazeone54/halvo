@@ -22,12 +22,23 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { BRAND_NAME, BASE_URL } from "@/lib/site";
-import { PLAN_LIMITS } from "@/lib/plans";
+import { DIRECT_CHARGES, PLAN_LIMITS } from "@/lib/plans";
 
 // Derived so a copy change can never claim a rate the checkout doesn't charge.
 // This page previously advertised "from 4%" — the old Pro tier — which stopped
 // being true the moment tiers were retired.
-const FEE = `${Math.round(PLAN_LIMITS.free.platformFeePct * 100)}% + ${PLAN_LIMITS.free.platformFeeFixedCents}¢`;
+const FEE_PCT = Math.round(PLAN_LIMITS.free.platformFeePct * 100);
+const FEE_FIXED = PLAN_LIMITS.free.platformFeeFixedCents;
+const FEE = FEE_FIXED > 0 ? `${FEE_PCT}% + ${FEE_FIXED}¢` : `${FEE_PCT}%`;
+
+// Under DESTINATION charges the platform absorbs Stripe's processing fee, so
+// the platform fee genuinely is the seller's whole cost. Under DIRECT charges
+// Stripe bills the seller's own account, so there is a second line on their
+// statement and saying "all-in" would be false.
+const FEE_ALL_IN = !DIRECT_CHARGES;
+const FEE_NOTE = FEE_ALL_IN
+  ? "No monthly charge and no tiers. That one fee covers card processing too, so it's your whole cost."
+  : "No monthly charge and no tiers. Stripe's standard processing fee is billed to your own Stripe account on top.";
 
 export const Route = createFileRoute("/features")({
   head: () => ({
@@ -60,7 +71,7 @@ const SELL: Feature[] = [
 
 const GET_PAID: Feature[] = [
   { icon: Wallet, title: "Payouts to your own Stripe", body: "Every sale routes through Stripe Connect straight to your account. We never hold your money." },
-  { icon: Percent, title: `One fee, ${FEE}`, body: "No monthly charge and no tiers. That one fee covers card processing too, so it's your whole cost." },
+  { icon: Percent, title: `One fee, ${FEE}`, body: FEE_NOTE },
   { icon: ShieldCheck, title: "Refunds & disputes handled", body: "Issue refunds in a click, and chargebacks are recorded with the evidence to fight them." },
   { icon: Users2, title: "Your customer list is yours", body: "Every buyer's email is yours to keep and export — not locked inside the platform." },
 ];
@@ -77,7 +88,7 @@ const GROW: Feature[] = [
 // Honest, widely-published competitor facts — the point is a fair comparison,
 // not spin. Verify current terms on each provider's site before relying on them.
 const COMPARISON: Array<{ label: string; halvo: string; gumroad: string; lemon: string }> = [
-  { label: "Platform fee", halvo: `${FEE}, all-in`, gumroad: "10% flat", lemon: "5% + 50¢" },
+  { label: "Platform fee", halvo: FEE_ALL_IN ? `${FEE}, all-in` : `${FEE} + Stripe's fee`, gumroad: "10% flat", lemon: "5% + 50¢" },
   { label: "Monthly fee", halvo: "None", gumroad: "None", lemon: "None" },
   { label: "Where your money goes", halvo: "Your own Stripe", gumroad: "Held, then paid out", lemon: "Held (merchant of record)" },
   { label: "Instant download delivery", halvo: "yes", gumroad: "yes", lemon: "yes" },

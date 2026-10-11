@@ -373,6 +373,7 @@ function DashboardHome() {
         handleError={handleMut.error ? (handleMut.error as Error).message : null}
         hasProduct={(productsQ.data?.length ?? 0) > 0}
         stripeConnected={!!connect?.chargesEnabled}
+        hasSupportEmail={!!profile?.support_email?.trim()}
         onCreateProduct={() => setShowNewProduct(true)}
         onConnectStripe={() => connectMut.mutate()}
       />

@@ -78,6 +78,27 @@ describe("direct charges — charge params", () => {
   });
 });
 
+describe("direct charges — disputes", () => {
+  it("leaves a lost dispute alone: Stripe debits the seller directly", async () => {
+    vi.resetModules();
+    vi.stubEnv("VITE_STRIPE_DIRECT_CHARGES", "true");
+    const { decideDisputeClose } = await import("@/lib/dispute-liability");
+    // Even with a perfectly reversible transfer, the platform must not act.
+    expect(decideDisputeClose({
+      outcome: "lost", transferId: "tr_123", hasSeller: true, alreadyReversed: false,
+    })).toEqual({ kind: "noop", reason: "direct-charge-settles-on-seller" });
+  });
+
+  it("still restores access when the seller wins", async () => {
+    vi.resetModules();
+    vi.stubEnv("VITE_STRIPE_DIRECT_CHARGES", "true");
+    const { decideDisputeClose } = await import("@/lib/dispute-liability");
+    expect(decideDisputeClose({
+      outcome: "won", transferId: "tr_123", hasSeller: true, alreadyReversed: false,
+    })).toEqual({ kind: "restore_access" });
+  });
+});
+
 describe("direct charges — refunds", () => {
   it("has no transfer to reverse and returns the platform fee", async () => {
     const { refunds } = await load(true);

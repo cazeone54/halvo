@@ -3,7 +3,7 @@ import { Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ACTIVE_TIERS, PLAN_LIMITS, PLAN_LABELS, PLAN_PRICE_USD, type PlanTier } from "@/lib/plans";
+import { ACTIVE_TIERS, DIRECT_CHARGES, PLAN_LIMITS, PLAN_LABELS, PLAN_PRICE_USD, type PlanTier } from "@/lib/plans";
 
 // Shared by the landing page and /pricing so the two can never drift apart —
 // everything is derived from plans.ts, the single source of truth for limits
@@ -71,7 +71,13 @@ export function PricingTiers() {
                     {limits.platformFeeFixedCents > 0 ? ` + ${limits.platformFeeFixedCents}¢` : ""}
                     <span className="text-sm font-normal text-muted-foreground"> per sale</span>
                   </p>
-                  <p className="text-sm text-muted-foreground">You pay nothing until you sell something.</p>
+                  <p className="text-sm text-muted-foreground">
+                    You pay nothing until you sell something.
+                    {/* Under direct charges Stripe bills the seller's own account
+                        separately, so say so here rather than let them find it on
+                        a statement. */}
+                    {DIRECT_CHARGES ? " Stripe's card fee is billed to your own Stripe account on top." : ""}
+                  </p>
                 </>
               ) : (
                 <>

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
-import { PLAN_LABELS, PLAN_PRICE_USD, PLAN_LIMITS } from "@/lib/plans";
+import { PLAN_LABELS, PLAN_PRICE_USD, PLAN_LIMITS, DIRECT_CHARGES } from "@/lib/plans";
 import { COMMISSION_PERCENT } from "@/lib/commission-math";
 import { BRAND_NAME, BASE_URL } from "@/lib/site";
 
@@ -40,6 +40,8 @@ export const Route = createFileRoute("/faq")({
 // Kept in sync with plans.ts so a fee number here can never drift from reality.
 const freeFee = Math.round(PLAN_LIMITS.free.platformFeePct * 100);
 const fixedCents = PLAN_LIMITS.free.platformFeeFixedCents;
+// The fixed part is 0 under direct charges, and "5% + 0¢" reads like a bug.
+const feeLabel = fixedCents > 0 ? `${freeFee}% + ${fixedCents}¢` : `${freeFee}%`;
 
 const FAQS: Array<{ group: string; items: Array<{ q: string; a: string }> }> = [
   {
@@ -68,7 +70,11 @@ const FAQS: Array<{ group: string; items: Array<{ q: string; a: string }> }> = [
     items: [
       {
         q: "How much does it cost to sell on " + BRAND_NAME + "?",
-        a: `One fee: ${freeFee}% + ${fixedCents}¢ per sale. There is no monthly charge and no tiers to choose between — if you don't sell anything, you pay nothing. That fee covers card processing too, so it's the whole cost, not a platform cut on top of Stripe's.`,
+        a: `One fee: ${feeLabel} per sale. There is no monthly charge and no tiers to choose between — if you don't sell anything, you pay nothing. ${
+        DIRECT_CHARGES
+          ? "Stripe's standard card-processing fee is billed separately to your own Stripe account, so you'll see two lines: ours and theirs."
+          : "That fee covers card processing too, so it's the whole cost, not a platform cut on top of Stripe's."
+      }`,
       },
       {
         q: "Is there a separate Stripe fee on top?",

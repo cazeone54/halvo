@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { Check, Circle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,9 @@ type Props = {
   handleError: string | null;
   hasProduct: boolean;
   stripeConnected: boolean;
+  // Buyers are told to contact the seller about a faulty file (the refund
+  // policy), so a seller with no support email leaves them nowhere to go.
+  hasSupportEmail: boolean;
   onCreateProduct: () => void;
   onConnectStripe: () => void;
 };
@@ -33,14 +37,16 @@ export function OnboardingChecklist({
   handleError,
   hasProduct,
   stripeConnected,
+  hasSupportEmail,
   onCreateProduct,
   onConnectStripe,
 }: Props) {
+  const navigate = useNavigate();
   const [shared, setShared] = useState(
     () => typeof window !== "undefined" && window.localStorage.getItem(SHARED_KEY) === "1",
   );
 
-  if (savedHandle && hasProduct && stripeConnected && shared) return null;
+  if (savedHandle && hasProduct && stripeConnected && hasSupportEmail && shared) return null;
 
   const copyLink = async () => {
     if (!savedHandle) return;
@@ -71,6 +77,14 @@ export function OnboardingChecklist({
       hint: "~5 minutes. Payouts go to your own account.",
       action: !stripeConnected ? onConnectStripe : undefined,
       actionLabel: "Connect Stripe",
+    },
+    {
+      key: "support",
+      done: hasSupportEmail,
+      label: "Add a support email",
+      hint: "Shown to buyers, so they can reach you about a problem with a file.",
+      action: !hasSupportEmail ? () => navigate({ to: "/dashboard/settings" }) : undefined,
+      actionLabel: "Add email",
     },
     {
       key: "share",
