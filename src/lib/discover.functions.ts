@@ -54,6 +54,9 @@ export const listDiscover = createServerFn({ method: "GET" })
         .from("transactions")
         .select("product_id, created_at")
         .eq("status", "success")
+        // Membership renewals and later installments aren't new sales; counting
+        // them would let one membership outrank products with many buyers.
+        .eq("is_renewal", false)
         .in(
           "product_id",
           rows.map((r) => r.id),
