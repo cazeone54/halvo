@@ -18,7 +18,12 @@ function senderAddress(): string {
 async function sendEmail(params: { to: string; subject: string; html: string; text: string }): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
-    console.error("RESEND_API_KEY not set — skipping purchase confirmation email");
+    // Shared by purchase confirmations, sale notifications, access recovery and
+    // billing mail — so name the actual message rather than assuming which.
+    console.error(
+      `RESEND_API_KEY not set — NOT sending "${params.subject}" to ${params.to}. ` +
+        `No email will be delivered by this install until it is configured.`,
+    );
     return;
   }
 
