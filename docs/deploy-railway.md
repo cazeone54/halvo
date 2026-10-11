@@ -33,6 +33,8 @@ VITE_STRIPE_PUBLISHABLE_KEY=...            # LIVE key at launch
 STRIPE_SECRET_KEY=...                      # LIVE key at launch
 STRIPE_WEBHOOK_SECRET=...                  # from the webhook you register in step 5
 RESEND_API_KEY=...
+EMAIL_FROM_ADDRESS=hello@YOURDOMAIN       # once YOURDOMAIN is verified in Resend
+UNSUBSCRIBE_SECRET=...                     # any long random string; signs unsubscribe + billing links
 ANTHROPIC_API_KEY=...
 # Optional, for ads later:
 # VITE_META_PIXEL_ID=...
@@ -43,7 +45,8 @@ ANTHROPIC_API_KEY=...
 
 ## 3. Domain + HTTPS
 1. Service → **Settings → Networking → Generate Domain** (gives a `*.up.railway.app` URL to test immediately), or **Custom Domain → add YOURDOMAIN**.
-2. For a custom domain, add the **CNAME** Railway shows at your registrar. HTTPS is provisioned automatically.
+2. For a custom domain, add the **CNAME and TXT** records Railway shows (the TXT is required, or the domain returns 404). HTTPS is provisioned automatically.
+   - **Root domain (e.g. halvo.io) on GoDaddy DNS won't work:** GoDaddy can't put a CNAME on the root. Move the domain's nameservers to Cloudflare (free; keep GoDaddy as registrar), which supports CNAME flattening. If the Cloudflare record is proxied (orange cloud), set SSL/TLS to **Full**, not Full (strict).
 3. Set `VITE_SITE_URL=https://YOURDOMAIN` and **redeploy**.
 
 ## 4. Point Supabase at the domain
@@ -55,7 +58,7 @@ In Supabase → **Authentication → URL Configuration**:
 ## 5. Register the Stripe webhook
 1. Stripe Dashboard (**live** mode) → Developers → Webhooks → **Add endpoint**.
 2. URL: `https://YOURDOMAIN/api/public/payments/webhook`
-3. Events: `payment_intent.succeeded`, `charge.dispute.created`, `charge.dispute.closed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`.
+3. Events: `payment_intent.succeeded`, `charge.dispute.created`, `charge.dispute.closed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`, `invoice.payment_failed` (the last two drive membership/payment-plan renewals and the 7-day grace period).
 4. Copy the **Signing secret** → set `STRIPE_WEBHOOK_SECRET` in Railway → redeploy.
 
 ## 6. Add the image assets

@@ -9,6 +9,12 @@ import { BASE_URL, BRAND_NAME } from "@/lib/site";
 // only allows sending to the account owner's own email address (anti-abuse
 // restriction on new accounts) — real buyer emails will only work once a
 // custom domain is verified there.
+// The address emails come from, e.g. hello@halvo.io once that domain is verified
+// in Resend. Resend's sandbox sender only delivers to the account owner's inbox.
+function senderAddress(): string {
+  return process.env.EMAIL_FROM_ADDRESS?.trim() || "onboarding@resend.dev";
+}
+
 async function sendEmail(params: { to: string; subject: string; html: string; text: string }): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
@@ -24,7 +30,7 @@ async function sendEmail(params: { to: string; subject: string; html: string; te
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: `${BRAND_NAME} <onboarding@resend.dev>`,
+        from: `${BRAND_NAME} <${senderAddress()}>`,
         to: [params.to],
         subject: params.subject,
         html: params.html,
@@ -148,7 +154,7 @@ export async function sendBroadcastEmails(params: {
 
   // Display names can't carry quotes or angle brackets without breaking the header.
   const safeName = params.fromName.replace(/["<>\r\n]/g, "").trim() || BRAND_NAME;
-  const from = `${safeName} via ${BRAND_NAME} <onboarding@resend.dev>`;
+  const from = `${safeName} via ${BRAND_NAME} <${senderAddress()}>`;
 
   let accepted = 0;
   for (let i = 0; i < params.messages.length; i += 100) {
