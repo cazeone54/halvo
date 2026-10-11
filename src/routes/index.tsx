@@ -58,7 +58,7 @@ const FEATURES = [
   {
     icon: Wallet,
     title: "Real payouts",
-    body: "Sales route through Stripe Connect as a real destination charge, so your cut lands in your own Stripe balance automatically.",
+    body: "Every sale is paid into your own Stripe account, so your money lands in your balance automatically. No payout requests, no waiting on us.",
   },
   {
     icon: Percent,
