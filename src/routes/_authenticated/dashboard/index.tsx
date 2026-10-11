@@ -1084,7 +1084,9 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
           <div className="flex items-center gap-3">
             <label className="group relative flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-md bg-primary/10 text-primary">
               {product.imageUrl ? (
-                <img src={product.imageUrl} alt="" className="h-full w-full object-cover" />
+                // Lazy: with 40 products the dashboard was downloading every
+                // full-size cover up front just to show 56px thumbnails.
+                <img src={product.imageUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
               ) : (
                 // ImagePlus (not a generic cube) so an imageless product reads
                 // as "click to add a cover".
