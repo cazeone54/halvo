@@ -5,6 +5,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getVerifiedTransaction } from "@/lib/checkout.functions";
 import { CURRENCY_CODE } from "@/lib/site";
+import { rememberPurchase } from "@/lib/local-purchases";
+import { SaveAccessLink } from "@/components/save-access-link";
 import { useState, useEffect } from "react";
 import { BookOpen, CircleCheck, Download, Mail } from "lucide-react";
 import { getDownloadUrlForTransaction } from "@/lib/downloads.functions";
@@ -78,6 +80,14 @@ function SuccessPage() {
       content_name: transactionQ.data.productName,
     });
   }, [transactionQ.data]);
+
+  // Remember it in this browser so closing the tab isn't the end of it. The
+  // confirmation email is the other path, and it can fail (unverified sending
+  // domain, spam folder, typo'd address) — this one can't.
+  useEffect(() => {
+    if (!id || !transactionQ.data) return;
+    rememberPurchase({ transactionId: id, productName: transactionQ.data.productName });
+  }, [id, transactionQ.data]);
 
   // Reached without a valid purchase id (stale link, removed query param, bot).
   if (!id) {
@@ -153,9 +163,10 @@ function SuccessPage() {
                   </Button>
                 ),
               )}
+              {id ? <SaveAccessLink transactionId={id} /> : null}
               <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                We've emailed this page too. Lost it later?{" "}
+                We've emailed this page too, and this browser will remember it. Lost it later?{" "}
                 <a href="/access" className="underline underline-offset-2 hover:text-foreground">
                   Recover your downloads
                 </a>

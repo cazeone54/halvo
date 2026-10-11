@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { BRAND_NAME, BASE_URL } from "@/lib/site";
+import { LocalPurchasesCard } from "@/components/local-purchases-card";
 
 export const Route = createFileRoute("/access")({
   head: () => ({
@@ -44,7 +45,11 @@ function AccessPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <PublicNav />
-      <main id="main-content" tabIndex={-1} className="flex flex-1 items-center justify-center px-4 py-16">
+      <main id="main-content" tabIndex={-1} className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-16">
+        {/* Instant, email-free recovery for the common case: same browser, lost
+            tab. Rendered before the email form because it needs no waiting and
+            no working inbox. */}
+        <LocalPurchasesCard />
         <Card className="w-full max-w-md">
           <CardHeader>
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
