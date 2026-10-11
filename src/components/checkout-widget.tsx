@@ -565,7 +565,9 @@ function PaymentForm({
       <div className="relative">
         <div className={acknowledged ? "" : "opacity-50"}>
           <ExpressCheckoutElement
-            options={{ buttonHeight: 44, layout: { maxColumns: 1, maxRows: 3, overflow: "never" } }}
+            // Stripe rejects overflow "never" with maxRows > 0 (it threw and no
+            // wallet buttons rendered), so rows are unlimited (0).
+            options={{ buttonHeight: 44, layout: { maxColumns: 1, maxRows: 0, overflow: "never" } }}
             onReady={(e) => setExpressAvailable(!!e.availablePaymentMethods)}
             onClick={(e) => {
               // The actual gate, for every input method (tap, mouse, keyboard):
