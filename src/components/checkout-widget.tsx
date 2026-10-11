@@ -271,7 +271,7 @@ export function CheckoutWidget({ product }: { product: Product }) {
 
       {plan === "full" && product.payWhatYouWant ? (
         <div>
-          <Label htmlFor={`${uid}-f2`}>Name your price (min ${(product.priceCents / 100).toFixed(2)})</Label>
+          <Label htmlFor={`${uid}-f2`}>Name your price (min {formatCents(product.priceCents)})</Label>
           <Input id={`${uid}-f2`}
             type="number"
             inputMode="decimal"
@@ -337,7 +337,7 @@ export function CheckoutWidget({ product }: { product: Product }) {
         {couponError ? <p className="mt-1 text-sm text-destructive">{couponError}</p> : null}
         {appliedCoupon ? (
           <p className="mt-1 text-sm text-muted-foreground">
-            New total: <span className="font-medium text-foreground">${(displayAmountCents / 100).toFixed(2)}</span>
+            New total: <span className="font-medium text-foreground">{formatCents(displayAmountCents)}</span>
           </p>
         ) : null}
       </div>
@@ -354,7 +354,7 @@ export function CheckoutWidget({ product }: { product: Product }) {
           <span className="min-w-0">
             <span className="flex flex-wrap items-center gap-x-2 text-sm font-medium">
               Add {bump.name}
-              <span className="text-primary">+${(bump.priceCents / 100).toFixed(2)}</span>
+              <span className="text-primary">+{formatCents(bump.priceCents)}</span>
             </span>
             {bump.description ? (
               <span className="mt-0.5 block text-xs text-muted-foreground">{bump.description}</span>

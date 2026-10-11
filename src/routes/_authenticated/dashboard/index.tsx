@@ -1,3 +1,4 @@
+import { CURRENCY_CODE } from "@/lib/site";
 import { isPaidFeatureLocked } from "@/lib/feature-gates";
 import { SINGLE_TIER_PRICING } from "@/lib/plans";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -453,7 +454,7 @@ function DashboardHome() {
               />
             </div>
             <div>
-              <Label htmlFor={`${uid}-f3`}>Price (USD)</Label>
+              <Label htmlFor={`${uid}-f3`}>Price ({CURRENCY_CODE})</Label>
               <Input id={`${uid}-f3`} type="number" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} />
               <p className="mt-1 text-xs text-muted-foreground">
                 Set <span className="font-medium">0</span> to give it away as a free lead magnet — buyers just
@@ -1116,7 +1117,7 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
                 {!product.url_slug ? <Badge variant="secondary">Draft</Badge> : null}
               </div>
               <p className="text-sm text-muted-foreground">
-                ${(product.price_cents / 100).toFixed(2)}
+                {formatCents(product.price_cents)}
                 {!product.url_slug
                   ? " · add a file below to publish"
                   : !product.imageUrl
@@ -1176,7 +1177,7 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
             </div>
             <div className="flex gap-3">
               <div className="flex-1">
-                <Label htmlFor={`${uid}-f7`}>Price (USD)</Label>
+                <Label htmlFor={`${uid}-f7`}>Price ({CURRENCY_CODE})</Label>
                 <Input id={`${uid}-f7`} type="number" min="0" step="0.01" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} />
               </div>
               <div className="flex-1">
@@ -1306,7 +1307,7 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
                     {bumpQ.data.available.find((p) => p.id === bumpQ.data?.current?.bumpProductId)?.name ??
                       "Selected product"}{" "}
                     <span className="text-muted-foreground">
-                      at ${((bumpQ.data.current.priceCents ?? 0) / 100).toFixed(2)}
+                      at {formatCents(bumpQ.data.current.priceCents ?? 0)}
                     </span>
                   </span>
                   <Button
@@ -1419,19 +1420,28 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
               />
             </div>
           ))}
-          {/* w-full + min-w-0 so a long filename can't push the card wider
-              than the phone screen; styled file button so it isn't a raw
-              browser control sitting in an otherwise designed card. */}
-          <input
-            type="file"
-            aria-label="Upload the file buyers receive"
-            className="w-full min-w-0 text-sm text-muted-foreground file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-secondary-foreground hover:file:bg-secondary/80"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) attachMut.mutate(file);
-              e.target.value = "";
-            }}
-          />
+          {/* A labelled button instead of the browser's own "Choose File / No
+              file chosen" control, which looked broken next to a file that's
+              already attached. */}
+          <label className="inline-flex w-fit cursor-pointer items-center gap-1.5 rounded-md border border-dashed px-3 py-1.5 text-sm text-muted-foreground transition-colors focus-within:outline-2 focus-within:outline-ring hover:border-primary hover:text-primary">
+            <Upload className="h-3.5 w-3.5" aria-hidden="true" />
+            {attachMut.isPending
+              ? "Uploading…"
+              : (filesQ.data?.length ?? 0) > 0
+                ? "Add another file"
+                : "Upload the file buyers receive"}
+            <input
+              type="file"
+              className="sr-only"
+              aria-label="Upload the file buyers receive"
+              disabled={attachMut.isPending}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) attachMut.mutate(file);
+                e.target.value = "";
+              }}
+            />
+          </label>
           {attachMut.error ? (
             <p className="text-sm text-destructive">{(attachMut.error as Error).message}</p>
           ) : null}

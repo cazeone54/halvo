@@ -1,3 +1,5 @@
+import { CURRENCY_CODE } from "@/lib/site";
+import { formatCents } from "@/lib/format";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -95,7 +97,7 @@ export function ProductOfferEditor({
           <div className="flex flex-col gap-2 pl-6">
             <div className="flex flex-wrap gap-3">
               <div className="w-32">
-                <Label htmlFor={`sale-price-${productId}`}>Launch price (USD)</Label>
+                <Label htmlFor={`sale-price-${productId}`}>Launch price ({CURRENCY_CODE})</Label>
                 <Input
                   id={`sale-price-${productId}`}
                   type="number"
@@ -129,7 +131,7 @@ export function ProductOfferEditor({
               ))}
             </div>
             <p className="text-xs text-muted-foreground">
-              Regular price ${(priceCents / 100).toFixed(2)} is shown crossed out, with a countdown. When it ends, checkout
+              Regular price {formatCents(priceCents)} is shown crossed out, with a countdown. When it ends, checkout
               charges the regular price again.
               {saleEnded ? " Your last launch price has ended." : ""}
             </p>

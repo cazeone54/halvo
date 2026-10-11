@@ -1,3 +1,4 @@
+import { formatCents } from "@/lib/format";
 import { useState } from "react";
 import { ACTIVE_TIERS, PLAN_LABELS, calcPlatformFeeCents, type PlanTier } from "@/lib/plans";
 import { Input } from "@/components/ui/input";
@@ -51,7 +52,7 @@ export function EarningsCalculator() {
               </span>
               <span className="flex items-baseline gap-2">
                 <span className="font-[family-name:var(--font-display)] text-lg font-bold tabular-nums text-primary">
-                  ${(keep / 100).toFixed(2)}
+                  {formatCents(keep)}
                 </span>
                 <span className="text-xs text-muted-foreground">you keep{cents > 0 ? ` · ${pct}%` : ""}</span>
               </span>

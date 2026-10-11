@@ -1,3 +1,4 @@
+import { formatCents } from "@/lib/format";
 import { isPaidFeatureLocked } from "@/lib/feature-gates";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
@@ -122,7 +123,7 @@ function DiscountsPage() {
                 <div className="min-w-0">
                   <p className="truncate font-medium">{coupon.code}</p>
                   <p className="truncate text-sm text-muted-foreground">
-                    {coupon.percent_off ? `${coupon.percent_off}% off` : `$${(coupon.amount_off_cents! / 100).toFixed(2)} off`}
+                    {coupon.percent_off ? `${coupon.percent_off}% off` : `${formatCents(coupon.amount_off_cents!)} off`}
                     {" · "}
                     {coupon.redemptions} used
                   </p>

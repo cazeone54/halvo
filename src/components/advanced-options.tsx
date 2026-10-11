@@ -29,7 +29,7 @@ export function AdvancedOptions({
           Advanced options
         </span>
         <span className="min-w-0 truncate text-xs font-normal text-muted-foreground">
-          {activeSummary || "Refund policy, license keys"}
+          {activeSummary || "License keys"}
         </span>
       </summary>
       <div className="flex flex-col gap-3 border-t p-3">{children}</div>
