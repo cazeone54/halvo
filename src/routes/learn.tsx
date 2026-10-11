@@ -240,7 +240,7 @@ function Reader({ transactionId, fileId, markdown }: { transactionId: string; fi
 function Notice({ title, body, backId }: { title: string; body: string; backId?: string }) {
   return (
     <div className="mx-auto max-w-lg px-4 py-16 text-center">
-      <p className="font-medium">{title}</p>
+      <h1 className="font-medium">{title}</h1>
       <p className="mt-1 text-sm text-muted-foreground">{body}</p>
       {backId ? (
         <Link to="/success" search={{ id: backId }} className="mt-4 inline-block text-sm text-primary underline underline-offset-2">

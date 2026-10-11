@@ -46,7 +46,7 @@ function LoginPage() {
       </Link>
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="font-[family-name:var(--font-display)] text-xl">
+          <CardTitle as="h1" className="font-[family-name:var(--font-display)] text-xl">
             Sign in or create your account
           </CardTitle>
           <CardDescription>

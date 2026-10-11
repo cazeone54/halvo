@@ -115,7 +115,7 @@ function SuccessPage() {
           <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary">
             <CircleCheck className="h-6 w-6" aria-hidden="true" />
           </div>
-          <CardTitle className="mt-3">You're all set</CardTitle>
+          <CardTitle as="h1" className="mt-3">You're all set</CardTitle>
           <p className="text-sm text-muted-foreground">{transactionQ.data?.productName}</p>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">

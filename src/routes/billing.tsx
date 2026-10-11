@@ -179,7 +179,7 @@ function Status({
 function Notice({ title, body }: { title: string; body: string }) {
   return (
     <div className="mx-auto max-w-lg px-4 py-16 text-center">
-      <p className="font-medium">{title}</p>
+      <h1 className="font-medium">{title}</h1>
       <p className="mt-1 text-sm text-muted-foreground">{body}</p>
     </div>
   );

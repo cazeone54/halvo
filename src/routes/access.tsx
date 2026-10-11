@@ -50,7 +50,7 @@ function AccessPage() {
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
               <Download className="h-5 w-5" aria-hidden="true" />
             </div>
-            <CardTitle className="mt-3 font-[family-name:var(--font-display)] text-xl">Recover a purchase</CardTitle>
+            <CardTitle as="h1" className="mt-3 font-[family-name:var(--font-display)] text-xl">Recover a purchase</CardTitle>
             <CardDescription>
               Lost your download link? Enter the email you bought with and we'll send it again.
             </CardDescription>

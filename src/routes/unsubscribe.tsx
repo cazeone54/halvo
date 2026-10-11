@@ -37,7 +37,7 @@ function UnsubscribePage() {
         <Card className="w-full max-w-md">
           {!info.valid ? (
             <CardHeader>
-              <CardTitle className="font-[family-name:var(--font-display)] text-xl">This link doesn't work</CardTitle>
+              <CardTitle as="h1" className="font-[family-name:var(--font-display)] text-xl">This link doesn't work</CardTitle>
               <CardDescription>
                 It may have been copied incompletely. Use the Unsubscribe link at the bottom of the email itself.
               </CardDescription>
@@ -47,7 +47,7 @@ function UnsubscribePage() {
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <MailCheck className="h-5 w-5" aria-hidden="true" />
               </div>
-              <CardTitle className="mt-3 font-[family-name:var(--font-display)] text-xl">You're unsubscribed</CardTitle>
+              <CardTitle as="h1" className="mt-3 font-[family-name:var(--font-display)] text-xl">You're unsubscribed</CardTitle>
               <CardDescription>
                 You won't get updates from {info.sellerName} anymore. Receipts and download links for anything you
                 bought still work as normal.
@@ -59,7 +59,7 @@ function UnsubscribePage() {
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <MailX className="h-5 w-5" aria-hidden="true" />
                 </div>
-                <CardTitle className="mt-3 font-[family-name:var(--font-display)] text-xl">
+                <CardTitle as="h1" className="mt-3 font-[family-name:var(--font-display)] text-xl">
                   Stop updates from {info.sellerName}?
                 </CardTitle>
                 <CardDescription>
