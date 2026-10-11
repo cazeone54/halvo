@@ -5,8 +5,9 @@ import { listMyBuyerSubscriptions } from "@/lib/recurring.functions";
 import { GRACE_DAYS } from "@/lib/recurring";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { formatCents } from "@/lib/format";
 
-const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+const money = (cents: number) => formatCents(cents);
 const date = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
 // Seller's view of memberships and payment plans. Hidden until there is at least one.

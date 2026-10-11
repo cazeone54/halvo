@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildPurchaseEmail, FINAL_SALE_CONFIRMATION } from "@/lib/purchase-email";
+import { CURRENCY_SYMBOL } from "@/lib/site";
 
 describe("buildPurchaseEmail", () => {
   it("includes the product name and download link in subject/html/text", () => {
@@ -28,8 +29,8 @@ describe("buildPurchaseEmail", () => {
       downloadPageUrl: "https://halvo.io/success?id=xyz",
       amountCents: 1999,
     });
-    expect(result.html).toContain("$19.99");
-    expect(result.text).toContain("$19.99");
+    expect(result.html).toContain(`${CURRENCY_SYMBOL}19.99`);
+    expect(result.text).toContain(`${CURRENCY_SYMBOL}19.99`);
   });
 
   it("shows Free for a zero-amount claim", () => {
@@ -39,7 +40,7 @@ describe("buildPurchaseEmail", () => {
       amountCents: 0,
     });
     expect(result.text).toContain("Free");
-    expect(result.html).not.toContain("$0.00");
+    expect(result.html).not.toContain(`${CURRENCY_SYMBOL}0.00`);
   });
 
   it("omits the receipt line entirely when no amount is given", () => {

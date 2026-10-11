@@ -26,7 +26,7 @@ import {
   portalConfiguration,
   recordPaidInvoice,
 } from "@/lib/recurring.server";
-import { BASE_URL } from "@/lib/site";
+import { BASE_URL, CURRENCY } from "@/lib/site";
 import type Stripe from "stripe";
 
 const UNAVAILABLE_MESSAGE = "This product isn't available for purchase yet.";
@@ -92,7 +92,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       const sub = await stripe.subscriptions.create({
         customer: customer.id,
         items: [
-          { price_data: { currency: "usd", product: stripeProductId, unit_amount: amountCents, recurring: { interval } } },
+          { price_data: { currency: CURRENCY, product: stripeProductId, unit_amount: amountCents, recurring: { interval } } },
         ],
         payment_behavior: "default_incomplete",
         payment_settings: { save_default_payment_method: "on_subscription" },

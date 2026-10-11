@@ -1,6 +1,7 @@
 import { Package, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PRODUCT_EXAMPLES, type ProductExample } from "@/lib/product-examples";
+import { CURRENCY_SYMBOL } from "@/lib/site";
 
 // A new seller's first view of their product list. One primary action, plus
 // examples that pre-fill the form — the empty state is the first impression,
@@ -33,7 +34,7 @@ export function ProductsEmptyState({
           {PRODUCT_EXAMPLES.map((example) => (
             <Button key={example.key} variant="outline" size="sm" onClick={() => onUseExample(example)}>
               {example.label}
-              <span className="text-muted-foreground">{Number(example.price) === 0 ? "free" : `$${example.price}`}</span>
+              <span className="text-muted-foreground">{Number(example.price) === 0 ? "free" : `${CURRENCY_SYMBOL}${example.price}`}</span>
             </Button>
           ))}
         </div>

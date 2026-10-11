@@ -4,6 +4,7 @@ import { zodValidator } from "@tanstack/zod-adapter";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getVerifiedTransaction } from "@/lib/checkout.functions";
+import { CURRENCY_CODE } from "@/lib/site";
 import { useState, useEffect } from "react";
 import { BookOpen, CircleCheck, Download, Mail } from "lucide-react";
 import { getDownloadUrlForTransaction } from "@/lib/downloads.functions";
@@ -73,7 +74,7 @@ function SuccessPage() {
     if (!transactionQ.data) return;
     trackEvent("Purchase", {
       value: transactionQ.data.amountPaidCents / 100,
-      currency: "USD",
+      currency: CURRENCY_CODE,
       content_name: transactionQ.data.productName,
     });
   }, [transactionQ.data]);

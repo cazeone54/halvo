@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { formatCents } from "@/lib/format";
 
 type Product = {
   id: string;
@@ -41,7 +42,7 @@ type Plan = "full" | "installments" | "membership";
 // What the buyer agrees to — shown on the checkbox that gates payment.
 export type PlanTerms = { kind: "full" } | { kind: "membership"; label: string } | { kind: "installments"; label: string };
 
-const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+const money = (cents: number) => formatCents(cents);
 
 // Read once, at module scope on the client, because document.referrer is only
 // meaningful for the page the buyer actually landed on — any in-app navigation

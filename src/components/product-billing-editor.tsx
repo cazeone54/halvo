@@ -6,9 +6,10 @@ import { setProductBilling } from "@/lib/recurring.functions";
 import { GRACE_DAYS, installmentAmountCents, validateBilling, type BillingInterval } from "@/lib/recurring";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { formatCents } from "@/lib/format";
 
 type Model = "one_time" | "plan" | "membership";
-const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+const money = (cents: number) => formatCents(cents);
 
 export function ProductBillingEditor({
   productId,

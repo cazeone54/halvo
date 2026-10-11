@@ -16,7 +16,7 @@ import { listProductReviews } from "@/lib/reviews.functions";
 import { Stars } from "@/components/stars";
 import { CheckoutWidget } from "@/components/checkout-widget";
 import { Logo, LogoMark } from "@/components/logo";
-import { BRAND_NAME, BASE_URL, BRAND_EMAIL } from "@/lib/site";
+import { BRAND_NAME, BASE_URL, BRAND_EMAIL, CURRENCY_CODE } from "@/lib/site";
 
 export const Route = createFileRoute("/p/$slug")({
   loader: async ({ params }) => {
@@ -56,7 +56,7 @@ export const Route = createFileRoute("/p/$slug")({
       offers: {
         "@type": "Offer",
         price: (loaderData.priceCents / 100).toFixed(2),
-        priceCurrency: "USD",
+        priceCurrency: CURRENCY_CODE,
         availability: loaderData.soldOut ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
         url,
       },

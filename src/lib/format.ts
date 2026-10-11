@@ -1,7 +1,8 @@
 import { activeSalePriceCents } from "@/lib/offer";
+import { CURRENCY_SYMBOL } from "@/lib/site";
 
 export function formatCents(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`;
+  return `${CURRENCY_SYMBOL}${(cents / 100).toFixed(2)}`;
 }
 
 export type PricedProduct = {

@@ -12,6 +12,7 @@ import {
   type SubscriptionKind,
 } from "@/lib/recurring";
 import { sendBillingLinkEmail, sendPaymentFailedEmail, sendPurchaseConfirmationEmail } from "@/lib/email.server";
+import { formatCents } from "@/lib/format";
 
 type Admin = SupabaseClient<Database>;
 
@@ -30,7 +31,7 @@ export async function manageUrl(rowId: string): Promise<string> {
 }
 
 export function planLabel(kind: string, amountCents: number, interval: string, installmentsTotal: number | null) {
-  const amount = `$${(amountCents / 100).toFixed(2)}`;
+  const amount = formatCents(amountCents);
   return kind === "installments"
     ? `payment plan, ${installmentsTotal} × ${amount} monthly`
     : `membership, ${amount} per ${intervalLabel(interval)}`;

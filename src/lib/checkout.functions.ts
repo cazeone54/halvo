@@ -21,6 +21,7 @@ import {
   isFreeProduct,
   composeChargeAmount,
 } from "@/lib/checkout-math";
+import { CURRENCY } from "@/lib/site";
 
 // Shown to a *buyer*, so it never leaks the seller's setup state (missing file,
 // unfinished Stripe onboarding). They only need to know it can't be bought yet.
@@ -180,7 +181,7 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
 
     try {
       const intent = await stripe.paymentIntents.create({
-        currency: "usd",
+        currency: CURRENCY,
         automatic_payment_methods: { enabled: true },
         metadata: {
           productId: product.id,
