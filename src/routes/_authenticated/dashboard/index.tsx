@@ -1,6 +1,6 @@
 import { CURRENCY_CODE } from "@/lib/site";
 import { isPaidFeatureLocked } from "@/lib/feature-gates";
-import { SINGLE_TIER_PRICING } from "@/lib/plans";
+import { SINGLE_TIER_PRICING, DIRECT_CHARGES } from "@/lib/plans";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -81,6 +81,12 @@ import { BASE_URL, BRAND_KEY } from "@/lib/site";
 import { formatCents } from "@/lib/format";
 import { toCsv } from "@/lib/csv";
 import { cn } from "@/lib/utils";
+
+// The live per-sale fee, e.g. "5%" (no fixed part under direct charges).
+const PLATFORM_FEE_LABEL =
+  PLAN_LIMITS.free.platformFeeFixedCents > 0
+    ? `${Math.round(PLAN_LIMITS.free.platformFeePct * 100)}% + ${PLAN_LIMITS.free.platformFeeFixedCents}¢`
+    : `${Math.round(PLAN_LIMITS.free.platformFeePct * 100)}%`;
 
 export const Route = createFileRoute("/_authenticated/dashboard/")({
   component: DashboardHome,
@@ -227,7 +233,9 @@ function DashboardHome() {
       setShowNewProduct(false);
       toast.success(
         res.published
-          ? "Your product is live — share the link to make your first sale."
+          ? connect?.chargesEnabled || Number(price) === 0
+            ? "Your product is live — share the link to make your first sale."
+            : "Product published. Connect Stripe so buyers can pay — until then its page says it isn't available yet."
           : "Product created — add a file to publish it.",
       );
       qc.invalidateQueries({ queryKey: ["my-products"] });
@@ -561,7 +569,12 @@ function DashboardHome() {
 
         <div className="flex flex-col gap-3">
           {(productsQ.data ?? []).map((product) => (
-            <ProductRow key={product.id} product={product} onDelete={() => deleteMut.mutate(product.id)} />
+            <ProductRow
+              key={product.id}
+              product={product}
+              canTakePayments={!!connect?.chargesEnabled}
+              onDelete={() => deleteMut.mutate(product.id)}
+            />
           ))}
           {productsQ.data?.length === 0 && !showNewProduct ? (
             <ProductsEmptyState
@@ -693,7 +706,16 @@ function DashboardHome() {
           <CardContent className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <p className="text-sm">
-                Current plan: <Badge>{PLAN_LABELS[planQ.data?.tier ?? "free"]}</Badge>
+                {SINGLE_TIER_PRICING ? (
+                  <>
+                    Your fee: <span className="font-medium">{PLATFORM_FEE_LABEL} per sale</span>
+                    {DIRECT_CHARGES ? " + Stripe's card fee" : ""}. No monthly fee.
+                  </>
+                ) : (
+                  <>
+                    Current plan: <Badge>{PLAN_LABELS[planQ.data?.tier ?? "free"]}</Badge>
+                  </>
+                )}
               </p>
               {planQ.data && planQ.data.tier !== "free" ? (
                 <Button size="sm" variant="outline" onClick={() => portalMut.mutate()} disabled={portalMut.isPending}>
@@ -916,7 +938,16 @@ type ProductRowData = {
   files?: Array<{ id: string; file_name: string | null; storage_file_path: string; size_bytes: number | null }>;
 };
 
-function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: () => void }) {
+function ProductRow({
+  product,
+  onDelete,
+  canTakePayments,
+}: {
+  product: ProductRowData;
+  onDelete: () => void;
+  // False until Stripe is connected: a paid product can be published but not bought.
+  canTakePayments: boolean;
+}) {
   const uid = useId();
   const qc = useQueryClient();
   const filesFn = useServerFn(listMyProductFiles);
@@ -1024,7 +1055,9 @@ function ProductRow({ product, onDelete }: { product: ProductRowData; onDelete: 
       // Attaching the first file is what publishes the product, so this is the
       // moment to hand the seller their link — sharing it is what actually
       // produces a sale, and it used to be hidden behind an unlabelled icon.
-      if (res?.published) {
+      if (res?.published && !canTakePayments && product.price_cents > 0) {
+        toast.warning("Product published. Connect Stripe so buyers can pay — until then its page says it isn't available yet.");
+      } else if (res?.published) {
         toast.success("Your product is live — share the link to make your first sale.");
         setSharing(true);
         setJustPublished(true);
