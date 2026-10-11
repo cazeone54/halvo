@@ -306,6 +306,12 @@ function ProductCheckoutPage() {
               }}
             />
           )}
+          {product.sellerName ? (
+            // The seller is the merchant of record (on_behalf_of), so say so plainly.
+            <p className="mt-3 text-center text-xs text-muted-foreground">
+              Sold by {product.sellerName} · {BRAND_NAME} handles checkout and delivery
+            </p>
+          ) : null}
         </div>
 
         {/* Trust strip — right where hesitation happens, all statements true */}

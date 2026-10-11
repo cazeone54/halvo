@@ -108,6 +108,7 @@ describe("buildDestinationChargeParams", () => {
     expect(params.application_fee_amount).toBe(calcPlatformFeeCents("free", 10_00));
     expect(params.application_fee_amount).toBeGreaterThan(0);
     expect(params.transfer_data).toEqual({ destination: "acct_123" });
+    expect(params.on_behalf_of).toBe("acct_123");
   });
 
   it("charges paid tiers a real but cheaper fee than free", () => {

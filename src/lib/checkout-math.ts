@@ -61,6 +61,7 @@ export type DestinationChargeParams = {
   amount: number;
   application_fee_amount: number;
   transfer_data: { destination: string };
+  on_behalf_of: string;
 };
 
 // The actual Kitsly fix: every purchase charge routes through Stripe Connect
@@ -89,5 +90,9 @@ export function buildDestinationChargeParams(
     // Stripe requires the application fee to not exceed the charge itself.
     application_fee_amount: Math.min(withheld, safeAmount),
     transfer_data: { destination: connectedAccountId },
+    // The seller is the business of record: their name is on the buyer's
+    // statement and the sale is theirs (they're responsible for its taxes).
+    // Halvo's fee and dispute handling are unchanged.
+    on_behalf_of: connectedAccountId,
   };
 }

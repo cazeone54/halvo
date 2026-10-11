@@ -13,10 +13,13 @@ export const Route = createFileRoute("/terms")({
   component: TermsPage,
 });
 
+// Bump this whenever the terms change — it used to print today's date on every visit.
+const TERMS_UPDATED = "2026-10-11";
+
 function TermsPage() {
   return (
     <LegalLayout title="Terms of Service">
-      <p>Last updated: {new Date().toISOString().slice(0, 10)}</p>
+      <p>Last updated: {TERMS_UPDATED}</p>
 
       <h2>1. Using {BRAND_NAME}</h2>
       <p>
@@ -28,6 +31,11 @@ function TermsPage() {
       <h2>2. Payments and fees</h2>
       <ul>
         <li>Payments are processed by Stripe. Sellers connect their own Stripe account and are paid into it directly.</li>
+        <li>
+          Each sale is made by the seller, not by {BRAND_NAME}. The seller is the merchant of record: their business name
+          appears on the buyer's card statement, and the contract for the product is between the buyer and the seller.{" "}
+          {BRAND_NAME} provides the storefront, checkout and delivery as a service to the seller.
+        </li>
         <li>
           {BRAND_NAME} charges a platform fee on each sale, as shown on the <Link to="/pricing">Pricing</Link> page.
           The fee that applies depends on the seller's plan.
@@ -65,36 +73,53 @@ function TermsPage() {
           contacting buyers about their purchase unless they've agreed to marketing. See our{" "}
           <Link to="/privacy">Privacy Policy</Link>.
         </li>
-        <li>You're responsible for any taxes on your sales.</li>
       </ul>
 
-      <h2>6. Buyers</h2>
+      <h2>6. Taxes</h2>
+      <ul>
+        <li>
+          Sellers are solely responsible for determining, charging, collecting, reporting and paying any sales tax, VAT,
+          GST, income tax or other tax that applies to their sales, including registering with tax authorities where
+          required. Prices you set are the prices buyers pay; {BRAND_NAME} doesn't add, calculate or remit tax on your
+          sales.
+        </li>
+        <li>
+          {BRAND_NAME} isn't a tax adviser. If you're unsure what applies to you — for example EU VAT on digital products
+          sold to consumers — ask a qualified accountant.
+        </li>
+        <li>
+          {BRAND_NAME}'s own platform fee and plan subscriptions are services we provide to you, and any tax on those
+          is handled by {BRAND_NAME}.
+        </li>
+      </ul>
+
+      <h2>7. Buyers</h2>
       <p>
         When you buy, you get access to the digital product and, where enabled, a licence key. Refunds are governed by
         the seller's stated policy plus any rights you have under law. Chargebacks and disputes are handled through
         Stripe; abusive chargebacks may result in loss of access.
       </p>
 
-      <h2>7. Availability and liability</h2>
+      <h2>8. Availability and liability</h2>
       <p>
         {BRAND_NAME} is provided "as is". We work to keep it running but don't guarantee uninterrupted or error-free
         service. To the extent the law allows, {BRAND_NAME} isn't liable for indirect or consequential losses, or for
         disputes between buyers and sellers over the products themselves.
       </p>
 
-      <h2>8. Termination</h2>
+      <h2>9. Termination</h2>
       <p>
         We may suspend or close accounts that violate these terms or applicable law. You can close your account at any
         time; some records may be retained as described in the <Link to="/privacy">Privacy Policy</Link>.
       </p>
 
-      <h2>9. Changes</h2>
+      <h2>10. Changes</h2>
       <p>
         We may update these terms as the service evolves. Material changes will be reflected by the "last updated" date
         above; continuing to use {BRAND_NAME} means you accept the current terms.
       </p>
 
-      <h2>10. Contact</h2>
+      <h2>11. Contact</h2>
       <p>
         Questions about these terms? Email <a href={`mailto:${BRAND_EMAIL}`}>{BRAND_EMAIL}</a>.
       </p>
