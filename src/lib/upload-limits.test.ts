@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { checkFileSize, checkFileCount, checkTotalStorage, checkUploadAgainstLimits } from "@/lib/upload-limits";
+import { checkFileSize, checkFileCount, checkTotalStorage, checkUploadAgainstLimits, effectiveLimits, FREE_PRODUCT_MAX_MB, UNVERIFIED_MAX_FILE_MB, UNVERIFIED_TOTAL_STORAGE_MB } from "@/lib/upload-limits";
 import { PLAN_LIMITS } from "@/lib/plans";
 
 describe("checkFileSize", () => {
@@ -69,5 +69,43 @@ describe("checkUploadAgainstLimits", () => {
       PLAN_LIMITS.free,
     );
     expect(result).toContain("MB limit");
+  });
+});
+
+describe("anti file-hosting limits", () => {
+  const MB = 1024 * 1024;
+  const base = PLAN_LIMITS.free;
+  const empty = { currentCountForProduct: 0, usedBytesAcrossAllProducts: 0 };
+
+  it("unverified sellers get the smaller caps; verified sellers keep the plan's", () => {
+    expect(effectiveLimits(base, false).maxFileMb).toBe(Math.min(base.maxFileMb, UNVERIFIED_MAX_FILE_MB));
+    expect(effectiveLimits(base, false).totalStorageMb).toBe(Math.min(base.totalStorageMb, UNVERIFIED_TOTAL_STORAGE_MB));
+    expect(effectiveLimits(base, true)).toEqual(base);
+  });
+
+  it("a 300 MB file is refused before Stripe is connected, with how to lift it", () => {
+    const msg = checkUploadAgainstLimits({ ...empty, sizeBytes: 300 * MB, verified: false }, base);
+    expect(msg).toMatch(/250 MB/);
+    expect(msg).toMatch(/Connect Stripe/);
+    expect(checkUploadAgainstLimits({ ...empty, sizeBytes: 300 * MB, verified: true }, base)).toBeNull();
+  });
+
+  it("unverified total storage stops at 1 GB", () => {
+    const msg = checkUploadAgainstLimits(
+      { sizeBytes: 100 * MB, currentCountForProduct: 0, usedBytesAcrossAllProducts: 1000 * MB, verified: false },
+      base,
+    );
+    expect(msg).toMatch(/storage limit/);
+  });
+
+  it("free products hold at most 250 MB in total, for every seller", () => {
+    const params = { ...empty, sizeBytes: 100 * MB, usedBytesForProduct: 200 * MB, productIsFree: true };
+    expect(checkUploadAgainstLimits({ ...params, verified: true }, base)).toMatch(new RegExp(`${FREE_PRODUCT_MAX_MB} MB`));
+    expect(checkUploadAgainstLimits({ ...params, verified: false }, base)).not.toMatch(/Connect Stripe/);
+    expect(checkUploadAgainstLimits({ ...params, usedBytesForProduct: 100 * MB, verified: true }, base)).toBeNull();
+  });
+
+  it("calls without the new fields behave as before (verified, paid)", () => {
+    expect(checkUploadAgainstLimits({ ...empty, sizeBytes: 300 * MB }, base)).toBeNull();
   });
 });

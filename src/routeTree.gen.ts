@@ -41,6 +41,7 @@ import { Route as AuthenticatedDashboardDiscountsRouteImport } from './routes/_a
 import { Route as AuthenticatedDashboardPurchasesRouteImport } from './routes/_authenticated/dashboard/purchases'
 import { Route as AuthenticatedDashboardReferralsRouteImport } from './routes/_authenticated/dashboard/referrals'
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard/settings'
+import { Route as ApiCronStorageSweepRouteImport } from './routes/api/cron/storage-sweep'
 import { Route as ApiPublicUnsubscribeRouteImport } from './routes/api/public/unsubscribe'
 import { Route as ImgAvatarUserIdRouteImport } from './routes/img.avatar.$userId'
 import { Route as ImgProductProductIdRouteImport } from './routes/img.product.$productId'
@@ -217,6 +218,11 @@ const AuthenticatedDashboardSettingsRoute =
     path: '/settings',
     getParentRoute: () => AuthenticatedDashboardRouteRoute,
   } as any)
+const ApiCronStorageSweepRoute = ApiCronStorageSweepRouteImport.update({
+  id: '/api/cron/storage-sweep',
+  path: '/api/cron/storage-sweep',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicUnsubscribeRoute = ApiPublicUnsubscribeRouteImport.update({
   id: '/api/public/unsubscribe',
   path: '/api/public/unsubscribe',
@@ -294,6 +300,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/purchases': typeof AuthenticatedDashboardPurchasesRoute
   '/dashboard/referrals': typeof AuthenticatedDashboardReferralsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
+  '/api/cron/storage-sweep': typeof ApiCronStorageSweepRoute
   '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
   '/img/avatar/$userId': typeof ImgAvatarUserIdRoute
   '/img/product/$productId': typeof ImgProductProductIdRoute
@@ -334,6 +341,7 @@ export interface FileRoutesByTo {
   '/dashboard/purchases': typeof AuthenticatedDashboardPurchasesRoute
   '/dashboard/referrals': typeof AuthenticatedDashboardReferralsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
+  '/api/cron/storage-sweep': typeof ApiCronStorageSweepRoute
   '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
   '/img/avatar/$userId': typeof ImgAvatarUserIdRoute
   '/img/product/$productId': typeof ImgProductProductIdRoute
@@ -377,6 +385,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/purchases': typeof AuthenticatedDashboardPurchasesRoute
   '/_authenticated/dashboard/referrals': typeof AuthenticatedDashboardReferralsRoute
   '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
+  '/api/cron/storage-sweep': typeof ApiCronStorageSweepRoute
   '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
   '/img/avatar/$userId': typeof ImgAvatarUserIdRoute
   '/img/product/$productId': typeof ImgProductProductIdRoute
@@ -420,6 +429,7 @@ export interface FileRouteTypes {
     | '/dashboard/purchases'
     | '/dashboard/referrals'
     | '/dashboard/settings'
+    | '/api/cron/storage-sweep'
     | '/api/public/unsubscribe'
     | '/img/avatar/$userId'
     | '/img/product/$productId'
@@ -460,6 +470,7 @@ export interface FileRouteTypes {
     | '/dashboard/purchases'
     | '/dashboard/referrals'
     | '/dashboard/settings'
+    | '/api/cron/storage-sweep'
     | '/api/public/unsubscribe'
     | '/img/avatar/$userId'
     | '/img/product/$productId'
@@ -502,6 +513,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/purchases'
     | '/_authenticated/dashboard/referrals'
     | '/_authenticated/dashboard/settings'
+    | '/api/cron/storage-sweep'
     | '/api/public/unsubscribe'
     | '/img/avatar/$userId'
     | '/img/product/$productId'
@@ -538,6 +550,7 @@ export interface RootRouteChildren {
   UHandleRoute: typeof UHandleRoute
   BlogIndexRoute: typeof BlogIndexRoute
   GuidesIndexRoute: typeof GuidesIndexRoute
+  ApiCronStorageSweepRoute: typeof ApiCronStorageSweepRoute
   ApiPublicUnsubscribeRoute: typeof ApiPublicUnsubscribeRoute
   ImgAvatarUserIdRoute: typeof ImgAvatarUserIdRoute
   ImgProductProductIdRoute: typeof ImgProductProductIdRoute
@@ -772,6 +785,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardSettingsRouteImport
       parentRoute: typeof AuthenticatedDashboardRouteRoute
     }
+    '/api/cron/storage-sweep': {
+      id: '/api/cron/storage-sweep'
+      path: '/api/cron/storage-sweep'
+      fullPath: '/api/cron/storage-sweep'
+      preLoaderRoute: typeof ApiCronStorageSweepRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/unsubscribe': {
       id: '/api/public/unsubscribe'
       path: '/api/public/unsubscribe'
@@ -900,6 +920,7 @@ const rootRouteChildren: RootRouteChildren = {
   UHandleRoute: UHandleRoute,
   BlogIndexRoute: BlogIndexRoute,
   GuidesIndexRoute: GuidesIndexRoute,
+  ApiCronStorageSweepRoute: ApiCronStorageSweepRoute,
   ApiPublicUnsubscribeRoute: ApiPublicUnsubscribeRoute,
   ImgAvatarUserIdRoute: ImgAvatarUserIdRoute,
   ImgProductProductIdRoute: ImgProductProductIdRoute,

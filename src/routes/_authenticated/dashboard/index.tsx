@@ -68,6 +68,7 @@ import { ProductBillingEditor } from "@/components/product-billing-editor";
 import { ConfirmAction } from "@/components/confirm-action";
 import { PurchasesShortcut } from "@/components/purchases-shortcut";
 import { ListPager } from "@/components/list-pager";
+import { effectiveLimits, formatMb } from "@/lib/upload-limits";
 import { PAGE_SIZES, isPageSize, paginate, type PageSize } from "@/lib/paginate";
 import { ProductsEmptyState } from "@/components/products-empty-state";
 import { describeAdvancedOptions } from "@/lib/advanced-options";
@@ -543,7 +544,7 @@ function DashboardHome() {
                 <span className="text-xs text-muted-foreground">
                   {newFile
                     ? "Click to replace"
-                    : `This is what your buyer downloads — it publishes the product · up to ${PLAN_LIMITS[planQ.data?.tier ?? "free"].maxFileMb} MB`}
+                    : `This is what your buyer downloads — it publishes the product · up to ${formatMb(effectiveLimits(PLAN_LIMITS[planQ.data?.tier ?? "free"], !!connect?.chargesEnabled).maxFileMb)}${connect?.chargesEnabled ? "" : " until you connect Stripe"}`}
                 </span>
                 <input
                   type="file"

@@ -35,6 +35,7 @@ STRIPE_WEBHOOK_SECRET=...                  # from the webhook you register in st
 RESEND_API_KEY=...
 EMAIL_FROM_ADDRESS=hello@YOURDOMAIN       # once YOURDOMAIN is verified in Resend
 UNSUBSCRIBE_SECRET=...                     # any long random string; signs unsubscribe + billing links
+CRON_SECRET=...                            # any long random string; protects /api/cron/storage-sweep
 ANTHROPIC_API_KEY=...
 # Optional, for ads later:
 # VITE_META_PIXEL_ID=...
@@ -79,3 +80,11 @@ Exactly like local dev:
 4. **Env/secret changes:** update in Railway → redeploy (remember: `VITE_*` need a rebuild).
 
 Tip: keep a second Railway environment (or a `*.up.railway.app` staging service) to test a risky change before it hits the custom domain.
+
+## Daily storage cleanup
+Schedule a daily request (Railway cron service, or cron-job.org) to remove uploads that were never attached to a product:
+```
+POST https://YOURDOMAIN/api/cron/storage-sweep
+Authorization: Bearer <CRON_SECRET>
+```
+A GET with the same header is a dry run: it reports what would be removed and which accounts store the most, without deleting anything. Run that first.

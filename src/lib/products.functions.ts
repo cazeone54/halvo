@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { resolveUserTier } from "@/lib/user-plan.functions";
 import { PLAN_LIMITS } from "@/lib/plans";
-import { checkUploadAgainstLimits } from "@/lib/upload-limits";
+import { checkUploadAgainstLimits, checkFreeProductSize, isFreePricing } from "@/lib/upload-limits";
 import { productImageUrl } from "@/lib/public-image-url";
 import { isOwnProductPath } from "@/lib/product-media";
 import type { Database } from "@/integrations/supabase/types";
@@ -13,16 +13,29 @@ async function currentUploadUsage(
   supabase: SupabaseClient<Database>,
   userId: string,
   productId: string,
-): Promise<{ currentCountForProduct: number; usedBytesAcrossAllProducts: number }> {
-  const { count } = await supabase
-    .from("product_files")
-    .select("id", { count: "exact", head: true })
-    .eq("product_id", productId);
+): Promise<{ currentCountForProduct: number; usedBytesAcrossAllProducts: number; usedBytesForProduct: number }> {
+  const { data: files } = await supabase.from("product_files").select("product_id, size_bytes").eq("owner_id", userId);
+  const all = files ?? [];
+  const forProduct = all.filter((f) => f.product_id === productId);
+  return {
+    currentCountForProduct: forProduct.length,
+    usedBytesAcrossAllProducts: all.reduce((sum, f) => sum + (f.size_bytes ?? 0), 0),
+    usedBytesForProduct: forProduct.reduce((sum, f) => sum + (f.size_bytes ?? 0), 0),
+  };
+}
 
-  const { data: files } = await supabase.from("product_files").select("size_bytes").eq("owner_id", userId);
-  const usedBytesAcrossAllProducts = (files ?? []).reduce((sum, f) => sum + (f.size_bytes ?? 0), 0);
-
-  return { currentCountForProduct: count ?? 0, usedBytesAcrossAllProducts };
+// A seller counts as verified once Stripe has checked their identity and enabled
+// payments. Any failure reads as unverified, which only ever means smaller caps.
+async function isVerifiedSeller(supabase: SupabaseClient<Database>, userId: string): Promise<boolean> {
+  try {
+    const { data: profile } = await supabase.from("profiles").select("stripe_connect_id").eq("id", userId).single();
+    if (!profile?.stripe_connect_id) return false;
+    const { getStripeClient } = await import("@/lib/stripe.server");
+    const account = await getStripeClient().accounts.retrieve(profile.stripe_connect_id);
+    return !!account.charges_enabled;
+  } catch {
+    return false;
+  }
 }
 
 const slugify = (name: string, suffix: string) =>
@@ -155,6 +168,21 @@ export const updateProduct = createServerFn({ method: "POST" })
     if (rest.priceCents !== undefined) update.price_cents = rest.priceCents;
     if (rest.payWhatYouWant !== undefined) update.pay_what_you_want = rest.payWhatYouWant;
     if (rest.category !== undefined) update.category = rest.category;
+
+    // Making a product free can't be a way round the free-product size cap.
+    if (rest.priceCents === 0 && rest.payWhatYouWant !== true) {
+      const { data: current } = await context.supabase
+        .from("products")
+        .select("pay_what_you_want")
+        .eq("id", productId)
+        .eq("owner_id", context.userId)
+        .single();
+      if (current && !current.pay_what_you_want) {
+        const { usedBytesForProduct } = await currentUploadUsage(context.supabase, context.userId, productId);
+        const tooBig = checkFreeProductSize(usedBytesForProduct);
+        if (tooBig) throw new Error(tooBig);
+      }
+    }
 
     if (Object.keys(update).length > 0) {
       const { error } = await context.supabase
@@ -312,9 +340,22 @@ export const checkCanUploadFile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data) => z.object({ productId: z.string().uuid(), sizeBytes: z.number().int().positive() }).parse(data))
   .handler(async ({ data, context }) => {
-    const tier = await resolveUserTier(context.supabase, context.userId);
-    const usage = await currentUploadUsage(context.supabase, context.userId, data.productId);
-    const rejection = checkUploadAgainstLimits({ sizeBytes: data.sizeBytes, ...usage }, PLAN_LIMITS[tier]);
+    const { data: product } = await context.supabase
+      .from("products")
+      .select("price_cents, pay_what_you_want")
+      .eq("id", data.productId)
+      .eq("owner_id", context.userId)
+      .single();
+    if (!product) throw new Error("Product not found");
+    const [tier, usage, verified] = await Promise.all([
+      resolveUserTier(context.supabase, context.userId),
+      currentUploadUsage(context.supabase, context.userId, data.productId),
+      isVerifiedSeller(context.supabase, context.userId),
+    ]);
+    const rejection = checkUploadAgainstLimits(
+      { sizeBytes: data.sizeBytes, ...usage, productIsFree: isFreePricing(product), verified },
+      PLAN_LIMITS[tier],
+    );
     if (rejection) throw new Error(rejection);
     return { ok: true };
   });
@@ -340,15 +381,21 @@ export const attachProductFile = createServerFn({ method: "POST" })
     // Verify the caller actually owns the product before attaching the file.
     const { data: product } = await context.supabase
       .from("products")
-      .select("id, name, url_slug")
+      .select("id, name, url_slug, price_cents, pay_what_you_want")
       .eq("id", data.productId)
       .eq("owner_id", context.userId)
       .single();
     if (!product) throw new Error("Product not found");
 
-    const tier = await resolveUserTier(context.supabase, context.userId);
-    const usage = await currentUploadUsage(context.supabase, context.userId, data.productId);
-    const rejection = checkUploadAgainstLimits({ sizeBytes: data.sizeBytes, ...usage }, PLAN_LIMITS[tier]);
+    const [tier, usage, verified] = await Promise.all([
+      resolveUserTier(context.supabase, context.userId),
+      currentUploadUsage(context.supabase, context.userId, data.productId),
+      isVerifiedSeller(context.supabase, context.userId),
+    ]);
+    const rejection = checkUploadAgainstLimits(
+      { sizeBytes: data.sizeBytes, ...usage, productIsFree: isFreePricing(product), verified },
+      PLAN_LIMITS[tier],
+    );
     if (rejection) {
       await context.supabase.storage.from("digital-assets").remove([data.storageFilePath]);
       throw new Error(rejection);
