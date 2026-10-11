@@ -107,6 +107,7 @@ export function CheckoutWidget({ product }: { product: Product }) {
   const [subscriptionId, setSubscriptionId] = useState<string | null>(null);
   const [amountCents, setAmountCents] = useState(product.priceCents);
   const [couponCode, setCouponCode] = useState("");
+  const [showCoupon, setShowCoupon] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountedAmountCents: number } | null>(null);
   const [couponError, setCouponError] = useState<string | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
@@ -291,7 +292,18 @@ export function CheckoutWidget({ product }: { product: Product }) {
         </div>
       ) : null}
 
-      {plan === "full" ? (
+      {plan === "full" && !showCoupon ? (
+        // Collapsed by default: an empty coupon box sends buyers off hunting for
+        // codes mid-checkout. One click opens it for anyone who has one.
+        <button
+          type="button"
+          onClick={() => setShowCoupon(true)}
+          className="self-start text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
+        >
+          Have a coupon code?
+        </button>
+      ) : null}
+      {plan === "full" && showCoupon ? (
       <div>
         <Label htmlFor={`${uid}-coupon`}>Coupon code</Label>
         <div className="flex gap-2">
