@@ -43,7 +43,16 @@ export async function ensureStripeProduct(
   stripe: Stripe,
   product: { id: string; name: string; stripe_product_id?: string | null },
 ): Promise<string> {
-  if (product.stripe_product_id) return product.stripe_product_id;
+  if (product.stripe_product_id) {
+    // An id saved in test mode doesn't exist in live mode (and vice versa), so
+    // check it before use; a stale one is replaced instead of failing checkout.
+    try {
+      const existing = await stripe.products.retrieve(product.stripe_product_id);
+      if (existing && !existing.deleted) return existing.id;
+    } catch (error) {
+      if ((error as { code?: string })?.code !== "resource_missing") throw error;
+    }
+  }
   const created = await stripe.products.create({ name: product.name, metadata: { halvo_product_id: product.id } });
   await admin.from("products").update({ stripe_product_id: created.id }).eq("id", product.id);
   return created.id;
