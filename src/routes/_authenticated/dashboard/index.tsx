@@ -4,7 +4,7 @@ import { SINGLE_TIER_PRICING, DIRECT_CHARGES } from "@/lib/plans";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useId } from "react";
+import { useState, useId, useEffect } from "react";
 import { toast } from "sonner";
 import {
   CreditCard,
@@ -67,6 +67,8 @@ import { ProductOfferEditor } from "@/components/product-offer-editor";
 import { ProductBillingEditor } from "@/components/product-billing-editor";
 import { ConfirmAction } from "@/components/confirm-action";
 import { PurchasesShortcut } from "@/components/purchases-shortcut";
+import { ListPager } from "@/components/list-pager";
+import { PAGE_SIZES, isPageSize, paginate, type PageSize } from "@/lib/paginate";
 import { ProductsEmptyState } from "@/components/products-empty-state";
 import { describeAdvancedOptions } from "@/lib/advanced-options";
 import { CopySnippet } from "@/components/copy-snippet";
@@ -83,6 +85,8 @@ import { toCsv } from "@/lib/csv";
 import { cn } from "@/lib/utils";
 
 // The live per-sale fee, e.g. "5%" (no fixed part under direct charges).
+const PRODUCT_PAGE_SIZE_KEY = "halvo:dashboard:products-per-page";
+
 const PLATFORM_FEE_LABEL =
   PLAN_LIMITS.free.platformFeeFixedCents > 0
     ? `${Math.round(PLAN_LIMITS.free.platformFeePct * 100)}% + ${PLAN_LIMITS.free.platformFeeFixedCents}¢`
@@ -290,6 +294,21 @@ function DashboardHome() {
   const paidSales = sales.filter((s) => s.status === "success" && !s.disputed);
   const revenueCents = paidSales.reduce((sum, s) => sum + s.amountPaidCents, 0);
   const productCount = productsQ.data?.length ?? 0;
+
+  // Products are paged (10 / 20 / 50) so a big catalogue isn't one endless list.
+  // The page size is remembered in this browser; read after mount so the server
+  // and first client render agree.
+  const [productPageSize, setProductPageSize] = useState<PageSize>(10);
+  const [productPageNum, setProductPageNum] = useState(1);
+  useEffect(() => {
+    try {
+      const saved = Number(window.localStorage.getItem(PRODUCT_PAGE_SIZE_KEY));
+      if (isPageSize(saved)) setProductPageSize(saved);
+    } catch {
+      // Storage blocked — keep the default.
+    }
+  }, []);
+  const productPage = paginate(productsQ.data ?? [], productPageNum, productPageSize);
   const firstLive = productsQ.data?.find((p) => p.url_slug) ?? null;
 
   // One row per sale, for the seller's own bookkeeping/VAT records. Built
@@ -403,7 +422,10 @@ function DashboardHome() {
       {/* Products */}
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-lg font-semibold font-[family-name:var(--font-display)]">
+          <h2
+            id="products-heading"
+            className="flex scroll-mt-20 items-center gap-2 text-lg font-semibold font-[family-name:var(--font-display)]"
+          >
             <Package className="h-5 w-5 text-muted-foreground" />
             Products
           </h2>
@@ -568,7 +590,7 @@ function DashboardHome() {
       {deleteNotice ? <p className="text-sm text-muted-foreground">{deleteNotice}</p> : null}
 
         <div className="flex flex-col gap-3">
-          {(productsQ.data ?? []).map((product) => (
+          {productPage.items.map((product) => (
             <ProductRow
               key={product.id}
               product={product}
@@ -576,6 +598,30 @@ function DashboardHome() {
               onDelete={() => deleteMut.mutate(product.id)}
             />
           ))}
+          {productPage.total > PAGE_SIZES[0] ? (
+            <ListPager
+              label="Products"
+              page={productPage.page}
+              pageCount={productPage.pageCount}
+              from={productPage.from}
+              to={productPage.to}
+              total={productPage.total}
+              pageSize={productPageSize}
+              onPage={(p) => {
+                setProductPageNum(p);
+                document.getElementById("products-heading")?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              onPageSize={(size) => {
+                setProductPageSize(size);
+                setProductPageNum(1);
+                try {
+                  window.localStorage.setItem(PRODUCT_PAGE_SIZE_KEY, String(size));
+                } catch {
+                  // Storage blocked — the choice just won't be remembered.
+                }
+              }}
+            />
+          ) : null}
           {productsQ.data?.length === 0 && !showNewProduct ? (
             <ProductsEmptyState
               onCreate={() => setShowNewProduct(true)}
