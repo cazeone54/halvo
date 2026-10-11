@@ -85,7 +85,9 @@ const COMPARISON: Array<{ label: string; halvo: string; gumroad: string; lemon: 
   { label: "Affiliate program", halvo: "yes", gumroad: "yes", lemon: "no" },
   { label: "Embeddable buy button", halvo: "yes", gumroad: "yes", lemon: "yes" },
   { label: "Marketplace to get discovered", halvo: "yes", gumroad: "yes", lemon: "no" },
-  { label: "Handles your sales tax / VAT", halvo: "You handle it", gumroad: "Some", lemon: "Yes" },
+  // Gumroad became a full merchant of record in Jan 2025 — that's what its 10%
+  // buys, and why this row matters more than the fee row above it.
+  { label: "Handles your sales tax / VAT", halvo: "You handle it", gumroad: "Yes (merchant of record)", lemon: "Yes (merchant of record)" },
 ];
 
 function FeatureGrid({ items }: { items: Feature[] }) {

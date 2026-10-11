@@ -110,6 +110,9 @@ export function CheckoutWidget({ product }: { product: Product }) {
   const [couponError, setCouponError] = useState<string | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  // Set only under direct charges: the connected account the PaymentIntent was
+  // created on. Stripe.js must be initialised in that context to confirm it.
+  const [stripeAccount, setStripeAccount] = useState<string | null>(null);
   const [chargedCents, setChargedCents] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [bumpTaken, setBumpTaken] = useState(false);
@@ -156,6 +159,7 @@ export function CheckoutWidget({ product }: { product: Product }) {
     })
       .then((res) => {
         setChargedCents(res.amountCents);
+        setStripeAccount(res.stripeAccount ?? null);
         setClientSecret(res.clientSecret ?? null);
       })
       .catch((e: Error) => setError(e.message));
@@ -350,7 +354,7 @@ export function CheckoutWidget({ product }: { product: Product }) {
         // locale:"en" pins the Stripe/Link widgets to English so they match the
         // site UI (they otherwise follow the browser's language).
         <Elements
-          stripe={getStripe()}
+          stripe={getStripe(stripeAccount)}
           options={{ clientSecret, appearance: { theme: "stripe" }, locale: "en" }}
         >
           <PaymentForm

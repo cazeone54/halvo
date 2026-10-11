@@ -47,8 +47,25 @@ export type PlanLimits = {
 // pricing UI reads ACTIVE_TIERS, fees read PLAN_LIMITS.
 export const SINGLE_TIER_PRICING = true;
 
-export const UNIVERSAL_FEE_PCT = 0.07;
-export const UNIVERSAL_FEE_FIXED_CENTS = 35;
+// ─── Direct charges ─────────────────────────────────────────────────────────
+// With DESTINATION charges the platform pays Stripe's processing fee and the
+// $15 dispute fee, so the platform fee has to clear both — hence 7% + 35¢.
+//
+// With DIRECT charges the PaymentIntent is created on the seller's connected
+// account: the money is never in the platform's balance, Stripe's fee and any
+// dispute are debited from the seller, and the platform only takes an
+// application fee. That fee is then pure margin with no variable cost to
+// outrun, so it can be lower AND the fixed component disappears — the 35¢
+// existed only to cover Stripe's 30¢ and chargeback risk, both of which have
+// moved.
+//
+// Toggled by VITE_STRIPE_DIRECT_CHARGES so the pricing UI and the server agree.
+// Leave it off until the test-mode checklist in
+// docs/on-behalf-of-migration-plan.md passes.
+export const DIRECT_CHARGES = import.meta.env.VITE_STRIPE_DIRECT_CHARGES === "true";
+
+export const UNIVERSAL_FEE_PCT = DIRECT_CHARGES ? 0.05 : 0.07;
+export const UNIVERSAL_FEE_FIXED_CENTS = DIRECT_CHARGES ? 0 : 35;
 
 // Which tiers the pricing UI offers. Tier rows already in the database still
 // resolve and keep their (more generous) limits — they just pay the same rate.

@@ -1,3 +1,5 @@
+import { DIRECT_CHARGES } from "@/lib/plans";
+
 // Pure orchestration, dependencies injected so it's testable without
 // mocking the Stripe SDK or Supabase client modules. This is the actual
 // Kitsly fix: Stripe must confirm the refund before the DB is ever updated.
@@ -15,7 +17,8 @@ export type RefundableTransaction = {
 
 export type StripeRefundParams = {
   payment_intent: string;
-  reverse_transfer: boolean;
+  reverse_transfer?: boolean;
+  refund_application_fee?: boolean;
 };
 
 // The refund on a Connect *destination* charge is paid out of the PLATFORM's
@@ -29,7 +32,17 @@ export type StripeRefundParams = {
 // processing fee, which Stripe does not return on a refund. Because the fee is
 // guaranteed to clear that cost (see the invariant test in plans.test.ts), a
 // refund lands close to cost-neutral for the platform instead of catastrophic.
+//
+// Under DIRECT charges none of that applies: the charge lives on the seller's
+// account, so the refund comes out of their balance and there is no transfer to
+// reverse. Here the platform DOES return its application fee — no sale
+// happened, so keeping a cut of it would mean the seller eats the full refund
+// plus Stripe's fee plus Halvo's. Returning it is the honest default; flip
+// `refund_application_fee` to false if that is ever reconsidered.
 export function buildRefundParams(paymentIntentId: string): StripeRefundParams {
+  if (DIRECT_CHARGES) {
+    return { payment_intent: paymentIntentId, refund_application_fee: true };
+  }
   return { payment_intent: paymentIntentId, reverse_transfer: true };
 }
 

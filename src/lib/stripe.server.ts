@@ -26,5 +26,19 @@ export function getStripeErrorMessage(error: unknown): string {
 export function verifyStripeWebhook(rawBody: string, signature: string): Stripe.Event {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!secret) throw new Error("Missing environment variable: STRIPE_WEBHOOK_SECRET");
-  return getStripeClient().webhooks.constructEvent(rawBody, signature, secret);
+
+  // Direct charges live on connected accounts, so their events arrive from a
+  // separate "Connect" endpoint in the Stripe dashboard with its OWN signing
+  // secret — the platform secret will not verify them. Both are accepted here
+  // so one URL can serve both, which is how the endpoint is registered.
+  const connectSecret = process.env.STRIPE_CONNECT_WEBHOOK_SECRET;
+  const stripe = getStripeClient();
+  try {
+    return stripe.webhooks.constructEvent(rawBody, signature, secret);
+  } catch (platformError) {
+    if (!connectSecret) throw platformError;
+    // Throws its own error if this one doesn't match either, which is correct:
+    // an unverifiable event must never be processed.
+    return stripe.webhooks.constructEvent(rawBody, signature, connectSecret);
+  }
 }

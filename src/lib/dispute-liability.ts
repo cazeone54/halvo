@@ -1,3 +1,4 @@
+import { DIRECT_CHARGES } from "@/lib/plans";
 // Pure decision logic for who bears a Stripe dispute, kept separate from the
 // webhook glue so it's testable without mocking Stripe/Supabase.
 //
@@ -29,6 +30,11 @@ export type DisputeCloseDecision =
 export function decideDisputeClose(input: DisputeCloseInput): DisputeCloseDecision {
   if (input.outcome === "won") return { kind: "restore_access" };
   if (input.outcome !== "lost") return { kind: "noop", reason: "not-resolved" };
+  // Under direct charges the dispute and its $15 fee are debited straight from
+  // the seller's connected account by Stripe. There is no transfer and nothing
+  // for the platform to claw back — stated explicitly so this doesn't read as
+  // a missing-transfer bug when someone debugs it later.
+  if (DIRECT_CHARGES) return { kind: "noop", reason: "direct-charge-settles-on-seller" };
   // Dispute was lost — the seller bears it.
   if (input.alreadyReversed) return { kind: "noop", reason: "already-reversed" };
   if (!input.hasSeller) return { kind: "noop", reason: "no-seller" };

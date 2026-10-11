@@ -1,7 +1,7 @@
 // Pure money-logic, kept separate from checkout.functions.ts so it's testable
 // without mocking Stripe/Supabase modules.
 import { MIN_CHARGE_CENTS } from "@/lib/fees";
-import { calcPlatformFeeCents, type PlanTier } from "@/lib/plans";
+import { calcPlatformFeeCents, DIRECT_CHARGES, type PlanTier } from "@/lib/plans";
 import { applyCouponDiscount, type CouponDiscount } from "@/lib/coupon-math";
 
 export type ProductPricing = {
@@ -64,6 +64,18 @@ export type DestinationChargeParams = {
   on_behalf_of: string;
 };
 
+// A direct charge is created ON the connected account, so there's nothing to
+// transfer and no on_behalf_of — the seller already is the merchant. The
+// account id travels as a Stripe request option, not in the body.
+export type DirectChargeParams = {
+  amount: number;
+  application_fee_amount: number;
+};
+
+export type ChargeParams =
+  | { mode: "destination"; params: DestinationChargeParams; stripeAccount?: undefined }
+  | { mode: "direct"; params: DirectChargeParams; stripeAccount: string };
+
 // The actual Kitsly fix: every purchase charge routes through Stripe Connect
 // as a destination charge, so the seller is actually paid and the platform
 // actually collects its cut — instead of a plain platform-account charge
@@ -103,5 +115,43 @@ export function buildDestinationChargeParams(
     // statement and the sale is theirs (they're responsible for its taxes).
     // Halvo's fee and dispute handling are unchanged.
     on_behalf_of: connectedAccountId,
+  };
+}
+
+// Direct charge: same money withheld for the platform, but the charge lives on
+// the seller's account. Stripe's processing fee and any dispute fee are debited
+// there too, which is the whole point of the switch.
+export function buildDirectChargeParams(
+  amountCents: number,
+  sellerTier: PlanTier,
+  commissionCents = 0,
+): DirectChargeParams {
+  const safeAmount = Math.max(0, amountCents);
+  const platformFee = calcPlatformFeeCents(sellerTier, safeAmount);
+  const withheld = platformFee + Math.max(0, commissionCents);
+  return {
+    amount: amountCents,
+    application_fee_amount: Math.min(withheld, safeAmount),
+  };
+}
+
+// One entry point so callers can't accidentally mix the two models. Which one
+// is live is decided by DIRECT_CHARGES (VITE_STRIPE_DIRECT_CHARGES) in plans.ts.
+export function buildChargeParams(
+  amountCents: number,
+  connectedAccountId: string,
+  sellerTier: PlanTier,
+  commissionCents = 0,
+): ChargeParams {
+  if (DIRECT_CHARGES) {
+    return {
+      mode: "direct",
+      params: buildDirectChargeParams(amountCents, sellerTier, commissionCents),
+      stripeAccount: connectedAccountId,
+    };
+  }
+  return {
+    mode: "destination",
+    params: buildDestinationChargeParams(amountCents, connectedAccountId, sellerTier, commissionCents),
   };
 }

@@ -17,7 +17,7 @@ import {
   computeChargeAmountCents,
   isAboveMinimumCharge,
   computeRequiredMinCents,
-  buildDestinationChargeParams,
+  buildChargeParams,
   isFreeProduct,
   composeChargeAmount,
 } from "@/lib/checkout-math";
@@ -171,6 +171,13 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
       commissionCents = calcCommissionCents(chargeAmountCents);
       referralCodeForMetadata = data.referralCode ?? null;
     }
+    const charge = buildChargeParams(
+      chargeAmountCents,
+      sellerProfile.stripe_connect_id,
+      sellerTier,
+      commissionCents,
+    );
+
     try {
       const intent = await stripe.paymentIntents.create({
         currency: "usd",
@@ -183,15 +190,22 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
           ...(bumpProductId ? { bump_product_id: bumpProductId, bump_price_cents: String(bumpPriceCents) } : {}),
           ...(salePriceCents != null ? { sale_price_cents: String(salePriceCents) } : {}),
         },
-        ...buildDestinationChargeParams(
-          chargeAmountCents,
-          sellerProfile.stripe_connect_id,
-          sellerTier,
-          commissionCents,
-        ),
-      });
-      // The amount actually charged, so the page shows exactly that.
-      return { clientSecret: intent.client_secret, amountCents: chargeAmountCents };
+        ...charge.params,
+      },
+      // Direct charges are created ON the connected account, so the account id
+      // goes in the request options rather than the body. Destination charges
+      // pass nothing here and stay on the platform account.
+      charge.mode === "direct" ? { stripeAccount: charge.stripeAccount } : undefined);
+
+      // The amount actually charged, so the page shows exactly that. Under
+      // direct charges the client must initialise Stripe.js in the connected
+      // account's context or the client secret won't confirm, so the account
+      // id is returned alongside it.
+      return {
+        clientSecret: intent.client_secret,
+        amountCents: chargeAmountCents,
+        stripeAccount: charge.mode === "direct" ? charge.stripeAccount : null,
+      };
     } catch (error) {
       throw new Error(getStripeErrorMessage(error));
     }
