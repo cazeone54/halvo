@@ -10,6 +10,7 @@ import { getDownloadUrlForTransaction } from "@/lib/downloads.functions";
 import { getLicenseKeyForTransaction } from "@/lib/license.functions";
 import { submitReview } from "@/lib/reviews.functions";
 import { getBillingForTransaction } from "@/lib/recurring.functions";
+import { getSupportContactForTransaction } from "@/lib/support.functions";
 import { trackEvent } from "@/lib/ad-pixels";
 import { StarInput } from "@/components/stars";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,6 +49,15 @@ function SuccessPage() {
     queryKey: ["license-key", id],
     queryFn: () => licenseFn({ data: { transactionId: id! } }),
     enabled: !!id,
+  });
+
+  // Who to contact about a faulty or wrong file (the refund policy's exception).
+  const supportFn = useServerFn(getSupportContactForTransaction);
+  const supportQ = useQuery({
+    queryKey: ["support-contact", id],
+    queryFn: () => supportFn({ data: { transactionId: id! } }),
+    enabled: !!id,
+    staleTime: Infinity,
   });
 
   // Memberships and payment plans: where the buyer manages billing.
@@ -150,6 +160,20 @@ function SuccessPage() {
                 </a>
                 .
               </p>
+              {supportQ.data ? (
+                <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                  <Mail className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span>
+                    File won't open or isn't what was described?{" "}
+                    <a href={`mailto:${supportQ.data.email}`} className="break-all underline underline-offset-2 hover:text-foreground">
+                      {supportQ.data.isSeller && supportQ.data.sellerName
+                        ? `Email ${supportQ.data.sellerName}`
+                        : supportQ.data.email}
+                    </a>
+                    {supportQ.data.isSeller ? " and they'll fix it or refund you." : "."}
+                  </span>
+                </p>
+              ) : null}
             </>
           ) : (
             <p className="text-sm text-muted-foreground">
