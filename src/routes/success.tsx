@@ -18,6 +18,7 @@ import { trackEvent } from "@/lib/ad-pixels";
 import { StarInput } from "@/components/stars";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/logo";
 import { KeyRound, Copy, Check, ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/success")({
@@ -120,7 +121,16 @@ function SuccessPage() {
   const files = filesQ.data?.files ?? [];
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-10">
+    <div className="mx-auto max-w-lg px-4 pb-10">
+      {/* A way back to the site — the page used to have no header at all. */}
+      <header className="flex items-center justify-between py-4">
+        <Link to="/" aria-label="Halvo home">
+          <Logo markClassName="h-6 w-6" />
+        </Link>
+        <Link to="/discover" className="text-xs text-muted-foreground hover:text-foreground">
+          Browse more products
+        </Link>
+      </header>
       <Card>
         <CardHeader>
           <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -144,7 +154,7 @@ function SuccessPage() {
                   // A text course: reading it in the browser (with lessons and
                   // progress) is the main way in; the raw file stays one tap away.
                   <div key={file.id} className="flex flex-col gap-2 sm:flex-row">
-                    <Button asChild size="lg" className="flex-1">
+                    <Button asChild size="lg" className="sm:flex-1">
                       <Link to="/learn" search={{ id, file: file.id }}>
                         <BookOpen className="h-4 w-4" /> Start reading
                       </Link>
@@ -164,20 +174,22 @@ function SuccessPage() {
                 ),
               )}
               {id ? <SaveAccessLink transactionId={id} /> : null}
-              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                We've emailed this page too, and this browser will remember it. Lost it later?{" "}
-                <a href="/access" className="underline underline-offset-2 hover:text-foreground">
-                  Recover your downloads
-                </a>
-                .
+              <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                <Mail className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                <span>
+                  We've emailed this page too, and this browser will remember it. Lost it later?{" "}
+                  <a href="/access" className="underline underline-offset-2 hover:text-foreground">
+                    Recover your downloads
+                  </a>
+                  .
+                </span>
               </p>
               {supportQ.data ? (
                 <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
                   <Mail className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   <span>
                     File won't open or isn't what was described?{" "}
-                    <a href={`mailto:${supportQ.data.email}`} className="break-all underline underline-offset-2 hover:text-foreground">
+                    <a href={`mailto:${supportQ.data.email}`} className="underline underline-offset-2 [overflow-wrap:anywhere] hover:text-foreground">
                       {supportQ.data.isSeller && supportQ.data.sellerName
                         ? `Email ${supportQ.data.sellerName}`
                         : supportQ.data.email}

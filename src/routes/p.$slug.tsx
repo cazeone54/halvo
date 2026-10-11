@@ -432,7 +432,7 @@ function ProductCheckoutPage() {
               <Mail className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
               <span>
                 Questions or a problem with a file?{" "}
-                <a href={`mailto:${product.supportEmail ?? BRAND_EMAIL}`} className="break-all underline underline-offset-2">
+                <a href={`mailto:${product.supportEmail ?? BRAND_EMAIL}`} className="underline underline-offset-2 [overflow-wrap:anywhere]">
                   {product.supportEmail ?? BRAND_EMAIL}
                 </a>
               </span>
