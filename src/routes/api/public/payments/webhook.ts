@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { verifyStripeWebhook, getStripeClient } from "@/lib/stripe.server";
 import { sendPurchaseConfirmationEmail } from "@/lib/email.server";
+import { notifySellerOfSale } from "@/lib/sale-notify.server";
 import { decideDisputeClose } from "@/lib/dispute-liability";
 import type Stripe from "stripe";
 import { BUYER_SUB_KIND, recordFailedInvoice, recordPaidInvoice, syncSubscriptionRow } from "@/lib/recurring.server";
@@ -64,6 +65,14 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
       buyerEmail: buyerEmail.toLowerCase(),
       productName: product.name,
       transactionId: inserted.id,
+      amountCents: intent.amount_received,
+    });
+    // The webhook usually wins the race with the buyer's browser, so without
+    // this the seller was almost never told about a sale.
+    await notifySellerOfSale({
+      supabaseAdmin,
+      sellerId: product.owner_id,
+      productName: product.name,
       amountCents: intent.amount_received,
     });
   }

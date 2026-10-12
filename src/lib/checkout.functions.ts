@@ -8,7 +8,8 @@ import { applyCouponDiscount } from "@/lib/coupon-math";
 import { resolveReferralCode } from "@/lib/referrals.functions";
 import { calcCommissionCents } from "@/lib/commission-math";
 import { computeTransactionBackfill } from "@/lib/transaction-race";
-import { sendPurchaseConfirmationEmail, sendSaleNotificationEmail } from "@/lib/email.server";
+import { sendPurchaseConfirmationEmail } from "@/lib/email.server";
+import { notifySellerOfSale } from "@/lib/sale-notify.server";
 import { recordSaleSource } from "@/lib/record-source.server";
 import { countDeliverableFiles } from "@/lib/bundle.server";
 import { activeSalePriceCents, effectivePricing } from "@/lib/offer";
@@ -27,40 +28,6 @@ import { DIRECT_CHARGES } from "@/lib/plans";
 // Shown to a *buyer*, so it never leaks the seller's setup state (missing file,
 // unfinished Stripe onboarding). They only need to know it can't be bought yet.
 const UNAVAILABLE_MESSAGE = "This product isn't available for purchase yet.";
-
-// Email the seller that they earned money. Best-effort throughout: a missing
-// seller, an unreachable auth lookup or an email failure must never break the
-// recording of a purchase the buyer has already paid for.
-async function notifySellerOfSale(args: {
-  supabaseAdmin: Awaited<typeof import("@/integrations/supabase/client.server")>["supabaseAdmin"];
-  sellerId: string | null;
-  productName: string;
-  amountCents: number;
-}): Promise<void> {
-  if (!args.sellerId) return;
-  try {
-    // Their very first sale gets different copy — this row is already written,
-    // so a count of exactly 1 means this is it.
-    const { count } = await args.supabaseAdmin
-      .from("transactions")
-      .select("id", { count: "exact", head: true })
-      .eq("seller_id", args.sellerId)
-      .eq("status", "success");
-
-    const { data: sellerUser } = await args.supabaseAdmin.auth.admin.getUserById(args.sellerId);
-    const sellerEmail = sellerUser?.user?.email;
-    if (!sellerEmail) return;
-
-    await sendSaleNotificationEmail({
-      sellerEmail,
-      productName: args.productName,
-      amountCents: args.amountCents,
-      isFirstSale: count === 1,
-    });
-  } catch (error) {
-    console.error("Seller sale notification failed:", error);
-  }
-}
 
 // Public — buyers may be signed out. Server recomputes the charge amount
 // itself; never trusts a client-sent price.
