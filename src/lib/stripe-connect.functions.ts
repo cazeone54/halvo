@@ -31,9 +31,17 @@ export const startStripeConnectOnboarding = createServerFn({ method: "POST" })
       // Stripe's own message instead of a generic "couldn't reach Stripe".
       let account;
       try {
+        // Managed Risk: Stripe carries losses on seller accounts, sellers pay
+        // Stripe's fees themselves and get the full Stripe Dashboard — the shape
+        // direct charges need. The legacy `type: "express"` made the platform the
+        // losses collector, which live Stripe now refuses for this platform.
         account = await stripe.accounts.create({
-          type: "express",
-          capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
+          controller: {
+            losses: { payments: "stripe" },
+            fees: { payer: "account" },
+            requirement_collection: "stripe",
+            stripe_dashboard: { type: "full" },
+          },
           metadata: { userId: context.userId },
         });
       } catch (error) {
