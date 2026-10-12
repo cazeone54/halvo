@@ -273,7 +273,10 @@ function DashboardHome() {
       if (res.url) window.location.href = res.url;
       else toast.error("Couldn't open Stripe just now. Please try again.");
     },
-    onError: () => toast.error("Couldn't reach Stripe just now. Please try again in a moment."),
+    // Stripe's own message says what's wrong (a missing platform setting, say),
+    // which "try again" never fixes.
+    onError: (e: Error) =>
+      toast.error(e.message ? `Stripe: ${e.message}` : "Couldn't reach Stripe just now. Please try again in a moment."),
   });
 
   const profile = profileQ.data;

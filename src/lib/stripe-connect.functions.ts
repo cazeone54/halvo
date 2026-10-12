@@ -26,11 +26,20 @@ export const startStripeConnectOnboarding = createServerFn({ method: "POST" })
     }
 
     if (!accountId) {
-      const account = await stripe.accounts.create({
-        type: "express",
-        capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
-        metadata: { userId: context.userId },
-      });
+      // Platform-side problems (Connect not set up for live, loss liability not
+      // accepted in the platform profile) surface here, so log and pass on
+      // Stripe's own message instead of a generic "couldn't reach Stripe".
+      let account;
+      try {
+        account = await stripe.accounts.create({
+          type: "express",
+          capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
+          metadata: { userId: context.userId },
+        });
+      } catch (error) {
+        console.error("Stripe Connect account creation failed:", getStripeErrorMessage(error));
+        throw new Error(getStripeErrorMessage(error));
+      }
       accountId = account.id;
 
       const { error: updateError } = await context.supabase
@@ -49,6 +58,7 @@ export const startStripeConnectOnboarding = createServerFn({ method: "POST" })
       });
       return { url: accountLink.url };
     } catch (error) {
+      console.error("Stripe Connect onboarding link failed:", getStripeErrorMessage(error));
       throw new Error(getStripeErrorMessage(error));
     }
   });
