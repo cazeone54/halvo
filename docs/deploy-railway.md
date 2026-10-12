@@ -5,7 +5,7 @@ A tested, step-by-step deploy for this app. Halvo is a **TanStack Start (Node) S
 **Build/run commands (verified locally):**
 - Build: `npm run build`
 - Start: `npm start` (runs `server.mjs`, which serves the built handler on `PORT`)
-- Node: **20+** (declared in `package.json` `engines`)
+- Node: **22+** (declared in `package.json` `engines`). Node 20 builds and starts, but every server-side Supabase read then fails with "native WebSocket not found".
 
 Railway is the recommended host: it deploys this straight from GitHub, gives free HTTPS + a domain, and redeploys on every push. (~$5/mo hobby.) Render or Fly work the same way with the same commands.
 
@@ -17,7 +17,7 @@ Railway is the recommended host: it deploys this straight from GitHub, gives fre
 3. Railway auto-detects Node/Nixpacks. Confirm (Service → Settings):
    - **Build command:** `npm run build`
    - **Start command:** `npm start`
-   - It respects `engines.node` (20+) automatically.
+   - It respects `engines.node` (22+) automatically.
 
 ## 2. Environment variables
 Service → **Variables** → add all of these (from your `.env`, plus the site URL):
