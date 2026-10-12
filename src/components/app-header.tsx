@@ -1,13 +1,14 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { Menu, Settings, User, ExternalLink, Store, LogOut, LifeBuoy, ShoppingBag } from "lucide-react";
+import { Settings, User, ExternalLink, Store, LogOut, LifeBuoy, ShoppingBag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile } from "@/lib/profile.functions";
 import { BASE_URL, BRAND_EMAIL } from "@/lib/site";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { MobileMenu, MOBILE_MENU_LINK, MOBILE_MENU_LINK_ACTIVE } from "@/components/mobile-menu";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -67,27 +68,70 @@ export function AppHeader() {
         <ThemeToggle />
         {/* Below sm, the nav above is hidden entirely — this is the only way to
             reach every section from a phone, so it isn't optional polish. */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-sm" className="sm:hidden">
-              <Menu className="h-4 w-4" />
-              <span className="sr-only">Menu</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {APP_NAV_LINKS.map((link) => (
-              <DropdownMenuItem key={link.to} asChild>
-                <Link to={link.to}>{link.label}</Link>
-              </DropdownMenuItem>
-            ))}
-            <DropdownMenuItem asChild>
-              <Link to="/dashboard/purchases">Your purchases</Link>
-            </DropdownMenuItem>
-            {/* Sign out lives in here on mobile so the header doesn't run out
-                of room next to the wordmark, theme toggle and menu. */}
-            <DropdownMenuItem onSelect={signOut}>Sign out</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <MobileMenu
+          homeTo="/dashboard"
+          footer={(close) => (
+            <>
+              <div className="flex items-center gap-3 pb-1">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-primary ring-1 ring-border">
+                  {profile?.avatarUrl ? (
+                    <img src={profile.avatarUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <User className="h-5 w-5" />
+                  )}
+                </span>
+                <span className="min-w-0 truncate font-medium">{displayName}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button asChild variant="outline" className="h-11">
+                  <Link to="/dashboard/purchases" onClick={close}>
+                    <ShoppingBag className="h-4 w-4" /> Purchases
+                  </Link>
+                </Button>
+                {storefrontUrl ? (
+                  <Button asChild variant="outline" className="h-11">
+                    <a href={storefrontUrl} target="_blank" rel="noreferrer" onClick={close}>
+                      <Store className="h-4 w-4" /> Storefront
+                    </a>
+                  </Button>
+                ) : (
+                  <Button asChild variant="outline" className="h-11">
+                    <a href={`mailto:${BRAND_EMAIL}`} onClick={close}>
+                      <LifeBuoy className="h-4 w-4" /> Support
+                    </a>
+                  </Button>
+                )}
+              </div>
+              {/* Sign out lives in here on mobile so the header doesn't run out
+                  of room next to the wordmark, theme toggle and menu. */}
+              <Button
+                variant="ghost"
+                className="h-11 w-full text-muted-foreground"
+                onClick={() => {
+                  close();
+                  void signOut();
+                }}
+              >
+                <LogOut className="h-4 w-4" /> Sign out
+              </Button>
+            </>
+          )}
+        >
+          {(close) =>
+            APP_NAV_LINKS.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                onClick={close}
+                className={MOBILE_MENU_LINK}
+                activeOptions={"exact" in link ? { exact: link.exact } : undefined}
+                activeProps={{ className: MOBILE_MENU_LINK_ACTIVE, "aria-current": "page" }}
+              >
+                {link.label}
+              </Link>
+            ))
+          }
+        </MobileMenu>
         {/* Account menu (desktop) — storefront, settings and sign-out behind an avatar. */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

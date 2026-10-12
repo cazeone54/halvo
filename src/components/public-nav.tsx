@@ -1,17 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { Menu } from "lucide-react";
 import { useAuthState } from "@/lib/auth-state";
 import { AppHeader } from "@/components/app-header";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Logo } from "@/components/logo";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { MobileMenu, MOBILE_MENU_LINK, MOBILE_MENU_LINK_ACTIVE } from "@/components/mobile-menu";
 
 const NAV_LINKS = [
   { to: "/features", label: "Features" },
@@ -66,24 +60,37 @@ export function PublicNav() {
 
           {/* Below sm the nav above is hidden entirely, so without this menu
               Pricing/Guides/FAQ/Discover are unreachable on a phone. */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-sm" className="sm:hidden">
-                <Menu className="h-4 w-4" />
-                <span className="sr-only">Menu</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {NAV_LINKS.map((link) => (
-                <DropdownMenuItem key={link.to} asChild>
-                  <Link to={link.to}>{link.label}</Link>
-                </DropdownMenuItem>
-              ))}
-              <DropdownMenuItem asChild>
-                <Link to="/login">Sign in</Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <MobileMenu
+            homeTo="/"
+            footer={(close) => (
+              <>
+                <Button asChild size="lg" className="w-full">
+                  <Link to="/login" onClick={close}>
+                    Get started
+                  </Link>
+                </Button>
+                <Button asChild size="lg" variant="outline" className="w-full">
+                  <Link to="/login" onClick={close}>
+                    Sign in
+                  </Link>
+                </Button>
+              </>
+            )}
+          >
+            {(close) =>
+              NAV_LINKS.map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  onClick={close}
+                  className={MOBILE_MENU_LINK}
+                  activeProps={{ className: MOBILE_MENU_LINK_ACTIVE, "aria-current": "page" }}
+                >
+                  {link.label}
+                </Link>
+              ))
+            }
+          </MobileMenu>
         </div>
       </div>
     </header>
