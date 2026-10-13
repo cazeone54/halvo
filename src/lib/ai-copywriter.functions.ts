@@ -6,6 +6,7 @@ import { resolveUserTier } from "@/lib/user-plan.functions";
 import { PLAN_LIMITS } from "@/lib/plans";
 import { getAnthropicClient, COPYWRITER_MODEL } from "@/lib/anthropic.server";
 import { isRateLimited } from "@/lib/rate-limit";
+import { AI_COPYWRITER_ENABLED } from "@/lib/site";
 
 const RATE_LIMIT_MAX = 5;
 const RATE_LIMIT_WINDOW_MS = 60_000;
@@ -35,6 +36,8 @@ export const generateProductCopy = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data, context }) => {
+    // Hidden in the UI, but server functions are reachable directly.
+    if (!AI_COPYWRITER_ENABLED) throw new Error("AI copywriting isn't available.");
     if (isRateLimited(context.userId, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS)) {
       throw new Error("You're generating copy too quickly — wait a minute and try again.");
     }

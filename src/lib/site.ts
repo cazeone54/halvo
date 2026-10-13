@@ -25,3 +25,10 @@ export const BRAND_EMAIL = `hello@${BRAND_DOMAIN}`;
 export const CURRENCY = "eur";
 export const CURRENCY_CODE = "EUR";
 export const CURRENCY_SYMBOL = "€";
+
+// ─── Optional features ──────────────────────────────────────────────────────
+// The AI product-copy helper ("Generate with AI"). Off: sellers don't need it to
+// list a product, and it needs a funded Anthropic account to work at all. Set
+// to true to bring back the dashboard button, the server function and its
+// mentions on /features and the pricing card together.
+export const AI_COPYWRITER_ENABLED = false;

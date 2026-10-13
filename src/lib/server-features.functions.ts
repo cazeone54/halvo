@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { AI_COPYWRITER_ENABLED } from "@/lib/site";
 
 // Which optional integrations are actually configured on this deployment.
 // The dashboard uses this to hide features that would otherwise be visible,
@@ -7,7 +8,7 @@ import { createServerFn } from "@tanstack/react-start";
 // Only booleans are returned; no key material ever reaches the client.
 export const getServerFeatures = createServerFn({ method: "GET" }).handler(async () => {
   return {
-    ai: !!process.env.ANTHROPIC_API_KEY,
+    ai: AI_COPYWRITER_ENABLED && !!process.env.ANTHROPIC_API_KEY,
     email: !!process.env.RESEND_API_KEY,
   };
 });

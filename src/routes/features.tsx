@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
-import { BRAND_NAME, BASE_URL } from "@/lib/site";
+import { AI_COPYWRITER_ENABLED, BRAND_NAME, BASE_URL } from "@/lib/site";
 import { DIRECT_CHARGES, PLAN_LIMITS } from "@/lib/plans";
 
 // Derived so a copy change can never claim a rate the checkout doesn't charge.
@@ -46,7 +46,7 @@ export const Route = createFileRoute("/features")({
       { title: `Features — ${BRAND_NAME}` },
       {
         name: "description",
-        content: `Everything ${BRAND_NAME} does: instant Stripe checkout and delivery, payouts to your own Stripe, discounts, affiliates, bundles, order bumps, an AI copywriter, an embeddable buy button, and analytics — ${FEE} per sale, no monthly fee.`,
+        content: `Everything ${BRAND_NAME} does: instant Stripe checkout and delivery, payouts to your own Stripe, discounts, affiliates, bundles, order bumps, ${AI_COPYWRITER_ENABLED ? "an AI copywriter, " : ""}an embeddable buy button, and analytics — ${FEE} per sale, no monthly fee.`,
       },
       { property: "og:title", content: `Features — ${BRAND_NAME}` },
       { property: "og:type", content: "website" },
@@ -65,7 +65,9 @@ const SELL: Feature[] = [
   { icon: Percent, title: "Pay what you want", body: "Let buyers name their price above a floor you set — great for tips and launches." },
   { icon: Gift, title: "Free lead magnets", body: "Give a file away for an email address. No card, no Stripe onboarding needed." },
   { icon: Layers, title: "Bundles & order bumps", body: "Package products together, and offer a one-click add-on right at checkout." },
-  { icon: Sparkles, title: "AI copywriter", body: "Turn a rough pitch into a polished product name and description in seconds." },
+  ...(AI_COPYWRITER_ENABLED
+    ? [{ icon: Sparkles, title: "AI copywriter", body: "Turn a rough pitch into a polished product name and description in seconds." }]
+    : []),
   { icon: Code2, title: "Embeddable buy button", body: "Drop one snippet on any site — Webflow, Framer, WordPress — and buyers check out in a popup." },
 ];
 

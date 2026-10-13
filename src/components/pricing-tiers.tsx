@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ACTIVE_TIERS, DIRECT_CHARGES, PLAN_LIMITS, PLAN_LABELS, PLAN_PRICE_USD, type PlanTier } from "@/lib/plans";
+import { AI_COPYWRITER_ENABLED } from "@/lib/site";
 
 // Shared by the landing page and /pricing so the two can never drift apart —
 // everything is derived from plans.ts, the single source of truth for limits
@@ -44,7 +45,7 @@ export function PricingTiers() {
           `${limits.filesPerProduct} file${limits.filesPerProduct === 1 ? "" : "s"} per product`,
           `${formatMb(limits.totalStorageMb)} storage`,
           `${limits.monthlyBandwidthGb} GB downloads/mo`,
-          `${limits.aiGenerationsPerMonth} AI generations/mo`,
+          ...(AI_COPYWRITER_ENABLED ? [`${limits.aiGenerationsPerMonth} AI generations/mo`] : []),
         ];
 
         return (
