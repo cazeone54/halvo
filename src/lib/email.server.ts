@@ -11,8 +11,42 @@ import { BASE_URL, BRAND_NAME } from "@/lib/site";
 // custom domain is verified there.
 // The address emails come from, e.g. hello@halvo.io once that domain is verified
 // in Resend. Resend's sandbox sender only delivers to the account owner's inbox.
+const SANDBOX_SENDER = "onboarding@resend.dev";
+
 function senderAddress(): string {
-  return process.env.EMAIL_FROM_ADDRESS?.trim() || "onboarding@resend.dev";
+  return process.env.EMAIL_FROM_ADDRESS?.trim() || SANDBOX_SENDER;
+}
+
+/**
+ * True when we're falling back to Resend's sandbox sender, which delivers ONLY
+ * to the Resend account owner's own address and rejects everyone else.
+ *
+ * This is the most deceptive state the email config can be in, and it's the
+ * one you land in by doing the obvious thing: setting RESEND_API_KEY and
+ * nothing else. Before the key is set, nothing sends and the log says so
+ * plainly. After it's set but with no EMAIL_FROM_ADDRESS, your own test
+ * emails arrive — so it looks configured — while every real buyer is
+ * silently rejected.
+ */
+function usingSandboxSender(): boolean {
+  return senderAddress() === SANDBOX_SENDER;
+}
+
+// Warn once per process rather than per email: a busy launch day would
+// otherwise bury the message under thousands of copies of itself.
+let sandboxWarned = false;
+
+function warnIfSandboxSender(recipient: string): void {
+  if (!usingSandboxSender() || sandboxWarned) return;
+  sandboxWarned = true;
+  console.error(
+    `EMAIL_FROM_ADDRESS is not set, so mail is being sent from Resend's ` +
+      `sandbox sender (${SANDBOX_SENDER}). Resend delivers that ONLY to the ` +
+      `Resend account owner's own address and rejects every other recipient — ` +
+      `so buyers like ${recipient} will NOT receive anything, and the purchase ` +
+      `will still look successful. Verify a domain in Resend and set ` +
+      `EMAIL_FROM_ADDRESS (e.g. hello@halvo.io) before taking real orders.`,
+  );
 }
 
 async function sendEmail(params: { to: string; subject: string; html: string; text: string }): Promise<void> {
@@ -26,6 +60,8 @@ async function sendEmail(params: { to: string; subject: string; html: string; te
     );
     return;
   }
+
+  warnIfSandboxSender(params.to);
 
   try {
     const res = await fetch("https://api.resend.com/emails", {
@@ -43,7 +79,15 @@ async function sendEmail(params: { to: string; subject: string; html: string; te
       }),
     });
     if (!res.ok) {
-      console.error("Resend email send failed:", res.status, await res.text());
+      // Name the message and the recipient: this is shared by purchase
+      // confirmations, sale notifications, access recovery and billing mail,
+      // and "send failed" alone doesn't say whose download never arrived.
+      console.error(
+        `Resend rejected "${params.subject}" to ${params.to}: ${res.status} ${await res.text()}` +
+          (usingSandboxSender()
+            ? ` — almost certainly because EMAIL_FROM_ADDRESS is unset and the sandbox sender only reaches the Resend account owner.`
+            : ""),
+      );
     }
   } catch (error) {
     // Never let an email provider hiccup break the actual purchase recording.
@@ -156,6 +200,10 @@ export async function sendBroadcastEmails(params: {
     console.error("RESEND_API_KEY not set — broadcast not sent");
     return 0;
   }
+
+  // A broadcast on the sandbox sender reaches nobody but the Resend account
+  // owner, and would otherwise report a cheerful "sent to N people".
+  warnIfSandboxSender(params.messages[0]?.to ?? "your subscribers");
 
   // Display names can't carry quotes or angle brackets without breaking the header.
   const safeName = params.fromName.replace(/["<>\r\n]/g, "").trim() || BRAND_NAME;
