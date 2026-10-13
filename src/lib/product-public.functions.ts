@@ -72,7 +72,7 @@ export const getProductPublicView = createServerFn({ method: "GET" })
       product.owner_id
         ? supabaseAdmin
             .from("profiles")
-            .select("display_name, handle, support_email, accent_color")
+            .select("display_name, handle, support_email, accent_color, deactivated_at")
             .eq("id", product.owner_id)
             .single()
         : Promise.resolve({ data: null }),
@@ -94,6 +94,11 @@ export const getProductPublicView = createServerFn({ method: "GET" })
         }
       })(),
     ]);
+
+    // While a seller is deactivated their product pages read as gone rather
+    // than as a buyable page that fails at checkout. Deactivation deliberately
+    // keeps url_slug, so this is where an old or shared link stops working.
+    if (sellerRes.data?.deactivated_at) throw new Error("Product not found");
 
     const seller = sellerRes.data;
     const sellerName = seller?.display_name ?? seller?.handle ?? null;

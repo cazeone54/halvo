@@ -11,10 +11,12 @@ export const getSellerStorefront = createServerFn({ method: "GET" })
 
     const { data: profile, error } = await supabaseAdmin
       .from("profiles")
-      .select("id, handle, display_name, bio, avatar_url, accent_color")
+      .select("id, handle, display_name, bio, avatar_url, accent_color, deactivated_at")
       .eq("handle", data.handle.toLowerCase())
       .single();
-    if (error || !profile) throw new Error("Storefront not found");
+    // A deactivated seller's storefront is gone while they're away, not
+    // showing an empty shop with their name still on it.
+    if (error || !profile || profile.deactivated_at) throw new Error("Storefront not found");
 
     const { data: products } = await supabaseAdmin
       .from("products")

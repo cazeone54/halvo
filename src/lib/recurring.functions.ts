@@ -61,11 +61,15 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
     // Independent lookups, in parallel (see createProductPaymentIntent).
     const [deliverableCount, { data: seller }, tier] = await Promise.all([
       countDeliverableFiles(supabaseAdmin, product.id),
-      supabaseAdmin.from("profiles").select("stripe_connect_id").eq("id", product.owner_id).single(),
+      supabaseAdmin.from("profiles").select("stripe_connect_id, deactivated_at").eq("id", product.owner_id).single(),
       resolveUserTier(supabaseAdmin, product.owner_id),
       assertInStock(supabaseAdmin, product),
     ]);
-    if (deliverableCount === 0 || !seller?.stripe_connect_id) throw new Error(UNAVAILABLE_MESSAGE);
+    // Deactivated sellers take no new sales — least of all a recurring one,
+    // which would keep billing a buyer long after the seller stepped away.
+    if (deliverableCount === 0 || !seller?.stripe_connect_id || seller.deactivated_at) {
+      throw new Error(UNAVAILABLE_MESSAGE);
+    }
     const stripe = getStripeClient();
     const account = await stripe.accounts.retrieve(seller.stripe_connect_id).catch(() => null);
     if (!account?.charges_enabled) throw new Error(UNAVAILABLE_MESSAGE);

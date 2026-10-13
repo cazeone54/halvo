@@ -33,15 +33,22 @@ export const Route = createFileRoute("/sitemap.xml")({
         // the sitemap only listed static marketing pages, so individual
         // product pages had no path to ever getting indexed by search
         // engines at all.
-        const [{ data: products }, { data: profiles }] = await Promise.all([
-          supabaseAdmin.from("products").select("url_slug").not("url_slug", "is", null),
-          supabaseAdmin.from("profiles").select("handle").not("handle", "is", null),
+        const { deactivatedSellerIds, isSellerVisible } = await import("@/lib/seller-visibility.server");
+
+        const [{ data: products }, { data: profiles }, hiddenSellers] = await Promise.all([
+          supabaseAdmin.from("products").select("owner_id, url_slug").not("url_slug", "is", null),
+          supabaseAdmin.from("profiles").select("id, handle").not("handle", "is", null),
+          deactivatedSellerIds(supabaseAdmin),
         ]);
 
+        // Deactivated sellers' pages now 404, so listing them would feed
+        // search engines dead URLs and earn crawl errors.
         const paths = [
           ...STATIC_PATHS,
-          ...(products ?? []).map((p) => `/p/${p.url_slug}`),
-          ...(profiles ?? []).map((p) => `/u/${p.handle}`),
+          ...(products ?? [])
+            .filter((p) => isSellerVisible(p.owner_id, hiddenSellers))
+            .map((p) => `/p/${p.url_slug}`),
+          ...(profiles ?? []).filter((p) => !hiddenSellers.has(p.id)).map((p) => `/u/${p.handle}`),
         ];
 
         const urls = paths.map((path) => `  <url><loc>${BASE_URL}${path}</loc></url>`).join("\n");

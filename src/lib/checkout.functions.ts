@@ -81,7 +81,7 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
     // download (bundles count their items). assertInStock throws if sold out.
     const [deliverableCount, { data: sellerProfile }, sellerTier, , coupon, bumpRes, referral] = await Promise.all([
       countDeliverableFiles(supabaseAdmin, product.id),
-      supabaseAdmin.from("profiles").select("stripe_connect_id").eq("id", product.owner_id).single(),
+      supabaseAdmin.from("profiles").select("stripe_connect_id, deactivated_at").eq("id", product.owner_id).single(),
       resolveUserTier(supabaseAdmin, product.owner_id),
       assertInStock(supabaseAdmin, product),
       data.couponCode ? findValidCoupon(supabaseAdmin, data.couponCode, product.id) : Promise.resolve(null),
@@ -90,7 +90,11 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
         : Promise.resolve({ data: null }),
       data.referralCode ? resolveReferralCode(supabaseAdmin, data.referralCode, product.id) : Promise.resolve(null),
     ]);
-    if (deliverableCount === 0 || !sellerProfile?.stripe_connect_id) {
+    // A deactivated seller is treated exactly like one who never connected
+    // Stripe: the product is simply unavailable. Deactivation leaves url_slug
+    // intact so old links still resolve, which means this is the gate that
+    // actually stops the sale.
+    if (deliverableCount === 0 || !sellerProfile?.stripe_connect_id || sellerProfile.deactivated_at) {
       throw new Error(UNAVAILABLE_MESSAGE);
     }
     if (data.couponCode && !coupon) throw new Error("Invalid or expired coupon code.");

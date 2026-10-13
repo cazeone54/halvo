@@ -1,6 +1,9 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
-import { Package, Tag, BarChart3, Settings } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
+import { Package, Tag, BarChart3, Settings, PauseCircle } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
+import { getMyProfile } from "@/lib/profile.functions";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardLayout,
@@ -18,9 +21,30 @@ const PRIMARY_TABS = [
 ] as const;
 
 function DashboardLayout() {
+  // Reuses the ["my-profile"] query the settings page already loads, so this
+  // costs nothing extra once that's cached. A deactivated seller otherwise has
+  // no way to tell their shop is hidden except by noticing sales stopped.
+  const profileFn = useServerFn(getMyProfile);
+  const profileQ = useQuery({ queryKey: ["my-profile"], queryFn: () => profileFn() });
+  const deactivated = !!profileQ.data?.deactivated_at;
+
   return (
     <div className="min-h-screen">
       <AppHeader />
+
+      {deactivated ? (
+        <div className="border-b border-amber-500/40 bg-amber-500/10">
+          <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-2 gap-y-1 px-4 py-2 text-sm sm:px-6">
+            <PauseCircle className="h-4 w-4 shrink-0" />
+            <span className="font-medium">Your account is deactivated.</span>
+            <span className="text-muted-foreground">Nothing is for sale and your storefront is hidden.</span>
+            <Link to="/dashboard/settings" className="font-medium underline underline-offset-2">
+              Reactivate
+            </Link>
+          </div>
+        </div>
+      ) : null}
+
       <main id="main-content" tabIndex={-1} className="mx-auto max-w-3xl px-4 py-6 pb-24 sm:px-6 sm:pb-6">
         <Outlet />
       </main>

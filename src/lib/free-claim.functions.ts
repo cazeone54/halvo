@@ -46,6 +46,19 @@ export const claimFreeProduct = createServerFn({ method: "POST" })
       throw new Error("This product isn't available yet.");
     }
 
+    // Free still means a new buyer, an email, and a row in the seller's
+    // customer list — none of which a deactivated seller should be collecting.
+    if (product.owner_id) {
+      const { data: seller } = await supabaseAdmin
+        .from("profiles")
+        .select("deactivated_at")
+        .eq("id", product.owner_id)
+        .maybeSingle();
+      if (seller?.deactivated_at) {
+        throw new Error("This product isn't available yet.");
+      }
+    }
+
     const buyerEmail = data.buyerEmail.toLowerCase();
 
     // There's no payment intent to deduplicate on, so re-claiming with the same

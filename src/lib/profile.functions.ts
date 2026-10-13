@@ -10,7 +10,7 @@ export const getMyProfile = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("profiles")
       .select(
-        "id, handle, display_name, bio, support_email, refund_policy, avatar_url, thank_you_message, thank_you_redirect_url, accent_color",
+        "id, handle, display_name, bio, support_email, refund_policy, avatar_url, thank_you_message, thank_you_redirect_url, accent_color, deactivated_at",
       )
       .eq("id", context.userId)
       .single();

@@ -24,6 +24,7 @@ export type Database = {
           thank_you_message: string | null;
           thank_you_redirect_url: string | null;
           accent_color: string | null;
+          deactivated_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -39,6 +40,7 @@ export type Database = {
           thank_you_message?: string | null;
           thank_you_redirect_url?: string | null;
           accent_color?: string | null;
+          deactivated_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -54,6 +56,7 @@ export type Database = {
           thank_you_message?: string | null;
           thank_you_redirect_url?: string | null;
           accent_color?: string | null;
+          deactivated_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -279,9 +282,11 @@ export type Database = {
       };
       product_files: {
         Row: {
+          // Null once the owning account is deleted — the row is kept so the
+          // buyer's download survives (migration 0022).
           id: string;
           product_id: string;
-          owner_id: string;
+          owner_id: string | null;
           storage_file_path: string;
           file_name: string | null;
           size_bytes: number | null;
@@ -474,10 +479,12 @@ export type Database = {
       };
       bundle_items: {
         Row: {
+          // Null once the owning account is deleted — the row is kept so a
+          // bundle a buyer already paid for still expands (migration 0022).
           id: string;
           bundle_product_id: string;
           item_product_id: string;
-          owner_id: string;
+          owner_id: string | null;
           created_at: string;
         };
         Insert: {
