@@ -13,6 +13,8 @@ import {
 } from "@/lib/recurring";
 import { sendBillingLinkEmail, sendPaymentFailedEmail, sendPurchaseConfirmationEmail } from "@/lib/email.server";
 import { formatCents } from "@/lib/format";
+import { DIRECT_CHARGES } from "@/lib/plans";
+import { notifySellerOfSale } from "@/lib/sale-notify.server";
 
 type Admin = SupabaseClient<Database>;
 
@@ -37,24 +39,44 @@ export function planLabel(kind: string, amountCents: number, interval: string, i
     : `membership, ${amount} per ${intervalLabel(interval)}`;
 }
 
+// Under direct charges a buyer's subscription — and its customer, product,
+// invoices and portal — all live on the seller's connected account, so every
+// Stripe call about it carries that account. Null means the platform account.
+export function onAccount(account: string | null | undefined): Stripe.RequestOptions | undefined {
+  return account ? { stripeAccount: account } : undefined;
+}
+
+// The connected account a seller's charges and subscriptions live on, or null
+// on the older destination-charge model (everything on the platform account).
+export async function sellerChargeAccount(admin: Admin, sellerId: string | null): Promise<string | null> {
+  if (!DIRECT_CHARGES || !sellerId) return null;
+  const { data } = await admin.from("profiles").select("stripe_connect_id").eq("id", sellerId).maybeSingle();
+  return data?.stripe_connect_id ?? null;
+}
+
 // The Stripe Product recurring prices hang off. Created once per Halvo product;
 // if the column isn't there yet, a fresh one each time still works.
 export async function ensureStripeProduct(
   admin: Admin,
   stripe: Stripe,
   product: { id: string; name: string; stripe_product_id?: string | null },
+  account: string | null = null,
 ): Promise<string> {
   if (product.stripe_product_id) {
-    // An id saved in test mode doesn't exist in live mode (and vice versa), so
-    // check it before use; a stale one is replaced instead of failing checkout.
+    // An id saved in test mode doesn't exist in live mode (and vice versa), and
+    // one made on another Stripe account doesn't exist on this one, so check
+    // it before use; a stale one is replaced instead of failing checkout.
     try {
-      const existing = await stripe.products.retrieve(product.stripe_product_id);
+      const existing = await stripe.products.retrieve(product.stripe_product_id, undefined, onAccount(account));
       if (existing && !existing.deleted) return existing.id;
     } catch (error) {
       if ((error as { code?: string })?.code !== "resource_missing") throw error;
     }
   }
-  const created = await stripe.products.create({ name: product.name, metadata: { halvo_product_id: product.id } });
+  const created = await stripe.products.create(
+    { name: product.name, metadata: { halvo_product_id: product.id } },
+    onAccount(account),
+  );
   await admin.from("products").update({ stripe_product_id: created.id }).eq("id", product.id);
   return created.id;
 }
@@ -108,8 +130,8 @@ export async function syncSubscriptionRow(admin: Admin, sub: Stripe.Subscription
     .eq("stripe_subscription_id", sub.id);
 }
 
-async function invoicePaymentIntentId(stripe: Stripe, invoiceId: string): Promise<string | null> {
-  const payments = await stripe.invoicePayments.list({ invoice: invoiceId, limit: 5 });
+async function invoicePaymentIntentId(stripe: Stripe, invoiceId: string, account: string | null): Promise<string | null> {
+  const payments = await stripe.invoicePayments.list({ invoice: invoiceId, limit: 5 }, onAccount(account));
   for (const p of payments.data) {
     if (p.status !== "paid") continue;
     const pi = p.payment.payment_intent;
@@ -127,22 +149,29 @@ export async function recordPaidInvoice(
   admin: Admin,
   stripe: Stripe,
   invoice: Stripe.Invoice,
-  opts: { buyerEmail?: string; buyerId?: string | null; termsAckedAt?: string | null } = {},
+  opts: { buyerEmail?: string; buyerId?: string | null; termsAckedAt?: string | null; account?: string | null } = {},
 ): Promise<{ transactionId: string; rowId: string } | null> {
   if (invoice.status !== "paid" || !invoice.id) return null;
   const subId = subscriptionIdOfInvoice(invoice);
   if (!subId) return null;
-  const sub = await stripe.subscriptions.retrieve(subId);
+  // Sellers have full Stripe accounts and may bill their own customers there;
+  // those invoices reach this webhook too. The invoice carries a copy of its
+  // subscription's metadata, so anything that isn't a Halvo buyer subscription
+  // is skipped before any API call (which would also look on the wrong account).
+  const snapshot = invoice.parent?.subscription_details?.metadata;
+  if (snapshot && snapshot.halvo_kind !== BUYER_SUB_KIND) return null;
+  const account = opts.account ?? null;
+  const sub = await stripe.subscriptions.retrieve(subId, undefined, onAccount(account));
   if (sub.metadata?.halvo_kind !== BUYER_SUB_KIND) return null;
 
   const productId = sub.metadata.productId;
   const { data: product } = await admin.from("products").select("id, name, owner_id").eq("id", productId).maybeSingle();
   if (!product) return null;
 
-  const piId = await invoicePaymentIntentId(stripe, invoice.id);
+  const piId = await invoicePaymentIntentId(stripe, invoice.id, account);
   let email = opts.buyerEmail?.toLowerCase();
   if (!email && piId) {
-    const pi = await stripe.paymentIntents.retrieve(piId, { expand: ["latest_charge"] });
+    const pi = await stripe.paymentIntents.retrieve(piId, { expand: ["latest_charge"] }, onAccount(account));
     const charge = pi.latest_charge && typeof pi.latest_charge !== "string" ? pi.latest_charge : null;
     email = (pi.receipt_email ?? charge?.billing_details?.email ?? undefined)?.toLowerCase();
   }
@@ -244,6 +273,13 @@ export async function recordPaidInvoice(
       planLabel: planLabel(kind, amount, item?.price?.recurring?.interval ?? "month", installmentsTotal),
       manageUrl: await manageUrl(row.id),
     });
+    // A new member or payment plan is a sale for the seller, same as a one-off.
+    await notifySellerOfSale({
+      supabaseAdmin: admin,
+      sellerId: product.owner_id,
+      productName: product.name,
+      amountCents: invoice.amount_paid,
+    });
   }
   return { transactionId: first.id, rowId: row.id };
 }
@@ -274,21 +310,25 @@ export async function recordFailedInvoice(admin: Admin, invoice: Stripe.Invoice)
   });
 }
 
-// Stripe's customer portal, configured once for Halvo buyers. Memberships may
-// be cancelled there; payment plans may not (that would just forfeit access).
-export async function portalConfiguration(stripe: Stripe, allowCancel: boolean): Promise<string> {
+// Stripe's customer portal, configured once for Halvo buyers (per seller
+// account under direct charges). Memberships may be cancelled there; payment
+// plans may not (that would just forfeit access).
+export async function portalConfiguration(stripe: Stripe, allowCancel: boolean, account: string | null = null): Promise<string> {
   const tag = allowCancel ? "halvo_buyer_membership" : "halvo_buyer_plan";
-  const existing = await stripe.billingPortal.configurations.list({ active: true, limit: 100 });
+  const existing = await stripe.billingPortal.configurations.list({ active: true, limit: 100 }, onAccount(account));
   const found = existing.data.find((c) => c.metadata?.halvo === tag);
   if (found) return found.id;
-  const created = await stripe.billingPortal.configurations.create({
-    metadata: { halvo: tag },
-    business_profile: { headline: allowCancel ? "Manage your membership" : "Manage your payment plan" },
-    features: {
-      payment_method_update: { enabled: true },
-      invoice_history: { enabled: true },
-      subscription_cancel: allowCancel ? { enabled: true, mode: "at_period_end" } : { enabled: false },
+  const created = await stripe.billingPortal.configurations.create(
+    {
+      metadata: { halvo: tag },
+      business_profile: { headline: allowCancel ? "Manage your membership" : "Manage your payment plan" },
+      features: {
+        payment_method_update: { enabled: true },
+        invoice_history: { enabled: true },
+        subscription_cancel: allowCancel ? { enabled: true, mode: "at_period_end" } : { enabled: false },
+      },
     },
-  });
+    onAccount(account),
+  );
   return created.id;
 }

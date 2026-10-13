@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getStripeClient, getStripeErrorMessage } from "@/lib/stripe.server";
 import { resolveOptionalUserId } from "@/lib/optional-auth.server";
 import { resolveUserTier } from "@/lib/user-plan.functions";
-import { calcPlatformFeeCents } from "@/lib/plans";
+import { DIRECT_CHARGES, calcPlatformFeeCents } from "@/lib/plans";
 import { countDeliverableFiles } from "@/lib/bundle.server";
 import { recordSaleSource } from "@/lib/record-source.server";
 import { assertInStock } from "@/lib/offer.server";
@@ -22,9 +22,11 @@ import {
   billingSecret,
   ensureStripeProduct,
   manageUrl,
+  onAccount,
   planLabel,
   portalConfiguration,
   recordPaidInvoice,
+  sellerChargeAccount,
 } from "@/lib/recurring.server";
 import { BASE_URL, CURRENCY } from "@/lib/site";
 import type Stripe from "stripe";
@@ -85,46 +87,59 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
     if (problem) throw new Error(UNAVAILABLE_MESSAGE);
 
     const feePercent = applicationFeePercent(calcPlatformFeeCents(tier, amountCents), amountCents);
+    // Direct charges: the subscription, its customer and product live on the
+    // seller's own account, and Halvo's cut is an application fee. (Live Stripe
+    // refuses destination subscriptions for this Managed Risk platform.)
+    const chargeAccount = DIRECT_CHARGES ? seller.stripe_connect_id : null;
+    const opts = onAccount(chargeAccount);
 
     try {
-      const stripeProductId = await ensureStripeProduct(supabaseAdmin, stripe, product);
-      const customer = await stripe.customers.create({ metadata: { halvo_product_id: product.id } });
-      const sub = await stripe.subscriptions.create({
-        customer: customer.id,
-        items: [
-          { price_data: { currency: CURRENCY, product: stripeProductId, unit_amount: amountCents, recurring: { interval } } },
-        ],
-        payment_behavior: "default_incomplete",
-        payment_settings: { save_default_payment_method: "on_subscription" },
-        expand: ["latest_invoice.confirmation_secret"],
-        transfer_data: { destination: seller.stripe_connect_id },
-        on_behalf_of: seller.stripe_connect_id,
-        application_fee_percent: feePercent,
-        metadata: {
-          halvo_kind: BUYER_SUB_KIND,
-          productId: product.id,
-          kind: data.plan,
-          ...(data.plan === "installments" ? { installments_total: String(count) } : {}),
+      const stripeProductId = await ensureStripeProduct(supabaseAdmin, stripe, product, chargeAccount);
+      const customer = await stripe.customers.create({ metadata: { halvo_product_id: product.id } }, opts);
+      const sub = await stripe.subscriptions.create(
+        {
+          customer: customer.id,
+          items: [
+            { price_data: { currency: CURRENCY, product: stripeProductId, unit_amount: amountCents, recurring: { interval } } },
+          ],
+          payment_behavior: "default_incomplete",
+          payment_settings: { save_default_payment_method: "on_subscription" },
+          expand: ["latest_invoice.confirmation_secret"],
+          ...(chargeAccount
+            ? {}
+            : { transfer_data: { destination: seller.stripe_connect_id }, on_behalf_of: seller.stripe_connect_id }),
+          application_fee_percent: feePercent,
+          metadata: {
+            halvo_kind: BUYER_SUB_KIND,
+            productId: product.id,
+            kind: data.plan,
+            ...(data.plan === "installments" ? { installments_total: String(count) } : {}),
+          },
         },
-      });
+        opts,
+      );
       // A payment plan ends itself after its last payment. Set once the real
       // billing anchor is known (see installmentCancelAt); if that fails, the
       // plan is cancelled rather than left to charge indefinitely.
       if (data.plan === "installments") {
         try {
-          await stripe.subscriptions.update(sub.id, {
-            cancel_at: installmentCancelAt(new Date(sub.billing_cycle_anchor * 1000), count),
-            proration_behavior: "none",
-          });
+          await stripe.subscriptions.update(
+            sub.id,
+            {
+              cancel_at: installmentCancelAt(new Date(sub.billing_cycle_anchor * 1000), count),
+              proration_behavior: "none",
+            },
+            opts,
+          );
         } catch (error) {
-          await stripe.subscriptions.cancel(sub.id).catch(() => {});
+          await stripe.subscriptions.cancel(sub.id, undefined, opts).catch(() => {});
           throw error;
         }
       }
       const invoice = sub.latest_invoice as Stripe.Invoice | null;
       const clientSecret = invoice?.confirmation_secret?.client_secret;
       if (!clientSecret) throw new Error("Could not start checkout.");
-      return { clientSecret, subscriptionId: sub.id, amountCents };
+      return { clientSecret, subscriptionId: sub.id, amountCents, stripeAccount: chargeAccount };
     } catch (error) {
       throw new Error(getStripeErrorMessage(error));
     }
@@ -148,7 +163,12 @@ export const recordSubscriptionPurchase = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const stripe = getStripeClient();
-    const sub = await stripe.subscriptions.retrieve(data.subscriptionId, { expand: ["latest_invoice"] });
+    // The subscription lives on the product owner's account (direct charges),
+    // so resolve the product first and look it up there.
+    const { data: product } = await supabaseAdmin.from("products").select("owner_id").eq("id", data.productId).single();
+    const account = await sellerChargeAccount(supabaseAdmin, product?.owner_id ?? null);
+    const opts = onAccount(account);
+    const sub = await stripe.subscriptions.retrieve(data.subscriptionId, { expand: ["latest_invoice"] }, opts);
     if (sub.metadata?.halvo_kind !== BUYER_SUB_KIND || sub.metadata.productId !== data.productId) {
       throw new Error("Payment does not match this product.");
     }
@@ -156,16 +176,16 @@ export const recordSubscriptionPurchase = createServerFn({ method: "POST" })
     if (!invoice || invoice.status !== "paid") throw new Error("Payment has not succeeded yet.");
 
     const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
-    await stripe.customers.update(customerId, { email: data.buyerEmail }).catch(() => {});
+    await stripe.customers.update(customerId, { email: data.buyerEmail }, opts).catch(() => {});
 
     const result = await recordPaidInvoice(supabaseAdmin, stripe, invoice, {
       buyerEmail: data.buyerEmail,
       buyerId: await resolveOptionalUserId(),
       termsAckedAt: data.acknowledgedTerms ? new Date().toISOString() : null,
+      account,
     });
     if (!result) throw new Error("Could not record purchase");
 
-    const { data: product } = await supabaseAdmin.from("products").select("owner_id").eq("id", data.productId).single();
     await recordSaleSource({
       transactionId: result.transactionId,
       sellerId: product?.owner_id ?? null,
@@ -277,11 +297,17 @@ export const openBillingPortal = createServerFn({ method: "POST" })
     if (!found) throw new Error("This link isn't valid.");
     const stripe = getStripeClient();
     try {
-      const session = await stripe.billingPortal.sessions.create({
-        customer: found.row.stripe_customer_id,
-        configuration: await portalConfiguration(stripe, found.row.kind === "membership"),
-        return_url: `${BASE_URL}/billing?t=${encodeURIComponent(data.token)}`,
-      });
+      // The buyer's customer record lives where the subscription does: on the
+      // seller's account under direct charges.
+      const account = await sellerChargeAccount(found.admin, found.row.seller_id);
+      const session = await stripe.billingPortal.sessions.create(
+        {
+          customer: found.row.stripe_customer_id,
+          configuration: await portalConfiguration(stripe, found.row.kind === "membership", account),
+          return_url: `${BASE_URL}/billing?t=${encodeURIComponent(data.token)}`,
+        },
+        onAccount(account),
+      );
       return { url: session.url };
     } catch (error) {
       throw new Error(getStripeErrorMessage(error));

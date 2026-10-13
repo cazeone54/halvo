@@ -191,9 +191,11 @@ async function handleDisputeClosed(dispute: Stripe.Dispute) {
 // this is the only place that ever writes to it.
 // Buyer memberships and payment plans: each paid invoice is recorded (the first
 // one too, in case the browser never called back), failures start the grace period.
-async function handleInvoicePaid(invoice: Stripe.Invoice) {
+// `account` is set when the event came from a connected account — where buyer
+// subscriptions live under direct charges — so lookups go to that account.
+async function handleInvoicePaid(invoice: Stripe.Invoice, account: string | null) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  await recordPaidInvoice(supabaseAdmin, getStripeClient(), invoice);
+  await recordPaidInvoice(supabaseAdmin, getStripeClient(), invoice, { account });
 }
 
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
@@ -283,7 +285,7 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
               await upsertSubscription(event.data.object as Stripe.Subscription);
               break;
             case "invoice.paid":
-              await handleInvoicePaid(event.data.object as Stripe.Invoice);
+              await handleInvoicePaid(event.data.object as Stripe.Invoice, event.account ?? null);
               break;
             case "invoice.payment_failed":
               await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);

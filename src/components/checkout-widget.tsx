@@ -143,6 +143,9 @@ export function CheckoutWidget({ product }: { product: Product }) {
         .then((res) => {
           setChargedCents(res.amountCents);
           setSubscriptionId(res.subscriptionId);
+          // Direct charges: the first invoice lives on the seller's account,
+          // so Stripe.js must confirm it in that account's context.
+          setStripeAccount(res.stripeAccount ?? null);
           setClientSecret(res.clientSecret);
         })
         .catch((e: Error) => setError(e.message));
