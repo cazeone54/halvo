@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { mergeSourceStats, type SourceStat } from "@/lib/source-stats";
 
 export const getMyAnalytics = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -29,11 +30,23 @@ export const getMyAnalytics = createServerFn({ method: "GET" })
     // the seller's own products, so no seller filter is needed here.
     let totalViews = 0;
     const viewsByProduct = new Map<string, number>();
+    const viewSources: Array<string | null> = [];
     try {
-      const { data: views } = await context.supabase.from("product_views").select("product_id");
+      // `source` arrives with migration 0023; select it separately from the
+      // count so an unmigrated database still yields views (just unattributed).
+      let views: Array<{ product_id: string; source?: string | null }> | null = null;
+      const withSource = await context.supabase.from("product_views").select("product_id, source");
+      if (withSource.error) {
+        const fallback = await context.supabase.from("product_views").select("product_id");
+        views = fallback.data;
+      } else {
+        views = withSource.data;
+      }
+
       for (const v of views ?? []) {
         totalViews += 1;
         viewsByProduct.set(v.product_id, (viewsByProduct.get(v.product_id) ?? 0) + 1);
+        viewSources.push(v.source ?? null);
       }
     } catch {
       // Views are a nice-to-have; never fail the whole analytics page for them.
@@ -52,25 +65,22 @@ export const getMyAnalytics = createServerFn({ method: "GET" })
       last30Days.set(day, (last30Days.get(day) ?? 0) + r.amount_paid_cents);
     }
 
-    // Where the sales came from. Read separately and defensively so the rest of
-    // the analytics page still works if migration 0009 hasn't been applied.
-    const topSources: Array<{ source: string; sales: number }> = [];
+    // Where traffic AND sales came from, per channel, so the page can show
+    // conversion per source. Read separately and defensively so the rest of the
+    // analytics page still works if migration 0009 hasn't been applied.
+    let topSources: SourceStat[] = [];
     try {
       const { data: sources } = await context.supabase
         .from("sale_sources")
         .select("source")
         .eq("seller_id", context.userId);
-      const counts = new Map<string, number>();
-      for (const row of sources ?? []) {
-        counts.set(row.source, (counts.get(row.source) ?? 0) + 1);
-      }
-      topSources.push(
-        ...Array.from(counts.entries())
-          .map(([source, sales]) => ({ source, sales }))
-          .sort((a, b) => b.sales - a.sales),
+      topSources = mergeSourceStats(
+        viewSources,
+        (sources ?? []).map((row) => row.source),
       );
     } catch {
-      // Sources are a nice-to-have; never fail the whole analytics page for them.
+      // Sale sources unavailable — still report traffic by channel on its own.
+      topSources = mergeSourceStats(viewSources, []);
     }
 
     return {

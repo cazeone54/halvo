@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { ShieldCheck, Mail, CircleCheck, Lock, Zap, CreditCard, KeyRound } from "lucide-react";
 import { getProductPublicView, listMoreFromSeller } from "@/lib/product-public.functions";
 import { recordProductView } from "@/lib/product-view.functions";
+import { captureArrival } from "@/lib/arrival";
 import { listProductReviews } from "@/lib/reviews.functions";
 import { Stars } from "@/components/stars";
 import { CheckoutWidget } from "@/components/checkout-widget";
@@ -139,7 +140,9 @@ function ProductCheckoutPage() {
     } catch {
       // Private mode / storage disabled — fall through and just record it.
     }
-    void recordViewFn({ data: { productId: product.id } }).catch(() => {});
+    // Same arrival rules as checkout uses for a sale, so views and sales agree
+    // on what "instagram" means and conversion per channel is a real ratio.
+    void recordViewFn({ data: { productId: product.id, ...captureArrival() } }).catch(() => {});
   }, [product.id, recordViewFn]);
   const reviewsQ = useQuery({
     queryKey: ["product-reviews", product.id],

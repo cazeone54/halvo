@@ -1,6 +1,29 @@
 import { normalizeTrafficSource } from "@/lib/traffic-source";
 import { BASE_URL } from "@/lib/site";
 
+/**
+ * Turn a visitor's raw arrival into the stored label.
+ *
+ * Used for both sales and product views, deliberately: if views and sales
+ * normalised differently, conversion per channel would divide two numbers that
+ * don't mean the same thing.
+ */
+export function sourceFromArrival(args: { referrer?: string | null; utmSource?: string | null }): string {
+  const selfHost = (() => {
+    try {
+      return new URL(BASE_URL).hostname;
+    } catch {
+      return null;
+    }
+  })();
+
+  return normalizeTrafficSource({
+    referrer: args.referrer,
+    utmSource: args.utmSource,
+    selfHost,
+  });
+}
+
 // Records where a sale came from. Entirely best-effort and always called AFTER
 // the transaction is safely written: analytics are never worth risking a
 // purchase the buyer has already paid for, and this also means the feature
@@ -12,19 +35,7 @@ export async function recordSaleSource(args: {
   utmSource?: string | null;
 }): Promise<void> {
   try {
-    const selfHost = (() => {
-      try {
-        return new URL(BASE_URL).hostname;
-      } catch {
-        return null;
-      }
-    })();
-
-    const source = normalizeTrafficSource({
-      referrer: args.referrer,
-      utmSource: args.utmSource,
-      selfHost,
-    });
+    const source = sourceFromArrival(args);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin

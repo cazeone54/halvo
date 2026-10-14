@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatCents } from "@/lib/format";
+import { captureArrival } from "@/lib/arrival";
 
 type Product = {
   id: string;
@@ -44,14 +45,10 @@ export type PlanTerms = { kind: "full" } | { kind: "membership"; label: string }
 
 const money = (cents: number) => formatCents(cents);
 
-// Read once, at module scope on the client, because document.referrer is only
-// meaningful for the page the buyer actually landed on — any in-app navigation
-// before checkout would otherwise overwrite it with one of our own URLs.
-function captureArrival(): { referrer?: string; utmSource?: string } {
-  if (typeof window === "undefined") return {};
-  const utmSource = new URLSearchParams(window.location.search).get("utm_source") ?? undefined;
-  return { referrer: document.referrer || undefined, utmSource: utmSource || undefined };
-}
+// captureArrival now lives in @/lib/arrival so the product page can attribute a
+// VIEW with exactly the same rules this uses to attribute a SALE — otherwise
+// views and sales could disagree about what "instagram" means and conversion
+// per channel would be nonsense.
 
 // A free product skips Stripe entirely — no payment form, no card, and the
 // seller doesn't need Connect onboarding finished for it to work.

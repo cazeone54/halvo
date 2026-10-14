@@ -588,16 +588,21 @@ export type Database = {
         Row: {
           id: string;
           product_id: string;
+          // Normalised channel (migration 0023). Null for views recorded
+          // before it, reported as "Unknown".
+          source: string | null;
           created_at: string;
         };
         Insert: {
           id?: string;
           product_id: string;
+          source?: string | null;
           created_at?: string;
         };
         Update: {
           id?: string;
           product_id?: string;
+          source?: string | null;
           created_at?: string;
         };
         Relationships: [
