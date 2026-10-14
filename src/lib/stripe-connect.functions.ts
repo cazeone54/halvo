@@ -71,6 +71,25 @@ export const startStripeConnectOnboarding = createServerFn({ method: "POST" })
     }
   });
 
+// Public listings only show a seller's paid products once they can take
+// payments (seller-visibility.server.ts), so the stored flag follows what Stripe
+// says each time the seller's dashboard checks. Written with the service role:
+// a database trigger stops sellers setting it on their own profile. Best-effort,
+// and a no-op write when nothing changed; before migration 0024 the column
+// doesn't exist and the error is ignored.
+async function syncChargesEnabled(userId: string, enabled: boolean): Promise<void> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin
+      .from("profiles")
+      .update({ stripe_charges_enabled: enabled })
+      .eq("id", userId)
+      .neq("stripe_charges_enabled", enabled);
+  } catch {
+    // Listings keep the last known value until the next check.
+  }
+}
+
 export const getStripeConnectStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -84,6 +103,7 @@ export const getStripeConnectStatus = createServerFn({ method: "GET" })
       .single();
 
     if (!profile?.stripe_connect_id) {
+      await syncChargesEnabled(context.userId, false);
       return {
         connected: false,
         chargesEnabled: false,
@@ -101,6 +121,7 @@ export const getStripeConnectStatus = createServerFn({ method: "GET" })
       const requirementsDue = Array.from(
         new Set([...(account.requirements?.currently_due ?? []), ...(account.requirements?.past_due ?? [])]),
       );
+      await syncChargesEnabled(context.userId, !!account.charges_enabled);
       return {
         connected: true,
         chargesEnabled: !!account.charges_enabled,
@@ -111,6 +132,7 @@ export const getStripeConnectStatus = createServerFn({ method: "GET" })
     } catch {
       // Stale/foreign account id — self-heal by clearing it.
       await context.supabase.from("profiles").update({ stripe_connect_id: null }).eq("id", context.userId);
+      await syncChargesEnabled(context.userId, false);
       return {
         connected: false,
         chargesEnabled: false,

@@ -25,17 +25,21 @@ export const listMoreFromSeller = createServerFn({ method: "GET" })
         .single();
       if (!current?.owner_id) return { products: [] };
 
-      const { data: others } = await supabaseAdmin
-        .from("products")
-        .select("id, name, price_cents, pay_what_you_want, url_slug, image_url, sale_price_cents, sale_ends_at, billing_type, billing_interval")
-        .eq("owner_id", current.owner_id)
-        .neq("id", data.productId)
-        .not("url_slug", "is", null) // published only
-        .order("created_at", { ascending: false })
-        .limit(4);
+      const { sellerCanTakePayments, isReachableByLink } = await import("@/lib/seller-visibility.server");
+      const [{ data: others }, canPay] = await Promise.all([
+        supabaseAdmin
+          .from("products")
+          .select("id, name, price_cents, pay_what_you_want, url_slug, image_url, sale_price_cents, sale_ends_at, billing_type, billing_interval")
+          .eq("owner_id", current.owner_id)
+          .neq("id", data.productId)
+          .not("url_slug", "is", null) // published only
+          .order("created_at", { ascending: false })
+          .limit(4),
+        sellerCanTakePayments(supabaseAdmin, current.owner_id),
+      ]);
 
       return {
-        products: (others ?? []).map((p) => ({
+        products: (others ?? []).filter((p) => isReachableByLink(p, canPay)).map((p) => ({
           id: p.id,
           name: p.name,
           priceCents: p.price_cents,
@@ -68,7 +72,8 @@ export const getProductPublicView = createServerFn({ method: "GET" })
     // the product row we already have — so run them concurrently rather than
     // three sequential round-trips on the checkout page (the money page, where
     // latency matters most). Each is independently defensive.
-    const [sellerRes, salesRes, reviewSummary] = await Promise.all([
+    const { sellerCanTakePayments, isReachableByLink } = await import("@/lib/seller-visibility.server");
+    const [sellerRes, salesRes, reviewSummary, sellerCanPay] = await Promise.all([
       product.owner_id
         ? supabaseAdmin
             .from("profiles")
@@ -93,12 +98,16 @@ export const getProductPublicView = createServerFn({ method: "GET" })
           return summarizeRatings([]);
         }
       })(),
+      product.owner_id ? sellerCanTakePayments(supabaseAdmin, product.owner_id) : Promise.resolve(null),
     ]);
 
     // While a seller is deactivated their product pages read as gone rather
     // than as a buyable page that fails at checkout. Deactivation deliberately
     // keeps url_slug, so this is where an old or shared link stops working.
     if (sellerRes.data?.deactivated_at) throw new Error("Product not found");
+    // Same for a paid product whose seller hasn't connected Stripe: nobody can
+    // buy it, so its page doesn't exist for buyers until they do.
+    if (!isReachableByLink(product, sellerCanPay)) throw new Error("Product not found");
 
     const seller = sellerRes.data;
     const sellerName = seller?.display_name ?? seller?.handle ?? null;

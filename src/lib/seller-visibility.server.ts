@@ -42,3 +42,70 @@ export async function deactivatedSellerIds(admin: Admin): Promise<Set<string>> {
 export function isSellerVisible(ownerId: string | null, deactivated: Set<string>): boolean {
   return !ownerId || !deactivated.has(ownerId);
 }
+
+/**
+ * The sellers whose connected Stripe account can take payments right now
+ * (profiles.stripe_charges_enabled, kept in step by the dashboard's Stripe
+ * status check and the account.updated webhook).
+ *
+ * null means unknown: migration 0024 isn't applied or the read failed. Callers
+ * then behave as before this rule existed, rather than hiding the whole site.
+ */
+export async function chargeReadySellerIds(admin: Admin): Promise<Set<string> | null> {
+  try {
+    const { data, error } = await admin.from("profiles").select("id").eq("stripe_charges_enabled", true);
+    if (error) return null;
+    return new Set((data ?? []).map((row) => row.id));
+  } catch {
+    return null;
+  }
+}
+
+/** The same for one seller: true or false, or null when unknown. */
+export async function sellerCanTakePayments(admin: Admin, sellerId: string): Promise<boolean | null> {
+  try {
+    const { data, error } = await admin
+      .from("profiles")
+      .select("stripe_charges_enabled")
+      .eq("id", sellerId)
+      .maybeSingle();
+    if (error || !data) return null;
+    return data.stripe_charges_enabled === true;
+  } catch {
+    return null;
+  }
+}
+
+export type ListingVisibility = { deactivated: Set<string>; chargeReady: Set<string> | null };
+
+export async function loadListingVisibility(admin: Admin): Promise<ListingVisibility> {
+  const [deactivated, chargeReady] = await Promise.all([deactivatedSellerIds(admin), chargeReadySellerIds(admin)]);
+  return { deactivated, chargeReady };
+}
+
+/**
+ * Whether a product shows where buyers browse: Discover, its category chips and
+ * the sitemap. Only sellers who can take payments are listed there, free
+ * products included. A seller who hasn't connected Stripe hasn't been verified
+ * by anyone, and Discover is for shops that are open.
+ */
+export function isListedPublicly(product: { owner_id: string | null }, visibility: ListingVisibility): boolean {
+  if (!isSellerVisible(product.owner_id, visibility.deactivated)) return false;
+  if (!product.owner_id || visibility.chargeReady === null) return true;
+  return visibility.chargeReady.has(product.owner_id);
+}
+
+/**
+ * Whether a product's own page, and its place on the seller's storefront, can
+ * be opened. A paid product whose seller can't take payments yet is hidden: its
+ * page could only tell buyers it isn't available. A free product works without
+ * Stripe, so it stays reachable by its link (a lead magnet shared from a bio).
+ * `sellerCanPay` null means unknown, which keeps the previous behaviour.
+ */
+export function isReachableByLink(
+  product: { price_cents: number; pay_what_you_want: boolean | null },
+  sellerCanPay: boolean | null,
+): boolean {
+  if (sellerCanPay !== false) return true;
+  return !product.pay_what_you_want && product.price_cents === 0;
+}

@@ -240,7 +240,7 @@ function DashboardHome() {
         res.published
           ? connect?.chargesEnabled || Number(price) === 0
             ? "Your product is live — share the link to make your first sale."
-            : "Product published. Connect Stripe so buyers can pay — until then its page says it isn't available yet."
+            : "Product saved. It stays hidden from buyers until you connect Stripe under Payouts."
           : "Product created — add a file to publish it.",
       );
       qc.invalidateQueries({ queryKey: ["my-products"] });
@@ -598,7 +598,7 @@ function DashboardHome() {
             <ProductRow
               key={product.id}
               product={product}
-              canTakePayments={!!connect?.chargesEnabled}
+              canTakePayments={connectQ.isSuccess ? !!connect?.chargesEnabled : null}
               onDelete={() => deleteMut.mutate(product.id)}
             />
           ))}
@@ -913,8 +913,8 @@ function DashboardHome() {
               // actually goes, rather than presenting a bare button.
               <div className="flex flex-col items-start gap-3">
                 <p className="text-sm text-muted-foreground">
-                  Connect Stripe when you're ready to take payments. Your share goes straight to your own Stripe
-                  account — we never hold it.
+                  Connect Stripe to start selling. Until you do, your paid products are hidden from buyers. Your
+                  share goes straight to your own Stripe account — we never hold it.
                 </p>
                 <ul className="flex flex-col gap-1 text-xs text-muted-foreground">
                   <li>· About 5 minutes</li>
@@ -1017,10 +1017,16 @@ function ProductRow({
 }: {
   product: ProductRowData;
   onDelete: () => void;
-  // False until Stripe is connected: a paid product can be published but not bought.
-  canTakePayments: boolean;
+  // False until Stripe is connected; null while the Stripe status is loading.
+  canTakePayments: boolean | null;
 }) {
   const uid = useId();
+  const isFree = !product.pay_what_you_want && product.price_cents === 0;
+  // Mirrors the public rules (seller-visibility.server.ts): until Stripe is
+  // connected a paid product is hidden from buyers, and a free one works by its
+  // link but isn't listed in Discover. Unknown status says nothing yet.
+  const hiddenFromBuyers = !!product.url_slug && canTakePayments === false && !isFree;
+  const notInDiscover = !!product.url_slug && canTakePayments === false && isFree;
   const qc = useQueryClient();
   const filesFn = useServerFn(listMyProductFiles);
   const checkCanUploadFn = useServerFn(checkCanUploadFile);
@@ -1127,8 +1133,8 @@ function ProductRow({
       // Attaching the first file is what publishes the product, so this is the
       // moment to hand the seller their link — sharing it is what actually
       // produces a sale, and it used to be hidden behind an unlabelled icon.
-      if (res?.published && !canTakePayments && product.price_cents > 0) {
-        toast.warning("Product published. Connect Stripe so buyers can pay — until then its page says it isn't available yet.");
+      if (res?.published && canTakePayments === false && !isFree) {
+        toast.warning("Product saved. It stays hidden from buyers until you connect Stripe under Payouts.");
       } else if (res?.published) {
         toast.success("Your product is live — share the link to make your first sale.");
         setSharing(true);
@@ -1219,20 +1225,30 @@ function ProductRow({
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <p className="truncate font-medium">{product.name}</p>
-                {!product.url_slug ? <Badge variant="secondary">Draft</Badge> : null}
+                {!product.url_slug ? (
+                  <Badge variant="secondary">Draft</Badge>
+                ) : hiddenFromBuyers ? (
+                  <Badge variant="secondary">Hidden</Badge>
+                ) : null}
               </div>
               <p className="text-sm text-muted-foreground">
                 {formatCents(product.price_cents)}
                 {!product.url_slug
                   ? " · add a file below to publish"
-                  : !product.imageUrl
-                    ? " · add a cover image to stand out"
-                    : null}
+                  : hiddenFromBuyers
+                    ? " · hidden from buyers until you connect Stripe"
+                    : notInDiscover
+                      ? " · works by its link; listed in Discover once you connect Stripe"
+                      : !product.imageUrl
+                        ? " · add a cover image to stand out"
+                        : null}
               </p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2 sm:justify-end">
-            {product.url_slug ? (
+            {/* A hidden product's page is "not found" for everyone, so its link
+                and share snippets would lead nowhere until Stripe is connected. */}
+            {product.url_slug && !hiddenFromBuyers ? (
               <>
                 <Button asChild variant="outline" size="sm">
                   <a href={`/p/${product.url_slug}`} target="_blank" rel="noreferrer">
@@ -1465,7 +1481,7 @@ function ProductRow({
           </div>
         ) : null}
 
-        {sharing && product.url_slug ? (
+        {sharing && product.url_slug && !hiddenFromBuyers ? (
           <div className="flex flex-col gap-3 rounded-md border p-3">
             {justPublished ? (
               <div className="rounded-md border border-primary/30 bg-primary/5 p-3">

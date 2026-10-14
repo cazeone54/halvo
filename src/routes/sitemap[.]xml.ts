@@ -33,22 +33,24 @@ export const Route = createFileRoute("/sitemap.xml")({
         // the sitemap only listed static marketing pages, so individual
         // product pages had no path to ever getting indexed by search
         // engines at all.
-        const { deactivatedSellerIds, isSellerVisible } = await import("@/lib/seller-visibility.server");
+        const { loadListingVisibility, isListedPublicly } = await import("@/lib/seller-visibility.server");
 
-        const [{ data: products }, { data: profiles }, hiddenSellers] = await Promise.all([
+        const [{ data: products }, { data: profiles }, visibility] = await Promise.all([
           supabaseAdmin.from("products").select("owner_id, url_slug").not("url_slug", "is", null),
           supabaseAdmin.from("profiles").select("id, handle").not("handle", "is", null),
-          deactivatedSellerIds(supabaseAdmin),
+          loadListingVisibility(supabaseAdmin),
         ]);
 
-        // Deactivated sellers' pages now 404, so listing them would feed
-        // search engines dead URLs and earn crawl errors.
+        // Deactivated sellers' pages 404, and sellers who haven't connected
+        // Stripe have nothing buyers can purchase, so listing either would feed
+        // search engines dead or empty URLs. A storefront follows the same
+        // rule as its products.
         const paths = [
           ...STATIC_PATHS,
-          ...(products ?? [])
-            .filter((p) => isSellerVisible(p.owner_id, hiddenSellers))
-            .map((p) => `/p/${p.url_slug}`),
-          ...(profiles ?? []).filter((p) => !hiddenSellers.has(p.id)).map((p) => `/u/${p.handle}`),
+          ...(products ?? []).filter((p) => isListedPublicly(p, visibility)).map((p) => `/p/${p.url_slug}`),
+          ...(profiles ?? [])
+            .filter((p) => isListedPublicly({ owner_id: p.id }, visibility))
+            .map((p) => `/u/${p.handle}`),
         ];
 
         const urls = paths.map((path) => `  <url><loc>${BASE_URL}${path}</loc></url>`).join("\n");

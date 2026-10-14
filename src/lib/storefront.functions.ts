@@ -18,14 +18,20 @@ export const getSellerStorefront = createServerFn({ method: "GET" })
     // showing an empty shop with their name still on it.
     if (error || !profile || profile.deactivated_at) throw new Error("Storefront not found");
 
-    const { data: products } = await supabaseAdmin
-      .from("products")
-      .select("id, name, description, price_cents, pay_what_you_want, url_slug, category, image_url, sale_price_cents, sale_ends_at, billing_type, billing_interval")
-      .eq("owner_id", profile.id)
-      .not("url_slug", "is", null)
-      .order("created_at", { ascending: false });
+    const { sellerCanTakePayments, isReachableByLink } = await import("@/lib/seller-visibility.server");
+    const [{ data: products }, canPay] = await Promise.all([
+      supabaseAdmin
+        .from("products")
+        .select("id, name, description, price_cents, pay_what_you_want, url_slug, category, image_url, sale_price_cents, sale_ends_at, billing_type, billing_interval")
+        .eq("owner_id", profile.id)
+        .not("url_slug", "is", null)
+        .order("created_at", { ascending: false }),
+      sellerCanTakePayments(supabaseAdmin, profile.id),
+    ]);
 
-    const rows = products ?? [];
+    // Until the seller connects Stripe, only their free products are shown:
+    // a paid one could only tell buyers it isn't available.
+    const rows = (products ?? []).filter((p) => isReachableByLink(p, canPay));
 
     // Star ratings per product — one batched, best-effort read (same pattern as
     // discover), so the storefront shows social proof but never breaks if the

@@ -25,6 +25,8 @@ export type Database = {
           thank_you_redirect_url: string | null;
           accent_color: string | null;
           deactivated_at: string | null;
+          // Present once migration 0024 is applied.
+          stripe_charges_enabled: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -41,6 +43,7 @@ export type Database = {
           thank_you_redirect_url?: string | null;
           accent_color?: string | null;
           deactivated_at?: string | null;
+          stripe_charges_enabled?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -57,6 +60,7 @@ export type Database = {
           thank_you_redirect_url?: string | null;
           accent_color?: string | null;
           deactivated_at?: string | null;
+          stripe_charges_enabled?: boolean;
           created_at?: string;
           updated_at?: string;
         };

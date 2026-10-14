@@ -20,7 +20,7 @@ export const listDiscover = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { deactivatedSellerIds, isSellerVisible } = await import("@/lib/seller-visibility.server");
+    const { loadListingVisibility, isListedPublicly } = await import("@/lib/seller-visibility.server");
 
     let query = supabaseAdmin
       .from("products")
@@ -39,15 +39,13 @@ export const listDiscover = createServerFn({ method: "GET" })
       if (term) query = query.or(`name.ilike.%${term}%,description.ilike.%${term}%`);
     }
 
-    const [{ data: products, error }, hiddenSellers] = await Promise.all([
-      query,
-      deactivatedSellerIds(supabaseAdmin),
-    ]);
+    const [{ data: products, error }, visibility] = await Promise.all([query, loadListingVisibility(supabaseAdmin)]);
     if (error) throw new Error(error.message);
 
-    // Deactivated sellers keep their slugs, so they have to be filtered by
-    // owner here rather than by the url_slug check above.
-    const rows = (products ?? []).filter((p) => isSellerVisible(p.owner_id, hiddenSellers));
+    // Deactivated sellers keep their slugs, and sellers who haven't connected
+    // Stripe can publish but not sell, so both are filtered by owner here
+    // rather than by the url_slug check above.
+    const rows = (products ?? []).filter((p) => isListedPublicly(p, visibility));
     const sort: DiscoverSort = data.sort ?? "trending";
 
     // Sales counts drive both trending and best-selling. Newest-first alone
@@ -136,18 +134,18 @@ export const listDiscover = createServerFn({ method: "GET" })
 // hardcoded list that could drift from what sellers are really picking.
 export const listDiscoverCategories = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { deactivatedSellerIds, isSellerVisible } = await import("@/lib/seller-visibility.server");
+  const { loadListingVisibility, isListedPublicly } = await import("@/lib/seller-visibility.server");
 
-  const [{ data, error }, hiddenSellers] = await Promise.all([
+  const [{ data, error }, visibility] = await Promise.all([
     supabaseAdmin
       .from("products")
       .select("owner_id, category")
       .not("url_slug", "is", null)
       .not("category", "is", null),
-    deactivatedSellerIds(supabaseAdmin),
+    loadListingVisibility(supabaseAdmin),
   ]);
   if (error) throw new Error(error.message);
   // Otherwise a chip leads to a category whose only products are hidden.
-  const visible = (data ?? []).filter((p) => isSellerVisible(p.owner_id, hiddenSellers));
+  const visible = (data ?? []).filter((p) => isListedPublicly(p, visibility));
   return Array.from(new Set(visible.map((p) => p.category).filter((c): c is string => !!c))).sort();
 });

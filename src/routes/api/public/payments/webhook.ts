@@ -240,6 +240,16 @@ async function upsertSubscription(subscription: Stripe.Subscription) {
   );
 }
 
+// A seller's connected account finished onboarding, was restricted by Stripe,
+// or disconnected Halvo. Public listings hide a seller's paid products while
+// they can't take payments, so the flag follows Stripe here as well as on the
+// seller's own dashboard check. No matching profile (or no column before
+// migration 0024) simply updates nothing.
+async function setSellerChargesEnabled(accountId: string, enabled: boolean) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await supabaseAdmin.from("profiles").update({ stripe_charges_enabled: enabled }).eq("stripe_connect_id", accountId);
+}
+
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   if (subscription.metadata?.halvo_kind === BUYER_SUB_KIND) {
@@ -292,6 +302,14 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
               break;
             case "customer.subscription.deleted":
               await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
+              break;
+            case "account.updated": {
+              const account = event.data.object as Stripe.Account;
+              await setSellerChargesEnabled(account.id, !!account.charges_enabled);
+              break;
+            }
+            case "account.application.deauthorized":
+              if (event.account) await setSellerChargesEnabled(event.account, false);
               break;
             default:
               break;
