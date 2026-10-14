@@ -13,6 +13,7 @@ import { captureReferralFromUrl } from "@/lib/referral-attribution";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AppToaster } from "@/components/app-toaster";
 import { ConsentBanner } from "@/components/consent-banner";
+import { CloudflareAnalytics } from "@/components/cloudflare-analytics";
 import { NotFound } from "@/components/not-found";
 
 // Applies the persisted light/dark/system choice before hydration to avoid
@@ -126,6 +127,9 @@ function RootShell({ children }: { children: React.ReactNode }) {
         </a>
         {children}
         <Scripts />
+        {/* Cookieless, so it loads for everyone rather than waiting on the
+            consent banner. Renders nothing unless VITE_CF_BEACON_TOKEN is set. */}
+        <CloudflareAnalytics />
       </body>
     </html>
   );
