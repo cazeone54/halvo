@@ -5,25 +5,38 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Logo } from "@/components/logo";
+import { ProviderIcon } from "@/components/provider-icon";
+import { parseEnabledProviders, type AuthProviderId } from "@/lib/auth-providers";
 import { BRAND_NAME } from "@/lib/site";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
+// Which social buttons to show — see @/lib/auth-providers. Read at module scope
+// because it's build-time config, not state.
+const PROVIDERS = parseEnabledProviders(import.meta.env.VITE_AUTH_PROVIDERS as string | undefined);
+
 function LoginPage() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [pending, setPending] = useState<AuthProviderId | null>(null);
 
-  const signInWithGoogle = async () => {
+  const signInWith = async (provider: AuthProviderId) => {
     setError(null);
+    setPending(provider);
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
+      provider,
       options: { redirectTo: `${window.location.origin}/dashboard` },
     });
-    if (error) setError(error.message);
+    // On success the browser leaves for the provider, so this only runs on
+    // failure — most often because the provider isn't enabled in Supabase.
+    if (error) {
+      setError(error.message);
+      setPending(null);
+    }
   };
 
   const sendMagicLink = async (e: React.FormEvent) => {
@@ -54,9 +67,19 @@ function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <Button variant="outline" onClick={signInWithGoogle}>
-            Continue with Google
-          </Button>
+          <div className="flex flex-col gap-2">
+            {PROVIDERS.map((p) => (
+              <Button
+                key={p.id}
+                variant="outline"
+                onClick={() => signInWith(p.id)}
+                disabled={pending !== null}
+              >
+                <ProviderIcon id={p.id} />
+                {pending === p.id ? `Opening ${p.name}…` : `Continue with ${p.name}`}
+              </Button>
+            ))}
+          </div>
 
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <div className="h-px flex-1 bg-border" />
