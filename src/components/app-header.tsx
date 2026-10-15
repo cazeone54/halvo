@@ -1,7 +1,8 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { Settings, User, ExternalLink, Store, LogOut, LifeBuoy, ShoppingBag } from "lucide-react";
+import { Settings, ExternalLink, Store, LogOut, LifeBuoy, ShoppingBag } from "lucide-react";
+import { UserAvatar } from "@/components/user-avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile } from "@/lib/profile.functions";
 import { BASE_URL, BRAND_EMAIL } from "@/lib/site";
@@ -73,13 +74,13 @@ export function AppHeader() {
           footer={(close) => (
             <>
               <div className="flex items-center gap-3 pb-1">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-primary ring-1 ring-border">
-                  {profile?.avatarUrl ? (
-                    <img src={profile.avatarUrl} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    <User className="h-5 w-5" />
-                  )}
-                </span>
+                <UserAvatar
+                  src={profile?.avatarUrl}
+                  name={profile?.display_name || profile?.handle}
+                  className="h-10 w-10 bg-primary/10 text-primary ring-1 ring-border"
+                  textClassName="text-sm"
+                  iconClassName="h-5 w-5"
+                />
                 <span className="min-w-0 truncate font-medium">{displayName}</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -138,13 +139,14 @@ export function AppHeader() {
             <button
               type="button"
               aria-label="Account menu"
-              className="hidden h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-primary ring-1 ring-border transition-colors hover:bg-primary/20 sm:flex"
+              className="hidden shrink-0 rounded-full transition-opacity hover:opacity-80 sm:flex"
             >
-              {profile?.avatarUrl ? (
-                <img src={profile.avatarUrl} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <User className="h-4 w-4" />
-              )}
+              <UserAvatar
+                src={profile?.avatarUrl}
+                name={profile?.display_name || profile?.handle}
+                className="h-8 w-8 bg-primary/10 text-primary ring-1 ring-border"
+                textClassName="text-[11px]"
+              />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">

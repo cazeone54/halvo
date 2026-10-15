@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { isStoredAvatarPath } from "@/lib/avatar";
 import {
   ANONYMISED_EMAIL,
   blockDeletionReason,
@@ -257,7 +258,8 @@ export const deleteMyAccount = createServerFn({ method: "POST" })
 
     const storagePaths = [
       ...plan.storagePathsToDelete,
-      ...(profileRes.data?.avatar_url ? [profileRes.data.avatar_url] : []),
+      // A Google sign-up's avatar is a URL on Google's servers, not our file.
+      ...(isStoredAvatarPath(profileRes.data?.avatar_url) ? [profileRes.data.avatar_url] : []),
     ];
     if (storagePaths.length > 0) {
       // Best-effort: the nightly orphan sweep catches anything missed, and a

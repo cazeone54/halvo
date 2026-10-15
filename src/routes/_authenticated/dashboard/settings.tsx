@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useRef, useId } from "react";
 import { toast } from "sonner";
-import { User } from "lucide-react";
+import { UserAvatar } from "@/components/user-avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile, updateMySettings, setMyAvatar } from "@/lib/profile.functions";
 import { Button } from "@/components/ui/button";
@@ -89,13 +89,13 @@ function SettingsPage() {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted">
-              {profileQ.data?.avatarUrl ? (
-                <img src={profileQ.data.avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
-              ) : (
-                <User className="h-6 w-6 text-muted-foreground" />
-              )}
-            </div>
+            <UserAvatar
+              src={profileQ.data?.avatarUrl}
+              name={displayName || profileQ.data?.handle}
+              className="h-16 w-16 bg-primary/10 text-primary"
+              textClassName="text-lg"
+              iconClassName="h-6 w-6"
+            />
             <div>
               <Label htmlFor="avatar-upload" className="cursor-pointer">
                 <span className="inline-flex h-9 items-center rounded-md border border-input bg-background px-3 text-sm shadow-sm hover:bg-accent">

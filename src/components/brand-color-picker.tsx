@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties } from "react";
-import { Check, User } from "lucide-react";
+import { Check } from "lucide-react";
+import { UserAvatar } from "@/components/user-avatar";
 import { BRAND_PRESETS, brandTheme, brandThemeStyle, normalizeHex } from "@/lib/brand-color";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -97,7 +98,7 @@ export function BrandColorPicker({
         {!draftValid ? <p className="text-xs text-destructive">Use a hex color like #4f46e5</p> : null}
       </div>
 
-      {/* Live preview — the same theming the real pages use. */}
+      {/* Live preview â€” the same theming the real pages use. */}
       <div
         className={cn("overflow-hidden rounded-xl border bg-background", brandStyle && "brand-theme")}
         style={brandStyle as CSSProperties | undefined}
@@ -105,9 +106,13 @@ export function BrandColorPicker({
         role="img"
       >
         <div className="flex flex-col items-center gap-1.5 border-b bg-hero-glow px-4 py-5">
-          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-primary">
-            {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : <User className="h-5 w-5" />}
-          </div>
+          <UserAvatar
+            src={avatarUrl}
+            name={displayName}
+            className="h-10 w-10 bg-primary/10 text-primary"
+            textClassName="text-sm"
+            iconClassName="h-5 w-5"
+          />
           <p className="text-sm font-semibold">{displayName || "Your store"}</p>
         </div>
         <div className="flex items-center justify-between gap-3 p-4">

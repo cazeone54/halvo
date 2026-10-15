@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { avatarImageUrl } from "@/lib/public-image-url";
 import { normalizeHex } from "@/lib/brand-color";
+import { isStoredAvatarPath } from "@/lib/avatar";
 
 export const getMyProfile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -116,7 +117,9 @@ export const setMyAvatar = createServerFn({ method: "POST" })
       throw new Error(error.message);
     }
 
-    if (existing?.avatar_url) {
+    // Only delete it if it was ours: a Google sign-up's avatar_url is a URL on
+    // Google's servers, not a file in the bucket.
+    if (isStoredAvatarPath(existing?.avatar_url)) {
       await context.supabase.storage.from("digital-assets").remove([existing.avatar_url]);
     }
     return { ok: true };
