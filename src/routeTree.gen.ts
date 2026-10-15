@@ -27,6 +27,7 @@ import { Route as SuccessRouteImport } from './routes/success'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as AuthenticatedDashboardRouteRouteImport } from './routes/_authenticated/dashboard/route'
+import { Route as AuthConfirmRouteImport } from './routes/auth.confirm'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as ForSlugRouteImport } from './routes/for.$slug'
@@ -141,6 +142,11 @@ const AuthenticatedDashboardRouteRoute =
     path: '/dashboard',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthConfirmRoute = AuthConfirmRouteImport.update({
+  id: '/auth/confirm',
+  path: '/auth/confirm',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BlogIndexRoute = BlogIndexRouteImport.update({
   id: '/blog/',
   path: '/blog/',
@@ -287,6 +293,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/dashboard': typeof AuthenticatedDashboardRouteRouteWithChildren
+  '/auth/confirm': typeof AuthConfirmRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/for/$slug': typeof ForSlugRoute
   '/guides/$slug': typeof GuidesSlugRoute
@@ -328,6 +335,7 @@ export interface FileRoutesByTo {
   '/success': typeof SuccessRoute
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/auth/confirm': typeof AuthConfirmRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/for/$slug': typeof ForSlugRoute
   '/guides/$slug': typeof GuidesSlugRoute
@@ -372,6 +380,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteRouteWithChildren
+  '/auth/confirm': typeof AuthConfirmRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/for/$slug': typeof ForSlugRoute
   '/guides/$slug': typeof GuidesSlugRoute
@@ -416,6 +425,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/unsubscribe'
     | '/dashboard'
+    | '/auth/confirm'
     | '/blog/$slug'
     | '/for/$slug'
     | '/guides/$slug'
@@ -457,6 +467,7 @@ export interface FileRouteTypes {
     | '/success'
     | '/terms'
     | '/unsubscribe'
+    | '/auth/confirm'
     | '/blog/$slug'
     | '/for/$slug'
     | '/guides/$slug'
@@ -500,6 +511,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/unsubscribe'
     | '/_authenticated/dashboard'
+    | '/auth/confirm'
     | '/blog/$slug'
     | '/for/$slug'
     | '/guides/$slug'
@@ -543,6 +555,7 @@ export interface RootRouteChildren {
   SuccessRoute: typeof SuccessRoute
   TermsRoute: typeof TermsRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
+  AuthConfirmRoute: typeof AuthConfirmRoute
   BlogSlugRoute: typeof BlogSlugRoute
   ForSlugRoute: typeof ForSlugRoute
   GuidesSlugRoute: typeof GuidesSlugRoute
@@ -686,6 +699,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/auth/confirm': {
+      id: '/auth/confirm'
+      path: '/auth/confirm'
+      fullPath: '/auth/confirm'
+      preLoaderRoute: typeof AuthConfirmRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/blog/': {
       id: '/blog/'
@@ -913,6 +933,7 @@ const rootRouteChildren: RootRouteChildren = {
   SuccessRoute: SuccessRoute,
   TermsRoute: TermsRoute,
   UnsubscribeRoute: UnsubscribeRoute,
+  AuthConfirmRoute: AuthConfirmRoute,
   BlogSlugRoute: BlogSlugRoute,
   ForSlugRoute: ForSlugRoute,
   GuidesSlugRoute: GuidesSlugRoute,
