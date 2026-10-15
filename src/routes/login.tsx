@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Logo } from "@/components/logo";
 import { ProviderIcon } from "@/components/provider-icon";
+import { GoogleSignInButton } from "@/components/google-signin-button";
+import { GOOGLE_CLIENT_ID } from "@/lib/google-identity";
 import { parseEnabledProviders, type AuthProviderId } from "@/lib/auth-providers";
 import { BRAND_NAME } from "@/lib/site";
 
@@ -23,6 +25,10 @@ function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [pending, setPending] = useState<AuthProviderId | null>(null);
+  // Google's own button replaces the redirect one when a client id is set, but
+  // falls back to it if their script can't load (ad blocker, offline).
+  const [googleScriptFailed, setGoogleScriptFailed] = useState(false);
+  const useGoogleIdToken = !!GOOGLE_CLIENT_ID && !googleScriptFailed;
 
   const signInWith = async (provider: AuthProviderId) => {
     setError(null);
@@ -68,17 +74,24 @@ function LoginPage() {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            {PROVIDERS.map((p) => (
-              <Button
-                key={p.id}
-                variant="outline"
-                onClick={() => signInWith(p.id)}
-                disabled={pending !== null}
-              >
-                <ProviderIcon id={p.id} />
-                {pending === p.id ? `Opening ${p.name}…` : `Continue with ${p.name}`}
-              </Button>
-            ))}
+            {PROVIDERS.map((p) =>
+              // Google gets its own button when the ID-token flow is configured:
+              // that keeps the consent popup on this domain instead of showing
+              // the visitor a supabase.co host they've never heard of.
+              p.id === "google" && useGoogleIdToken ? (
+                <GoogleSignInButton key={p.id} onUnavailable={() => setGoogleScriptFailed(true)} />
+              ) : (
+                <Button
+                  key={p.id}
+                  variant="outline"
+                  onClick={() => signInWith(p.id)}
+                  disabled={pending !== null}
+                >
+                  <ProviderIcon id={p.id} />
+                  {pending === p.id ? `Opening ${p.name}…` : `Continue with ${p.name}`}
+                </Button>
+              ),
+            )}
           </div>
 
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
