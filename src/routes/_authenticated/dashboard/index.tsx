@@ -40,6 +40,7 @@ import {
   setProductImage,
 } from "@/lib/products.functions";
 import { startStripeConnectOnboarding, getStripeConnectStatus } from "@/lib/stripe-connect.functions";
+import { SELLER_COUNTRIES, guessSellerCountry } from "@/lib/seller-countries";
 import { listMySales } from "@/lib/sales.functions";
 import { refundTransaction } from "@/lib/refunds.functions";
 import { getMyPlan } from "@/lib/user-plan.functions";
@@ -265,8 +266,16 @@ function DashboardHome() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // Stripe fixes a seller account's country when it's created, so it's chosen
+  // before the first "Connect Stripe". Pre-filled from the browser's language
+  // after mount (the server render can't know it); the seller confirms it.
+  const [connectCountry, setConnectCountry] = useState("");
+  useEffect(() => {
+    setConnectCountry((current) => current || guessSellerCountry(navigator.language));
+  }, []);
+
   const connectMut = useMutation({
-    mutationFn: () => startOnboardingFn(),
+    mutationFn: (country: string | undefined) => startOnboardingFn({ data: { country } }),
     onSuccess: (res) => {
       // Getting paid depends on this step, so a failure must never be silent —
       // before, if no URL came back the button just quietly reset.
@@ -410,7 +419,17 @@ function DashboardHome() {
         stripeConnected={!!connect?.chargesEnabled}
         hasSupportEmail={!!profile?.support_email?.trim()}
         onCreateProduct={() => setShowNewProduct(true)}
-        onConnectStripe={() => connectMut.mutate()}
+        onConnectStripe={() => {
+          // Mid-setup sellers already have an account, so go straight back to
+          // Stripe; anyone else picks a country first, in the Payouts box.
+          if (connect?.connected) {
+            connectMut.mutate(undefined);
+            return;
+          }
+          const picker = document.getElementById("connect-country");
+          picker?.scrollIntoView({ behavior: "smooth", block: "center" });
+          picker?.focus({ preventScroll: true });
+        }}
       />
 
       {/* KPI overview — hidden until there's something to show. Three zeros and
@@ -902,7 +921,7 @@ function DashboardHome() {
                   </ul>
                 ) : null}
                 {connectStatus.state === "in_review" ? null : (
-                  <Button size="sm" onClick={() => connectMut.mutate()} disabled={connectMut.isPending}>
+                  <Button size="sm" onClick={() => connectMut.mutate(undefined)} disabled={connectMut.isPending}>
                     {connectMut.isPending ? "Opening Stripe…" : "Finish setup"}
                   </Button>
                 )}
@@ -921,8 +940,31 @@ function DashboardHome() {
                   <li>· Photo ID and your bank details</li>
                   <li>· Required by law for card payments, not by us</li>
                 </ul>
+                <div className="flex w-full max-w-sm flex-col gap-1.5">
+                  <label htmlFor="connect-country" className="text-sm font-medium">
+                    Country you live in, or where your business is registered
+                  </label>
+                  <select
+                    id="connect-country"
+                    value={connectCountry}
+                    onChange={(e) => setConnectCountry(e.target.value)}
+                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="">Choose your country…</option>
+                    {SELLER_COUNTRIES.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-muted-foreground">Stripe sets this once and it can't be changed later.</p>
+                </div>
                 <div className="flex flex-wrap items-center gap-3">
-                  <Button size="sm" onClick={() => connectMut.mutate()} disabled={connectMut.isPending}>
+                  <Button
+                    size="sm"
+                    onClick={() => connectMut.mutate(connectCountry)}
+                    disabled={connectMut.isPending || !connectCountry}
+                  >
                     {connectMut.isPending ? "Opening Stripe…" : "Connect Stripe"}
                   </Button>
                   <Link

@@ -1,11 +1,21 @@
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getStripeErrorMessage } from "@/lib/stripe.server";
+import { createSellerAccount } from "@/lib/stripe-seller-account.server";
+import { isSellerCountry } from "@/lib/seller-countries";
 import { BASE_URL } from "@/lib/site";
 
 export const startStripeConnectOnboarding = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  // The country is needed only the first time, when the account is created
+  // (a seller finishing setup, or the refresh page, sends none).
+  .validator((data) =>
+    z
+      .object({ country: z.string().refine(isSellerCountry, "Choose a country from the list.").optional() })
+      .parse(data ?? {}),
+  )
+  .handler(async ({ data, context }) => {
     const { getStripeClient } = await import("@/lib/stripe.server");
     const stripe = getStripeClient();
 
@@ -26,29 +36,19 @@ export const startStripeConnectOnboarding = createServerFn({ method: "POST" })
     }
 
     if (!accountId) {
-      // Platform-side problems (Connect not set up for live, loss liability not
-      // accepted in the platform profile) surface here, so log and pass on
-      // Stripe's own message instead of a generic "couldn't reach Stripe".
-      let account;
-      try {
-        // Managed Risk: Stripe carries losses on seller accounts, sellers pay
-        // Stripe's fees themselves and get the full Stripe Dashboard — the shape
-        // direct charges need. The legacy `type: "express"` made the platform the
-        // losses collector, which live Stripe now refuses for this platform.
-        account = await stripe.accounts.create({
-          controller: {
-            losses: { payments: "stripe" },
-            fees: { payer: "account" },
-            requirement_collection: "stripe",
-            stripe_dashboard: { type: "full" },
-          },
-          metadata: { userId: context.userId },
-        });
-      } catch (error) {
-        console.error("Stripe Connect account creation failed:", getStripeErrorMessage(error));
-        throw new Error(getStripeErrorMessage(error));
+      // Stripe fixes an account's country at creation, so ask rather than let it
+      // default to the platform's (Bulgaria).
+      if (!data.country || !isSellerCountry(data.country)) {
+        throw new Error("Choose the country you live in, or where your business is registered.");
       }
-      accountId = account.id;
+      // Platform-side problems surface here, and createSellerAccount passes on
+      // Stripe's own message instead of a generic "couldn't reach Stripe".
+      const claims = context.claims as { email?: unknown } | undefined;
+      accountId = await createSellerAccount(stripe, {
+        country: data.country,
+        email: typeof claims?.email === "string" ? claims.email : null,
+        userId: context.userId,
+      });
 
       const { error: updateError } = await context.supabase
         .from("profiles")
