@@ -8,7 +8,7 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
-import type { StripeExpressCheckoutElementConfirmEvent } from "@stripe/stripe-js";
+import type { PaymentIntent, StripeExpressCheckoutElementConfirmEvent } from "@stripe/stripe-js";
 import { Lock } from "lucide-react";
 import { getStripe } from "@/lib/stripe";
 import { createProductPaymentIntent, recordSuccessfulTransaction } from "@/lib/checkout.functions";
@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatCents } from "@/lib/format";
 import { captureArrival } from "@/lib/arrival";
+import { buildReturnUrl, clearPendingCheckout, savePendingCheckout } from "@/lib/pending-checkout";
 
 type Product = {
   id: string;
@@ -96,7 +97,10 @@ function FreeClaimForm({ productId }: { productId: string }) {
   );
 }
 
-export function CheckoutWidget({ product }: { product: Product }) {
+// embedded: the checkout runs inside another site's iframe (?embed=1), where
+// sending the buyer off to a payment app would strand them, so only methods
+// that complete on the page are offered.
+export function CheckoutWidget({ product, embedded = false }: { product: Product; embedded?: boolean }) {
   const uid = useId();
   const isMembership = product.billingType === "membership";
   const installments = !isMembership && product.installmentCount ? product.installmentCount : null;
@@ -157,6 +161,7 @@ export function CheckoutWidget({ product }: { product: Product }) {
         couponCode: appliedCoupon?.code,
         referralCode: getActiveReferralCode() ?? undefined,
         bumpTaken,
+        embedded,
       },
     })
       .then((res) => {
@@ -167,7 +172,7 @@ export function CheckoutWidget({ product }: { product: Product }) {
       .catch((e: Error) => setError(e.message));
     // Recreate the intent whenever amount, coupon or the bump selection changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product.id, amountCents, appliedCoupon?.code, free, bumpTaken, plan]);
+  }, [product.id, amountCents, appliedCoupon?.code, free, bumpTaken, plan, embedded]);
 
   // Warm Stripe.js immediately, in parallel with creating the PaymentIntent, so
   // the payment form mounts the instant the client secret arrives instead of
@@ -429,7 +434,11 @@ function PaymentForm({
   // webhook still records the sale and emails the link, so this is NOT a
   // failure the buyer should retry — reassure them instead of re-arming Pay.
   // Holds the email the link is going to, since a wallet buyer never typed one.
-  const [paidPendingDelivery, setPaidPendingDelivery] = useState<string | null>(null);
+  // processing: a bank payment that's approved but still settling (minutes to
+  // a few days); the webhook records it and emails the link once it clears.
+  const [paidPendingDelivery, setPaidPendingDelivery] = useState<{ email: string; processing: boolean } | null>(
+    null,
+  );
 
   // Shared by the card form and the express wallets: from here on the buyer
   // HAS been charged. One retry for a flaky connection gets them to /success;
@@ -456,10 +465,46 @@ function PaymentForm({
         return;
       } catch {
         if (attempt === 0) continue;
-        setPaidPendingDelivery(buyerEmail);
+        setPaidPendingDelivery({ email: buyerEmail, processing: false });
         setSubmitting(false);
       }
     }
+  };
+
+  // Payment apps and banks (Revolut Pay, iDEAL, Klarna…) take the buyer away
+  // to approve and Stripe sends them back to this URL, so what the purchase
+  // needs is saved first for /checkout/return to finish it. Cards and wallets
+  // complete here and never use it.
+  const prepareReturnUrl = (buyerEmail: string) => {
+    const back = window.location.pathname + window.location.search;
+    savePendingCheckout({
+      productId,
+      subscriptionId,
+      email: buyerEmail,
+      acknowledged,
+      referralCode: getActiveReferralCode() ?? undefined,
+      ...captureArrival(),
+      back,
+      savedAt: Date.now(),
+    });
+    return buildReturnUrl(window.location.origin, { productId, subscriptionId, acknowledged, back });
+  };
+
+  // Shared by both ways to pay, once Stripe has answered without redirecting.
+  const handleConfirmed = async (paymentIntent: PaymentIntent | undefined, buyerEmail: string) => {
+    if (paymentIntent?.status === "succeeded") {
+      clearPendingCheckout();
+      await finishPurchase(paymentIntent.id, buyerEmail);
+      return;
+    }
+    if (paymentIntent?.status === "processing") {
+      clearPendingCheckout();
+      setPaidPendingDelivery({ email: buyerEmail, processing: true });
+      setSubmitting(false);
+      return;
+    }
+    setError("Payment did not complete.");
+    setSubmitting(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -470,7 +515,7 @@ function PaymentForm({
 
     const { error: confirmError, paymentIntent } = await stripe.confirmPayment({
       elements,
-      confirmParams: { receipt_email: email },
+      confirmParams: { receipt_email: email, return_url: prepareReturnUrl(email) },
       redirect: "if_required",
     });
 
@@ -479,12 +524,7 @@ function PaymentForm({
       setSubmitting(false);
       return;
     }
-    if (!paymentIntent || paymentIntent.status !== "succeeded") {
-      setError("Payment did not complete.");
-      setSubmitting(false);
-      return;
-    }
-    await finishPurchase(paymentIntent.id, email);
+    await handleConfirmed(paymentIntent, email);
   };
 
   // Wallet payments confirm the same PaymentIntent as the card form. No
@@ -502,7 +542,7 @@ function PaymentForm({
     setError(null);
     const { error: confirmError, paymentIntent } = await stripe.confirmPayment({
       elements,
-      confirmParams: { receipt_email: walletEmail },
+      confirmParams: { receipt_email: walletEmail, return_url: prepareReturnUrl(walletEmail) },
       redirect: "if_required",
     });
     if (confirmError) {
@@ -510,25 +550,11 @@ function PaymentForm({
       setSubmitting(false);
       return;
     }
-    if (!paymentIntent || paymentIntent.status !== "succeeded") {
-      setError("Payment did not complete.");
-      setSubmitting(false);
-      return;
-    }
-    await finishPurchase(paymentIntent.id, walletEmail);
+    await handleConfirmed(paymentIntent, walletEmail);
   };
 
   if (paidPendingDelivery !== null) {
-    return (
-      <div className="rounded-lg border border-primary/30 bg-primary/5 p-5 text-center">
-        <p className="text-sm font-medium">Payment received — you're all set.</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          We're emailing your download link to{" "}
-          <span className="font-medium text-foreground">{paidPendingDelivery}</span> now. It can take a minute to
-          arrive; check your spam folder if you don't see it.
-        </p>
-      </div>
-    );
+    return <PaymentReceivedNotice email={paidPendingDelivery.email} processing={paidPendingDelivery.processing} />;
   }
 
   return (
@@ -645,5 +671,37 @@ function PaymentForm({
         <Lock className="h-3 w-3" /> Payments are secure and encrypted
       </p>
     </form>
+  );
+}
+
+// The buyer has paid (or their bank has approved and is settling) but there's
+// no download page to send them to yet. The webhook records the sale and emails
+// the link either way, so this reassures rather than asking them to retry.
+export function PaymentReceivedNotice({ email, processing }: { email: string | null; processing: boolean }) {
+  const to = email ? (
+    <span className="font-medium text-foreground [overflow-wrap:anywhere]">{email}</span>
+  ) : (
+    "the address you paid with"
+  );
+  return (
+    <div className="rounded-lg border border-primary/30 bg-primary/5 p-5 text-center">
+      {processing ? (
+        <>
+          <p className="text-sm font-medium">Payment approved — your bank is confirming it.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            This usually takes a few minutes, occasionally a day or two. As soon as it clears we'll email your download
+            link to {to}. There's nothing else you need to do.
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="text-sm font-medium">Payment received — you're all set.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            We're emailing your download link to {to} now. It can take a minute to arrive; check your spam folder if
+            you don't see it.
+          </p>
+        </>
+      )}
+    </div>
   );
 }

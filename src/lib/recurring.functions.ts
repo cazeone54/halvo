@@ -157,7 +157,9 @@ export const recordSubscriptionPurchase = createServerFn({ method: "POST" })
       .object({
         subscriptionId: z.string().startsWith("sub_"),
         productId: z.string().uuid(),
-        buyerEmail: z.string().email(),
+        // Absent when finishing after a payment-app redirect with no saved
+        // checkout; the invoice's own email is used then.
+        buyerEmail: z.string().email().optional(),
         acknowledgedTerms: z.boolean().optional(),
         referrer: z.string().max(500).optional(),
         utmSource: z.string().max(100).optional(),
@@ -180,7 +182,9 @@ export const recordSubscriptionPurchase = createServerFn({ method: "POST" })
     if (!invoice || invoice.status !== "paid") throw new Error("Payment has not succeeded yet.");
 
     const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
-    await stripe.customers.update(customerId, { email: data.buyerEmail }, opts).catch(() => {});
+    if (data.buyerEmail) {
+      await stripe.customers.update(customerId, { email: data.buyerEmail }, opts).catch(() => {});
+    }
 
     const result = await recordPaidInvoice(supabaseAdmin, stripe, invoice, {
       buyerEmail: data.buyerEmail,

@@ -42,6 +42,10 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
         // The buyer either took the order bump or didn't — a boolean. The price
         // is NEVER accepted from the client; it's resolved from product_bumps.
         bumpTaken: z.boolean().optional(),
+        // The checkout is inside the buy-button overlay on another site. Payment
+        // methods that send the buyer away to approve (Revolut Pay, iDEAL…) can't
+        // return into someone else's page, so only in-page ones are offered there.
+        embedded: z.boolean().optional(),
       })
       .parse(data),
   )
@@ -154,7 +158,7 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
     try {
       const intent = await stripe.paymentIntents.create({
         currency: CURRENCY,
-        automatic_payment_methods: { enabled: true },
+        automatic_payment_methods: data.embedded ? { enabled: true, allow_redirects: "never" } : { enabled: true },
         metadata: {
           productId: product.id,
           product_name: product.name,
@@ -192,7 +196,11 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
       .object({
         paymentIntentId: z.string().min(1),
         productId: z.string().uuid(),
-        buyerEmail: z.string().email(),
+        // Optional: a buyer coming back from a payment app (Revolut Pay, iDEAL…)
+        // may land in a fresh tab that no longer knows what they typed. Stripe
+        // has the email on the payment either way (receipt_email), and it's
+        // read from there below.
+        buyerEmail: z.string().email().optional(),
         referralCode: z.string().trim().min(1).optional(),
         acknowledgedTerms: z.boolean().optional(),
         referrer: z.string().max(500).optional(),
@@ -228,7 +236,7 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
 
     const intent = await stripe.paymentIntents.retrieve(
       data.paymentIntentId,
-      undefined,
+      { expand: ["latest_charge"] },
       sellerAccount ? { stripeAccount: sellerAccount } : undefined,
     );
     if (intent.status !== "succeeded") {
@@ -237,6 +245,9 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
     if (intent.metadata.productId !== data.productId) {
       throw new Error("Payment does not match this product.");
     }
+    const latestCharge = intent.latest_charge && typeof intent.latest_charge !== "string" ? intent.latest_charge : null;
+    const buyerEmail = (data.buyerEmail ?? intent.receipt_email ?? latestCharge?.billing_details?.email ?? null)?.toLowerCase();
+    if (!buyerEmail) throw new Error("We couldn't find the email for this purchase.");
 
     const couponCode = intent.metadata.coupon_code as string | undefined;
     let coupon = null;
@@ -277,7 +288,7 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
         product_id: product.id,
         seller_id: product.owner_id,
         buyer_id: buyerId,
-        buyer_email: data.buyerEmail.toLowerCase(),
+        buyer_email: buyerEmail,
         status: "success",
         amount_paid_cents: intent.amount_received,
         stripe_payment_intent_id: intent.id,
@@ -314,7 +325,7 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
       // same "whoever inserted fresh" rule as coupon redemption counting,
       // so a race with the webhook fallback can't send duplicates.
       await sendPurchaseConfirmationEmail({
-        buyerEmail: data.buyerEmail,
+        buyerEmail,
         productName: product.name,
         transactionId,
         amountCents: intent.amount_received,

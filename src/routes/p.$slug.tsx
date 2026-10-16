@@ -315,6 +315,7 @@ function ProductCheckoutPage() {
                 billingInterval: product.billingInterval,
                 installmentCount: product.installmentCount,
               }}
+              embedded={!!embed}
             />
           )}
           {product.sellerName ? (
