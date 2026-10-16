@@ -10,6 +10,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import appCss from "../styles.css?url";
 import { BRAND_NAME, BRAND_KEY, BASE_URL } from "@/lib/site";
 import { captureReferralFromUrl } from "@/lib/referral-attribution";
+import { rememberArrival } from "@/lib/signup-arrival";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AppToaster } from "@/components/app-toaster";
 import { ConsentBanner } from "@/components/consent-banner";
@@ -140,6 +141,8 @@ function RootComponent() {
 
   useEffect(() => {
     captureReferralFromUrl();
+    // The landing page is the only one whose URL carries the ad's UTM tags.
+    rememberArrival(window.location.href, document.referrer);
   }, []);
 
   return (

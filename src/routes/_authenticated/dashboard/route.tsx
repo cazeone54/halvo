@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Package, Tag, BarChart3, Settings, PauseCircle } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 import { getMyProfile } from "@/lib/profile.functions";
+import { useRecordSignup } from "@/lib/use-record-signup";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardLayout,
@@ -27,6 +28,7 @@ function DashboardLayout() {
   const profileFn = useServerFn(getMyProfile);
   const profileQ = useQuery({ queryKey: ["my-profile"], queryFn: () => profileFn() });
   const deactivated = !!profileQ.data?.deactivated_at;
+  useRecordSignup();
 
   return (
     <div className="min-h-screen">

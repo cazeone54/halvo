@@ -10,6 +10,7 @@ import { GoogleSignInButton } from "@/components/google-signin-button";
 import { GOOGLE_CLIENT_ID } from "@/lib/google-identity";
 import { parseEnabledProviders, type AuthProviderId } from "@/lib/auth-providers";
 import { BRAND_NAME } from "@/lib/site";
+import { readArrival } from "@/lib/signup-arrival";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -51,7 +52,13 @@ function LoginPage() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+      options: {
+        emailRedirectTo: `${window.location.origin}/dashboard`,
+        // Saved on the account only if this creates it (Supabase ignores it
+        // for existing users), so the sign-up keeps its source even when the
+        // link is opened in the mail app's browser. See signup-source.functions.ts.
+        data: { halvo_arrival: readArrival() ?? undefined },
+      },
     });
     setLoading(false);
     if (error) setError(error.message);

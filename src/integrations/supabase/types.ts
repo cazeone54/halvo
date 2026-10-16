@@ -619,6 +619,35 @@ export type Database = {
           },
         ];
       };
+      // Where each new account came from (migration 0025). Server-only: RLS
+      // on with no policies, so only the service role reads or writes it.
+      signup_sources: {
+        Row: {
+          user_id: string;
+          source: string;
+          campaign: string | null;
+          content: string | null;
+          landing_path: string | null;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          source: string;
+          campaign?: string | null;
+          content?: string | null;
+          landing_path?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          source?: string;
+          campaign?: string | null;
+          content?: string | null;
+          landing_path?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       disputes: {
         Row: {
           id: string;
