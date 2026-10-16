@@ -13,6 +13,7 @@ import {
 } from "@/lib/recurring";
 import { sendBillingLinkEmail, sendPaymentFailedEmail, sendPurchaseConfirmationEmail } from "@/lib/email.server";
 import { formatCents } from "@/lib/format";
+import { asCurrency, type Currency } from "@/lib/currency";
 import { DIRECT_CHARGES } from "@/lib/plans";
 import { notifySellerOfSale } from "@/lib/sale-notify.server";
 
@@ -32,8 +33,14 @@ export async function manageUrl(rowId: string): Promise<string> {
   return `${BASE_URL}/billing?t=${encodeURIComponent(await signManageToken(rowId, billingSecret()))}`;
 }
 
-export function planLabel(kind: string, amountCents: number, interval: string, installmentsTotal: number | null) {
-  const amount = formatCents(amountCents);
+export function planLabel(
+  kind: string,
+  amountCents: number,
+  interval: string,
+  installmentsTotal: number | null,
+  currency?: Currency,
+) {
+  const amount = formatCents(amountCents, currency);
   return kind === "installments"
     ? `payment plan, ${installmentsTotal} × ${amount} monthly`
     : `membership, ${amount} per ${intervalLabel(interval)}`;
@@ -179,6 +186,7 @@ export async function recordPaidInvoice(
   const kind = sub.metadata.kind === "installments" ? "installments" : "membership";
   const installmentsTotal = kind === "installments" ? Number(sub.metadata.installments_total) || null : null;
   const item = sub.items.data[0];
+  const currency = asCurrency(invoice.currency);
 
   // Subscription row (first writer creates it).
   let { data: row } = await admin
@@ -200,6 +208,7 @@ export async function recordPaidInvoice(
         stripe_customer_id: customerId,
         status: sub.status,
         amount_cents: item?.price?.unit_amount ?? invoice.amount_paid,
+        currency,
         billing_interval: item?.price?.recurring?.interval ?? "month",
         installments_total: installmentsTotal,
         current_period_end: periodEnd(sub),
@@ -242,6 +251,7 @@ export async function recordPaidInvoice(
       buyer_email: row.buyer_email,
       status: "success",
       amount_paid_cents: invoice.amount_paid,
+      currency,
       stripe_payment_intent_id: piId,
       terms_acked_at: isFirst ? (opts.termsAckedAt ?? null) : null,
       buyer_subscription_id: row.id,
@@ -266,11 +276,12 @@ export async function recordPaidInvoice(
       productName: product.name,
       transactionId: first.id,
       amountCents: invoice.amount_paid,
+      currency,
     });
     await sendBillingLinkEmail({
       buyerEmail: row.buyer_email,
       productName: product.name,
-      planLabel: planLabel(kind, amount, item?.price?.recurring?.interval ?? "month", installmentsTotal),
+      planLabel: planLabel(kind, amount, item?.price?.recurring?.interval ?? "month", installmentsTotal, currency),
       manageUrl: await manageUrl(row.id),
     });
     // A new member or payment plan is a sale for the seller, same as a one-off.
@@ -279,6 +290,7 @@ export async function recordPaidInvoice(
       sellerId: product.owner_id,
       productName: product.name,
       amountCents: invoice.amount_paid,
+      currency,
     });
   }
   return { transactionId: first.id, rowId: row.id };

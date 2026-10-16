@@ -1,4 +1,5 @@
 import { CURRENCY_CODE } from "@/lib/site";
+import { addTo, formatTotals, type MoneyTotals } from "@/lib/currency";
 import { isPaidFeatureLocked } from "@/lib/feature-gates";
 import { SINGLE_TIER_PRICING, DIRECT_CHARGES } from "@/lib/plans";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -305,7 +306,8 @@ function DashboardHome() {
 
   const sales = salesQ.data ?? [];
   const paidSales = sales.filter((s) => s.status === "success" && !s.disputed);
-  const revenueCents = paidSales.reduce((sum, s) => sum + s.amountPaidCents, 0);
+  // Per currency: euro and dollar sales are never added together.
+  const revenue = paidSales.reduce<MoneyTotals>((totals, s) => addTo(totals, s.currency, s.amountPaidCents), {});
   const productCount = productsQ.data?.length ?? 0;
 
   // Products are paged (10 / 20 / 50) so a big catalogue isn't one endless list.
@@ -328,11 +330,12 @@ function DashboardHome() {
   // client-side from data already loaded — no extra request, no new surface.
   const exportSales = () => {
     const csv = toCsv(
-      ["date", "product", "buyer_email", "gross_usd", "affiliate_fee_usd", "status", "disputed"],
+      ["date", "product", "buyer_email", "currency", "gross", "affiliate_fee", "status", "disputed"],
       sales.map((s) => [
         s.createdAt.slice(0, 10),
         s.productName,
         s.buyerEmail,
+        s.currency.toUpperCase(),
         (s.amountPaidCents / 100).toFixed(2),
         (s.affiliateFeeCents / 100).toFixed(2),
         s.status,
@@ -387,7 +390,7 @@ function DashboardHome() {
                 🎉 You made your first sale
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {formatCents(paidSales[0].amountPaidCents)} for {paidSales[0].productName}. The loop works — now
+                {formatCents(paidSales[0].amountPaidCents, paidSales[0].currency)} for {paidSales[0].productName}. The loop works — now
                 share your link again and do it a second time.
               </p>
             </div>
@@ -436,7 +439,7 @@ function DashboardHome() {
           an upgrade pitch is a deflating first screen for a new seller. */}
       {productCount > 0 ? (
         <div className="grid grid-cols-3 gap-3">
-          <StatCard icon={Wallet} label="Revenue" value={formatCents(revenueCents)} />
+          <StatCard icon={Wallet} label="Revenue" value={formatTotals(revenue)} />
           <StatCard icon={ShoppingBag} label="Sales" value={String(paidSales.length)} />
           <StatCard icon={Package} label="Products" value={String(productCount)} />
         </div>
@@ -680,7 +683,7 @@ function DashboardHome() {
                 <div className="min-w-0">
                   <p className="truncate font-medium">{sale.productName}</p>
                   <p className="truncate text-sm text-muted-foreground">
-                    {sale.buyerEmail} · {formatCents(sale.amountPaidCents)}
+                    {sale.buyerEmail} · {formatCents(sale.amountPaidCents, sale.currency)}
                   </p>
                   <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                     {sale.termsAcked ? (
@@ -698,7 +701,7 @@ function DashboardHome() {
                     </span>
                     {sale.affiliateFeeCents > 0 ? (
                       <span className="flex items-center gap-1" title="This sale came through an affiliate link">
-                        <Users2 className="h-3 w-3" />−{formatCents(sale.affiliateFeeCents)} to affiliate
+                        <Users2 className="h-3 w-3" />−{formatCents(sale.affiliateFeeCents, sale.currency)} to affiliate
                       </span>
                     ) : null}
                   </div>
@@ -719,7 +722,7 @@ function DashboardHome() {
                     // Refunds are irreversible (buyer refunded via Stripe,
                     // transfer reversed, access revoked) — confirm before firing.
                     <ConfirmAction
-                      message={`Refund ${formatCents(sale.amountPaidCents)} to the buyer? They're refunded through Stripe and lose access to the download. This can't be undone.`}
+                      message={`Refund ${formatCents(sale.amountPaidCents, sale.currency)} to the buyer? They're refunded through Stripe and lose access to the download. This can't be undone.`}
                       confirmLabel="Refund"
                       onConfirm={() => refundMut.mutate(sale.id)}
                       trigger={
@@ -1029,6 +1032,8 @@ type ProductRowData = {
   name: string;
   description: string | null;
   price_cents: number;
+  // The seller's own dollar price (migration 0026); null = same number as euros.
+  price_usd_cents?: number | null;
   category: string | null;
   url_slug: string | null;
   imageUrl: string | null;
@@ -1086,6 +1091,10 @@ function ProductRow({
   const [editName, setEditName] = useState(product.name);
   const [editDescription, setEditDescription] = useState(product.description ?? "");
   const [editPrice, setEditPrice] = useState((product.price_cents / 100).toFixed(2));
+  // Empty = the dollar price is the same number as the euro price.
+  const [editPriceUsd, setEditPriceUsd] = useState(
+    product.price_usd_cents ? (product.price_usd_cents / 100).toFixed(2) : "",
+  );
   const [editCategory, setEditCategory] = useState(product.category ?? "");
   const [editLicenseEnabled, setEditLicenseEnabled] = useState(!!product.license_key_enabled);
 
@@ -1222,6 +1231,7 @@ function ProductRow({
           name: editName,
           description: editDescription,
           priceCents: Math.round(Number(editPrice) * 100),
+          priceUsdCents: editPriceUsd.trim() ? Math.round(Number(editPriceUsd) * 100) : null,
           category: editCategory,
           licenseKeyEnabled: editLicenseEnabled,
         },
@@ -1275,6 +1285,7 @@ function ProductRow({
               </div>
               <p className="text-sm text-muted-foreground">
                 {formatCents(product.price_cents)}
+                {product.price_cents > 0 ? ` · ${formatCents(product.price_usd_cents ?? product.price_cents, "usd")}` : null}
                 {!product.url_slug
                   ? " · add a file below to publish"
                   : hiddenFromBuyers
@@ -1338,10 +1349,27 @@ function ProductRow({
               <Label htmlFor={`${uid}-f6`}>Description</Label>
               <Textarea id={`${uid}-f6`} value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={3} />
             </div>
-            <div className="flex gap-3">
+            <p className="-mb-1 text-xs text-muted-foreground">
+              Buyers in Europe pay in euros; everyone else pays in US dollars. Leave the dollar price empty to use the
+              same number (€19 → $19).
+            </p>
+            <div className="flex flex-col gap-3 sm:flex-row">
               <div className="flex-1">
                 <Label htmlFor={`${uid}-f7`}>Price ({CURRENCY_CODE})</Label>
                 <Input id={`${uid}-f7`} type="number" min="0" step="0.01" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} />
+              </div>
+              <div className="flex-1">
+                <Label htmlFor={`${uid}-f7usd`}>Price in US dollars</Label>
+                <Input
+                  id={`${uid}-f7usd`}
+                  type="number"
+                  min="0.5"
+                  step="0.01"
+                  inputMode="decimal"
+                  value={editPriceUsd}
+                  onChange={(e) => setEditPriceUsd(e.target.value)}
+                  placeholder={`${Number(editPrice || 0).toFixed(2)} (same number)`}
+                />
               </div>
               <div className="flex-1">
                 <Label htmlFor={`${uid}-f8`}>Category</Label>

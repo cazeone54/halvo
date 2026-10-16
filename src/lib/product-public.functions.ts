@@ -6,6 +6,8 @@ import { galleryImageUrls, parseVideoUrl } from "@/lib/product-media";
 import { activeSalePriceCents, stockRemaining } from "@/lib/offer";
 import { countSuccessfulSales } from "@/lib/offer.server";
 import { listingPrice } from "@/lib/format";
+import { pricedIn } from "@/lib/currency";
+import { requestCurrency } from "@/lib/currency.server";
 import { STANDARD_REFUND_POLICY } from "@/lib/refund-terms";
 
 // Other published products by the same seller — powers a "More from this
@@ -29,7 +31,7 @@ export const listMoreFromSeller = createServerFn({ method: "GET" })
       const [{ data: others }, canPay] = await Promise.all([
         supabaseAdmin
           .from("products")
-          .select("id, name, price_cents, pay_what_you_want, url_slug, image_url, sale_price_cents, sale_ends_at, billing_type, billing_interval")
+          .select("id, name, price_cents, price_usd_cents, pay_what_you_want, url_slug, image_url, sale_price_cents, sale_ends_at, billing_type, billing_interval")
           .eq("owner_id", current.owner_id)
           .neq("id", data.productId)
           .not("url_slug", "is", null) // published only
@@ -38,13 +40,14 @@ export const listMoreFromSeller = createServerFn({ method: "GET" })
         sellerCanTakePayments(supabaseAdmin, current.owner_id),
       ]);
 
+      const currency = requestCurrency();
       return {
         products: (others ?? []).filter((p) => isReachableByLink(p, canPay)).map((p) => ({
           id: p.id,
           name: p.name,
           priceCents: p.price_cents,
           payWhatYouWant: p.pay_what_you_want,
-          price: listingPrice(p),
+          price: listingPrice(p, new Date(), currency),
           slug: p.url_slug as string,
           imageUrl: productImageUrl(p.id, p.image_url),
         })),
@@ -121,8 +124,12 @@ export const getProductPublicView = createServerFn({ method: "GET" })
     const reviewCount = reviewSummary.count;
     const reviewAverage = reviewSummary.average;
 
+    // Prices in the buyer's currency (euros in Europe, dollars elsewhere).
+    const currency = requestCurrency();
+    const priced = pricedIn(product, currency);
+
     // Offer columns are absent until migration 0019 → no sale, no limit.
-    const salePriceCents = activeSalePriceCents(product, new Date());
+    const salePriceCents = activeSalePriceCents(priced, new Date());
     const stockLeft = stockRemaining(product.stock_limit, salesCount);
 
     return {
@@ -130,9 +137,10 @@ export const getProductPublicView = createServerFn({ method: "GET" })
       name: product.name,
       description: product.description,
       // The price checkout will charge now; regularPriceCents is set only during a sale.
-      priceCents: salePriceCents ?? product.price_cents,
-      price: listingPrice(product),
-      regularPriceCents: salePriceCents != null ? product.price_cents : null,
+      priceCents: salePriceCents ?? priced.price_cents,
+      price: listingPrice(product, new Date(), currency),
+      regularPriceCents: salePriceCents != null ? priced.price_cents : null,
+      currency,
       saleEndsAt: salePriceCents != null ? (product.sale_ends_at ?? null) : null,
       stockLimit: product.stock_limit ?? null,
       stockRemaining: stockLeft,

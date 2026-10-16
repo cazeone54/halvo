@@ -71,7 +71,7 @@ function PurchasesPage() {
                       day: "numeric",
                     })}
                     {" · "}
-                    {p.amountPaidCents === 0 ? "Free" : formatCents(p.amountPaidCents)}
+                    {p.amountPaidCents === 0 ? "Free" : formatCents(p.amountPaidCents, p.currency)}
                     {p.productSlug ? (
                       <>
                         {" · "}

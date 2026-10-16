@@ -3,6 +3,7 @@ import { z } from "zod";
 import { productImageUrl, avatarImageUrl } from "@/lib/public-image-url";
 import { summarizeRatings } from "@/lib/ratings";
 import { listingPrice } from "@/lib/format";
+import { requestCurrency } from "@/lib/currency.server";
 
 export const getSellerStorefront = createServerFn({ method: "GET" })
   .validator((data) => z.object({ handle: z.string().min(1) }).parse(data))
@@ -22,7 +23,7 @@ export const getSellerStorefront = createServerFn({ method: "GET" })
     const [{ data: products }, canPay] = await Promise.all([
       supabaseAdmin
         .from("products")
-        .select("id, name, description, price_cents, pay_what_you_want, url_slug, category, image_url, sale_price_cents, sale_ends_at, billing_type, billing_interval")
+        .select("id, name, description, price_cents, price_usd_cents, pay_what_you_want, url_slug, category, image_url, sale_price_cents, sale_ends_at, billing_type, billing_interval")
         .eq("owner_id", profile.id)
         .not("url_slug", "is", null)
         .order("created_at", { ascending: false }),
@@ -59,11 +60,12 @@ export const getSellerStorefront = createServerFn({ method: "GET" })
     return {
       profile: { ...profile, avatarUrl: avatarImageUrl(profile.id, profile.avatar_url) },
       products: rows.map((p) => {
+        const currency = requestCurrency();
         const summary = summarizeRatings(ratingsByProduct.get(p.id) ?? []);
         return {
           ...p,
           imageUrl: productImageUrl(p.id, p.image_url),
-          price: listingPrice(p),
+          price: listingPrice(p, new Date(), currency),
           ratingAverage: summary.average,
           ratingRounded: summary.rounded,
           ratingCount: summary.count,

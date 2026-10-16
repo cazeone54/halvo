@@ -17,7 +17,9 @@ import { listProductReviews } from "@/lib/reviews.functions";
 import { Stars } from "@/components/stars";
 import { CheckoutWidget } from "@/components/checkout-widget";
 import { Logo, LogoMark } from "@/components/logo";
-import { BRAND_NAME, BASE_URL, BRAND_EMAIL, CURRENCY_CODE } from "@/lib/site";
+import { BRAND_NAME, BASE_URL, BRAND_EMAIL } from "@/lib/site";
+import { CURRENCY_META } from "@/lib/currency";
+import { CurrencySwitch } from "@/components/currency-switch";
 
 export const Route = createFileRoute("/p/$slug")({
   loader: async ({ params }) => {
@@ -57,7 +59,7 @@ export const Route = createFileRoute("/p/$slug")({
       offers: {
         "@type": "Offer",
         price: (loaderData.priceCents / 100).toFixed(2),
-        priceCurrency: CURRENCY_CODE,
+        priceCurrency: CURRENCY_META[loaderData.currency].code,
         availability: loaderData.soldOut ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
         url,
       },
@@ -235,7 +237,7 @@ function ProductCheckoutPage() {
                 ) : null}
                 {product.installmentCount ? (
                   <p className="text-xs text-muted-foreground">
-                    or {product.installmentCount} × {formatCents(installmentAmountCents(product.priceCents, product.installmentCount))}
+                    or {product.installmentCount} × {formatCents(installmentAmountCents(product.priceCents, product.installmentCount), product.currency)}
                   </p>
                 ) : null}
               </div>
@@ -305,11 +307,12 @@ function ProductCheckoutPage() {
             <CheckoutWidget
               // Remount when the price changes (a launch price ending), so the
               // widget's amount state starts from the new price.
-              key={product.priceCents}
+              key={`-`}
               product={{
                 id: product.id,
                 name: product.name,
                 priceCents: product.priceCents,
+                currency: product.currency,
                 payWhatYouWant: product.payWhatYouWant,
                 billingType: product.billingType,
                 billingInterval: product.billingInterval,
@@ -324,6 +327,7 @@ function ProductCheckoutPage() {
               Sold by {product.sellerName} · {BRAND_NAME} handles checkout and delivery
             </p>
           ) : null}
+          {!isFree && !product.soldOut ? <CurrencySwitch current={product.currency} /> : null}
         </div>
 
         {/* Trust strip — right where hesitation happens, all statements true */}

@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatCents } from "@/lib/format";
 import { captureArrival } from "@/lib/arrival";
+import { DEFAULT_CURRENCY, type Currency } from "@/lib/currency";
 import { buildReturnUrl, clearPendingCheckout, savePendingCheckout } from "@/lib/pending-checkout";
 
 type Product = {
@@ -36,6 +37,8 @@ type Product = {
   billingType?: "one_time" | "membership";
   billingInterval?: "month" | "year";
   installmentCount?: number | null;
+  // What the page shows and checkout charges in (euros in Europe, dollars elsewhere).
+  currency?: Currency;
 };
 
 // "full" = one payment; the other two are Stripe subscriptions.
@@ -44,7 +47,6 @@ type Plan = "full" | "installments" | "membership";
 // What the buyer agrees to — shown on the checkbox that gates payment.
 export type PlanTerms = { kind: "full" } | { kind: "membership"; label: string } | { kind: "installments"; label: string };
 
-const money = (cents: number) => formatCents(cents);
 
 // captureArrival now lives in @/lib/arrival so the product page can attribute a
 // VIEW with exactly the same rules this uses to attribute a SALE — otherwise
@@ -102,6 +104,8 @@ function FreeClaimForm({ productId }: { productId: string }) {
 // that complete on the page are offered.
 export function CheckoutWidget({ product, embedded = false }: { product: Product; embedded?: boolean }) {
   const uid = useId();
+  const currency = product.currency ?? DEFAULT_CURRENCY;
+  const money = (cents: number) => formatCents(cents, currency);
   const isMembership = product.billingType === "membership";
   const installments = !isMembership && product.installmentCount ? product.installmentCount : null;
   const [plan, setPlan] = useState<Plan>(isMembership ? "membership" : "full");
@@ -140,7 +144,7 @@ export function CheckoutWidget({ product, embedded = false }: { product: Product
     setSubscriptionId(null);
     setError(null);
     if (plan !== "full") {
-      createSubFn({ data: { productId: product.id, plan } })
+      createSubFn({ data: { productId: product.id, plan, currency } })
         .then((res) => {
           setChargedCents(res.amountCents);
           setSubscriptionId(res.subscriptionId);
@@ -162,6 +166,7 @@ export function CheckoutWidget({ product, embedded = false }: { product: Product
         referralCode: getActiveReferralCode() ?? undefined,
         bumpTaken,
         embedded,
+        currency,
       },
     })
       .then((res) => {
@@ -172,7 +177,7 @@ export function CheckoutWidget({ product, embedded = false }: { product: Product
       .catch((e: Error) => setError(e.message));
     // Recreate the intent whenever amount, coupon or the bump selection changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product.id, amountCents, appliedCoupon?.code, free, bumpTaken, plan, embedded]);
+  }, [product.id, amountCents, appliedCoupon?.code, free, bumpTaken, plan, embedded, currency]);
 
   // Warm Stripe.js immediately, in parallel with creating the PaymentIntent, so
   // the payment form mounts the instant the client secret arrives instead of
@@ -276,7 +281,7 @@ export function CheckoutWidget({ product, embedded = false }: { product: Product
 
       {plan === "full" && product.payWhatYouWant ? (
         <div>
-          <Label htmlFor={`${uid}-f2`}>Name your price (min {formatCents(product.priceCents)})</Label>
+          <Label htmlFor={`${uid}-f2`}>Name your price (min {money(product.priceCents)})</Label>
           <Input id={`${uid}-f2`}
             type="number"
             inputMode="decimal"
@@ -342,7 +347,7 @@ export function CheckoutWidget({ product, embedded = false }: { product: Product
         {couponError ? <p className="mt-1 text-sm text-destructive">{couponError}</p> : null}
         {appliedCoupon ? (
           <p className="mt-1 text-sm text-muted-foreground">
-            New total: <span className="font-medium text-foreground">{formatCents(displayAmountCents)}</span>
+            New total: <span className="font-medium text-foreground">{money(displayAmountCents)}</span>
           </p>
         ) : null}
       </div>
@@ -359,7 +364,7 @@ export function CheckoutWidget({ product, embedded = false }: { product: Product
           <span className="min-w-0">
             <span className="flex flex-wrap items-center gap-x-2 text-sm font-medium">
               Add {bump.name}
-              <span className="text-primary">+{formatCents(bump.priceCents)}</span>
+              <span className="text-primary">+{money(bump.priceCents)}</span>
             </span>
             {bump.description ? (
               <span className="mt-0.5 block text-xs text-muted-foreground">{bump.description}</span>
@@ -380,6 +385,7 @@ export function CheckoutWidget({ product, embedded = false }: { product: Product
             amountCents={displayAmountCents}
             subscriptionId={subscriptionId}
             terms={terms}
+            currency={currency}
           />
         </Elements>
       ) : (
@@ -409,13 +415,16 @@ function PaymentForm({
   amountCents,
   subscriptionId,
   terms,
+  currency,
 }: {
   productId: string;
   amountCents: number;
   subscriptionId: string | null;
   terms: PlanTerms;
+  currency: Currency;
 }) {
   const uid = useId();
+  const money = (cents: number) => formatCents(cents, currency);
   const stripe = useStripe();
   const elements = useElements();
   const navigate = useNavigate();

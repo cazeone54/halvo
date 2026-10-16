@@ -3,6 +3,7 @@ import { z } from "zod";
 import { productImageUrl } from "@/lib/public-image-url";
 import { summarizeRatings } from "@/lib/ratings";
 import { listingPrice } from "@/lib/format";
+import { requestCurrency } from "@/lib/currency.server";
 
 export const DISCOVER_SORTS = ["trending", "best-selling", "newest"] as const;
 export type DiscoverSort = (typeof DISCOVER_SORTS)[number];
@@ -24,7 +25,7 @@ export const listDiscover = createServerFn({ method: "GET" })
 
     let query = supabaseAdmin
       .from("products")
-      .select("id, owner_id, name, description, price_cents, pay_what_you_want, url_slug, category, image_url, created_at, sale_price_cents, sale_ends_at, billing_type, billing_interval")
+      .select("id, owner_id, name, description, price_cents, price_usd_cents, pay_what_you_want, url_slug, category, image_url, created_at, sale_price_cents, sale_ends_at, billing_type, billing_interval")
       .not("url_slug", "is", null)
       .order("created_at", { ascending: false })
       .limit(200);
@@ -116,12 +117,13 @@ export const listDiscover = createServerFn({ method: "GET" })
       }
     }
 
+    const currency = requestCurrency();
     return visible.map((p) => {
       const summary = summarizeRatings(ratingSum.get(p.id) ?? []);
       return {
         ...p,
         imageUrl: productImageUrl(p.id, p.image_url),
-        price: listingPrice(p),
+        price: listingPrice(p, new Date(), currency),
         salesCount: salesTotal.get(p.id) ?? 0,
         ratingAverage: summary.average,
         ratingRounded: summary.rounded,

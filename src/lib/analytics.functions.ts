@@ -1,25 +1,28 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { mergeSourceStats, type SourceStat } from "@/lib/source-stats";
+import { addTo, asCurrency, totalsWeight, type Currency, type MoneyTotals } from "@/lib/currency";
 
 export const getMyAnalytics = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { data: rows, error } = await context.supabase
       .from("transactions")
-      .select("amount_paid_cents, status, product_id, created_at, products(name)")
+      .select("amount_paid_cents, currency, status, product_id, created_at, products(name)")
       .eq("seller_id", context.userId);
     if (error) throw new Error(error.message);
 
     const successful = (rows ?? []).filter((r) => r.status === "success");
-    const totalRevenueCents = successful.reduce((sum, r) => sum + r.amount_paid_cents, 0);
+    // Revenue is kept per currency: euro and dollar sales are never added together.
+    const totalRevenue: MoneyTotals = {};
+    for (const r of successful) addTo(totalRevenue, r.currency, r.amount_paid_cents);
     const totalSales = successful.length;
 
-    const byProduct = new Map<string, { name: string; revenueCents: number; sales: number }>();
+    const byProduct = new Map<string, { name: string; revenue: MoneyTotals; sales: number }>();
     for (const r of successful) {
       const name = (r.products as unknown as { name: string } | null)?.name ?? "Unknown product";
-      const entry = byProduct.get(r.product_id) ?? { name, revenueCents: 0, sales: 0 };
-      entry.revenueCents += r.amount_paid_cents;
+      const entry = byProduct.get(r.product_id) ?? { name, revenue: {}, sales: 0 };
+      addTo(entry.revenue, r.currency, r.amount_paid_cents);
       entry.sales += 1;
       byProduct.set(r.product_id, entry);
     }
@@ -54,15 +57,19 @@ export const getMyAnalytics = createServerFn({ method: "GET" })
 
     const topProducts = Array.from(byProduct.entries())
       .map(([id, entry]) => ({ ...entry, views: viewsByProduct.get(id) ?? 0 }))
-      .sort((a, b) => b.revenueCents - a.revenueCents);
+      .sort((a, b) => totalsWeight(b.revenue) - totalsWeight(a.revenue));
 
-    const last30Days = new Map<string, number>();
+    // One series per currency, so each chart's bars are a single real amount.
+    const last30Days = new Map<Currency, Map<string, number>>();
     const now = Date.now();
     for (const r of successful) {
       const day = new Date(r.created_at).toISOString().slice(0, 10);
       const ageMs = now - new Date(r.created_at).getTime();
       if (ageMs > 30 * 24 * 60 * 60 * 1000) continue;
-      last30Days.set(day, (last30Days.get(day) ?? 0) + r.amount_paid_cents);
+      const currency = asCurrency(r.currency);
+      const series = last30Days.get(currency) ?? new Map<string, number>();
+      series.set(day, (series.get(day) ?? 0) + r.amount_paid_cents);
+      last30Days.set(currency, series);
     }
 
     // Where traffic AND sales came from, per channel, so the page can show
@@ -84,13 +91,16 @@ export const getMyAnalytics = createServerFn({ method: "GET" })
     }
 
     return {
-      totalRevenueCents,
+      totalRevenue,
       totalSales,
       totalViews,
       topProducts,
       topSources,
-      dailyRevenue: Array.from(last30Days.entries())
-        .map(([day, revenueCents]) => ({ day, revenueCents }))
-        .sort((a, b) => a.day.localeCompare(b.day)),
+      dailyRevenue: Array.from(last30Days.entries()).map(([currency, series]) => ({
+        currency,
+        days: Array.from(series.entries())
+          .map(([day, revenueCents]) => ({ day, revenueCents }))
+          .sort((a, b) => a.day.localeCompare(b.day)),
+      })),
     };
   });

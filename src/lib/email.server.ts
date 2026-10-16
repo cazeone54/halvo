@@ -1,3 +1,4 @@
+import type { Currency } from "@/lib/currency";
 import { buildPurchaseEmail } from "@/lib/purchase-email";
 import { buildSaleNotificationEmail } from "@/lib/sale-email";
 import { BASE_URL, BRAND_NAME } from "@/lib/site";
@@ -100,6 +101,7 @@ export async function sendPurchaseConfirmationEmail(params: {
   productName: string;
   transactionId: string;
   amountCents?: number;
+  currency?: Currency;
 }): Promise<void> {
   if (params.buyerEmail.endsWith("@buyer.reconciled")) return; // placeholder from the webhook fallback path, not a real address
 
@@ -107,6 +109,7 @@ export async function sendPurchaseConfirmationEmail(params: {
     productName: params.productName,
     downloadPageUrl: `${BASE_URL}/success?id=${params.transactionId}`,
     amountCents: params.amountCents,
+    currency: params.currency,
   });
   await sendEmail({ to: params.buyerEmail, subject, html, text });
 }
@@ -249,11 +252,13 @@ export async function sendSaleNotificationEmail(params: {
   sellerEmail: string;
   productName: string;
   amountCents: number;
+  currency?: Currency;
   isFirstSale: boolean;
 }): Promise<void> {
   const { subject, html, text } = buildSaleNotificationEmail({
     productName: params.productName,
     amountCents: params.amountCents,
+    currency: params.currency,
     isFirstSale: params.isFirstSale,
     dashboardUrl: `${BASE_URL}/dashboard`,
   });

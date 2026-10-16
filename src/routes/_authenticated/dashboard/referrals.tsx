@@ -14,6 +14,7 @@ import {
 import { getMyPlan } from "@/lib/user-plan.functions";
 import { Users2 } from "lucide-react";
 import { formatCents } from "@/lib/format";
+import { formatTotals } from "@/lib/currency";
 import { BASE_URL } from "@/lib/site";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -74,7 +75,7 @@ function ReferralsPage() {
   const platformCode = codes.find((c) => c.kind === "platform");
   const productCodes = codes.filter((c) => c.kind === "product");
   const availableProducts = products.filter((p) => !productCodes.some((c) => c.product_id === p.id));
-  const stats = commQ.data ?? { rows: [], totalCents: 0, pendingCents: 0 };
+  const stats = commQ.data ?? { rows: [], total: {}, pending: {} };
 
   const linkFor = (code: string, slug?: string) =>
     slug ? `${BASE_URL}/p/${slug}?ref=${code}` : `${BASE_URL}/?ref=${code}`;
@@ -107,13 +108,13 @@ function ReferralsPage() {
         <Card>
           <CardContent className="pt-6">
             <p className="text-xs text-muted-foreground">Total earned</p>
-            <p className="text-xl font-semibold">{formatCents(stats.totalCents)}</p>
+            <p className="text-xl font-semibold">{formatTotals(stats.total)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <p className="text-xs text-muted-foreground">Pending payout</p>
-            <p className="text-xl font-semibold">{formatCents(stats.pendingCents)}</p>
+            <p className="text-xl font-semibold">{formatTotals(stats.pending)}</p>
           </CardContent>
         </Card>
       </div>
@@ -188,7 +189,7 @@ function ReferralsPage() {
           {stats.rows.map((r) => (
             <div key={r.id} className="flex items-center justify-between text-sm">
               <span>{new Date(r.created_at).toLocaleDateString()}</span>
-              <span>{formatCents(r.amount_cents)}</span>
+              <span>{formatCents(r.amount_cents, r.currency)}</span>
               <span className="text-muted-foreground">{r.status}</span>
             </div>
           ))}

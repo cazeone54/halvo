@@ -3,6 +3,7 @@ import {
   HeadContent,
   Outlet,
   Scripts,
+  useRouter,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
 import type { QueryClient } from "@tanstack/react-query";
@@ -11,6 +12,7 @@ import appCss from "../styles.css?url";
 import { BRAND_NAME, BRAND_KEY, BASE_URL } from "@/lib/site";
 import { captureReferralFromUrl } from "@/lib/referral-attribution";
 import { rememberArrival } from "@/lib/signup-arrival";
+import { detectBrowserCurrency } from "@/lib/currency";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AppToaster } from "@/components/app-toaster";
 import { ConsentBanner } from "@/components/consent-banner";
@@ -138,12 +140,19 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const router = useRouter();
 
   useEffect(() => {
     captureReferralFromUrl();
     // The landing page is the only one whose URL carries the ad's UTM tags.
     rememberArrival(window.location.href, document.referrer);
-  }, []);
+    // First visit only: if the time zone shows this page was priced in the
+    // wrong currency (euros vs dollars), fetch the prices again.
+    if (detectBrowserCurrency()) {
+      void router.invalidate();
+      void queryClient.invalidateQueries();
+    }
+  }, [router, queryClient]);
 
   return (
     <QueryClientProvider client={queryClient}>

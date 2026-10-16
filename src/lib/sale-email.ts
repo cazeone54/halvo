@@ -1,5 +1,6 @@
 import { BRAND_NAME } from "@/lib/site";
 import { formatCents } from "@/lib/format";
+import type { Currency } from "@/lib/currency";
 
 // Pure content generation, kept separate from the Resend call so it's directly
 // testable — same split as purchase-email.ts.
@@ -11,10 +12,11 @@ import { formatCents } from "@/lib/format";
 export function buildSaleNotificationEmail(params: {
   productName: string;
   amountCents: number;
+  currency?: Currency;
   isFirstSale: boolean;
   dashboardUrl: string;
 }): { subject: string; html: string; text: string } {
-  const amount = formatCents(params.amountCents);
+  const amount = formatCents(params.amountCents, params.currency);
 
   const subject = params.isFirstSale
     ? `Your first sale — ${params.productName}`

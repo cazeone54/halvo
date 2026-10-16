@@ -4,7 +4,7 @@ import { zodValidator } from "@tanstack/zod-adapter";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getVerifiedTransaction } from "@/lib/checkout.functions";
-import { CURRENCY_CODE } from "@/lib/site";
+import { CURRENCY_META } from "@/lib/currency";
 import { rememberPurchase } from "@/lib/local-purchases";
 import { SaveAccessLink } from "@/components/save-access-link";
 import { useState, useEffect } from "react";
@@ -77,7 +77,7 @@ function SuccessPage() {
     if (!transactionQ.data) return;
     trackEvent("Purchase", {
       value: transactionQ.data.amountPaidCents / 100,
-      currency: CURRENCY_CODE,
+      currency: CURRENCY_META[transactionQ.data.currency].code,
       content_name: transactionQ.data.productName,
     });
   }, [transactionQ.data]);

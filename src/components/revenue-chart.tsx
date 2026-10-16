@@ -1,11 +1,23 @@
 import { formatCents } from "@/lib/format";
+import { CURRENCY_META, DEFAULT_CURRENCY, type Currency } from "@/lib/currency";
 
 // A single-series revenue-over-time bar chart. One series, so no legend — the
 // card title names it. Bars carry the only colour (brand teal); every label is
 // ink, never the series colour. Axes are recessive; each bar has a hover
 // tooltip. Uses design tokens throughout, so it's correct in light and dark by
 // construction rather than by an eyeballed flip.
-export function RevenueChart({ data }: { data: Array<{ day: string; revenueCents: number }> }) {
+// One currency per chart: a seller paid in both euros and dollars gets one each
+// (labelled), since the two can't honestly share an axis.
+export function RevenueChart({
+  data,
+  currency = DEFAULT_CURRENCY,
+  labelled = false,
+}: {
+  data: Array<{ day: string; revenueCents: number }>;
+  currency?: Currency;
+  labelled?: boolean;
+}) {
+  const money = (cents: number) => formatCents(cents, currency);
   const DAYS = 30;
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
@@ -29,12 +41,15 @@ export function RevenueChart({ data }: { data: Array<{ day: string; revenueCents
 
   return (
     <figure className="m-0">
+      {labelled ? (
+        <p className="mb-2 text-xs font-medium text-muted-foreground">In {CURRENCY_META[currency].name}</p>
+      ) : null}
       <div className="flex gap-2">
         {/* y-axis labels */}
         <div className="flex w-12 shrink-0 flex-col justify-between py-0.5 text-right text-[10px] tabular-nums text-muted-foreground">
-          <span>{formatCents(niceMax)}</span>
-          <span>{formatCents(niceMax / 2)}</span>
-          <span>$0</span>
+          <span>{money(niceMax)}</span>
+          <span>{money(niceMax / 2)}</span>
+          <span>{CURRENCY_META[currency].symbol}0</span>
         </div>
 
         {/* plot */}
@@ -55,7 +70,7 @@ export function RevenueChart({ data }: { data: Array<{ day: string; revenueCents
                 />
                 {/* hover tooltip */}
                 <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded-md border bg-popover px-2 py-1 text-xs shadow-md group-hover:block">
-                  <span className="font-medium">{formatCents(s.cents)}</span>
+                  <span className="font-medium">{money(s.cents)}</span>
                   <span className="ml-1 text-muted-foreground">{fmtDay(s.date)}</span>
                 </div>
               </div>

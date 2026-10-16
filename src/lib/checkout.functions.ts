@@ -22,7 +22,7 @@ import {
   isFreeProduct,
   composeChargeAmount,
 } from "@/lib/checkout-math";
-import { CURRENCY } from "@/lib/site";
+import { asCurrency, DEFAULT_CURRENCY, pricedIn } from "@/lib/currency";
 import { DIRECT_CHARGES } from "@/lib/plans";
 
 // Shown to a *buyer*, so it never leaks the seller's setup state (missing file,
@@ -46,6 +46,9 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
         // methods that send the buyer away to approve (Revolut Pay, iDEAL…) can't
         // return into someone else's page, so only in-page ones are offered there.
         embedded: z.boolean().optional(),
+        // The currency the page showed. Either is a real price, so it's safe to
+        // take from the client; the amount itself is still computed here.
+        currency: z.enum(["eur", "usd"]).optional(),
       })
       .parse(data),
   )
@@ -117,8 +120,10 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
     // A running launch price replaces the base price. It's stamped into the
     // intent's metadata so verification accepts it even if the sale ends
     // between creating the payment and the buyer completing it.
-    const salePriceCents = activeSalePriceCents(product, new Date());
-    let chargeAmountCents = computeChargeAmountCents(effectivePricing(product, new Date()), data.amountCents);
+    const currency = data.currency ?? DEFAULT_CURRENCY;
+    const priced = pricedIn(product, currency);
+    const salePriceCents = activeSalePriceCents(priced, new Date());
+    let chargeAmountCents = computeChargeAmountCents(effectivePricing(priced, new Date()), data.amountCents);
     if (coupon) chargeAmountCents = applyCouponDiscount(chargeAmountCents, coupon);
 
     // Order bump: its price is resolved server-side and added after the coupon,
@@ -157,11 +162,12 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
 
     try {
       const intent = await stripe.paymentIntents.create({
-        currency: CURRENCY,
+        currency,
         automatic_payment_methods: data.embedded ? { enabled: true, allow_redirects: "never" } : { enabled: true },
         metadata: {
           productId: product.id,
           product_name: product.name,
+          currency,
           ...(data.couponCode ? { coupon_code: data.couponCode.toUpperCase() } : {}),
           ...(referralCodeForMetadata ? { referral_code: referralCodeForMetadata } : {}),
           ...(bumpProductId ? { bump_product_id: bumpProductId, bump_price_cents: String(bumpPriceCents) } : {}),
@@ -181,6 +187,7 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
       return {
         clientSecret: intent.client_secret,
         amountCents: chargeAmountCents,
+        currency,
         stripeAccount: charge.mode === "direct" ? charge.stripeAccount : null,
       };
     } catch (error) {
@@ -219,7 +226,7 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
     // so no download, no email, no success page) until it was caught.
     const { data: product, error: productError } = await supabaseAdmin
       .from("products")
-      .select("id, name, price_cents, pay_what_you_want, owner_id")
+      .select("id, name, price_cents, price_usd_cents, pay_what_you_want, owner_id")
       .eq("id", data.productId)
       .single();
     if (productError || !product) throw new Error("Product not found");
@@ -258,11 +265,14 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
     // Metadata is written only by our server (createProductPaymentIntent), so
     // a launch price recorded there is trusted — but it can only ever lower a
     // fixed price, never be used to undercut anything else.
+    // Checked in the currency actually charged (euros or dollars).
+    const currency = asCurrency(intent.currency);
+    const priced = pricedIn(product, currency);
     const saleMeta = Number(intent.metadata?.sale_price_cents);
     const pricing =
-      Number.isInteger(saleMeta) && saleMeta > 0 && saleMeta < product.price_cents && !product.pay_what_you_want
-        ? { ...product, price_cents: saleMeta }
-        : product;
+      Number.isInteger(saleMeta) && saleMeta > 0 && saleMeta < priced.price_cents && !priced.pay_what_you_want
+        ? { ...priced, price_cents: saleMeta }
+        : priced;
 
     if (intent.amount_received < computeRequiredMinCents(pricing, coupon)) {
       throw new Error("Payment amount is below the required minimum for this product.");
@@ -291,6 +301,7 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
         buyer_email: buyerEmail,
         status: "success",
         amount_paid_cents: intent.amount_received,
+        currency,
         stripe_payment_intent_id: intent.id,
         coupon_code: couponCode ?? null,
         terms_acked_at: termsAckedAt,
@@ -329,12 +340,14 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
         productName: product.name,
         transactionId,
         amountCents: intent.amount_received,
+        currency,
       });
       await notifySellerOfSale({
         supabaseAdmin,
         sellerId: product.owner_id,
         productName: product.name,
         amountCents: intent.amount_received,
+        currency,
       });
     }
 
@@ -407,7 +420,7 @@ export const getVerifiedTransaction = createServerFn({ method: "GET" })
 
     const { data: transaction, error } = await supabaseAdmin
       .from("transactions")
-      .select("id, status, refunded_at, amount_paid_cents, product_id, seller_id, products(name, owner_id)")
+      .select("id, status, refunded_at, amount_paid_cents, currency, product_id, seller_id, products(name, owner_id)")
       .eq("id", data.transactionId)
       .single();
     if (error || !transaction || transaction.status !== "success" || transaction.refunded_at) {
@@ -443,6 +456,7 @@ export const getVerifiedTransaction = createServerFn({ method: "GET" })
       transactionId: transaction.id,
       productName: product?.name ?? "Your purchase",
       amountPaidCents: transaction.amount_paid_cents,
+      currency: asCurrency(transaction.currency),
       thankYouMessage,
       thankYouRedirectUrl,
     };

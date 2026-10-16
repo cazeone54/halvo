@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Users, Download } from "lucide-react";
 import { getMyCustomers } from "@/lib/customers.functions";
 import { toCsv } from "@/lib/csv";
-import { formatCents } from "@/lib/format";
+import { formatTotals } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,11 +28,12 @@ function CustomersPage() {
 
   const exportCsv = () => {
     const csv = toCsv(
-      ["email", "orders", "total_spent_usd", "first_purchase", "last_purchase"],
+      ["email", "orders", "total_spent_eur", "total_spent_usd", "first_purchase", "last_purchase"],
       all.map((c) => [
         c.email,
         c.orders,
-        (c.totalCents / 100).toFixed(2),
+        ((c.total.eur ?? 0) / 100).toFixed(2),
+        ((c.total.usd ?? 0) / 100).toFixed(2),
         c.firstAt.slice(0, 10),
         c.lastAt.slice(0, 10),
       ]),
@@ -95,7 +96,7 @@ function CustomersPage() {
               <div className="min-w-0">
                 <p className="truncate font-medium">{c.email}</p>
                 <p className="truncate text-sm text-muted-foreground">
-                  {c.orders} order{c.orders === 1 ? "" : "s"} · {formatCents(c.totalCents)} · last{" "}
+                  {c.orders} order{c.orders === 1 ? "" : "s"} · {formatTotals(c.total)} · last{" "}
                   {new Date(c.lastAt).toLocaleDateString()}
                 </p>
               </div>

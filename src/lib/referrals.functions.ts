@@ -5,6 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireCreatorTier } from "@/lib/user-plan.functions";
 import { COMMISSION_PERCENT } from "@/lib/commission-math";
 import type { Database } from "@/integrations/supabase/types";
+import { addTo, asCurrency, type MoneyTotals } from "@/lib/currency";
 
 export { COMMISSION_PERCENT };
 
@@ -84,17 +85,34 @@ export const getMyCommissions = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data: rows, error } = await context.supabase
       .from("commissions")
-      .select("id, amount_cents, status, kind, created_at")
+      .select("id, amount_cents, status, kind, created_at, transaction_id")
       .eq("referrer_user_id", context.userId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
 
-    const totalCents = (rows ?? []).reduce((sum, r) => sum + r.amount_cents, 0);
-    const pendingCents = (rows ?? [])
-      .filter((r) => r.status === "pending")
-      .reduce((sum, r) => sum + r.amount_cents, 0);
+    // A commission is in the currency of the sale that funded it. The referrer
+    // can't read other sellers' transactions, so the currency is looked up with
+    // the service role, scoped to the transactions of their own commissions.
+    const currencyOf = new Map<string, string>();
+    const txIds = (rows ?? []).map((r) => r.transaction_id).filter((id): id is string => !!id);
+    if (txIds.length > 0) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: txs } = await supabaseAdmin.from("transactions").select("id, currency").in("id", txIds);
+      for (const t of txs ?? []) currencyOf.set(t.id, t.currency);
+    }
+    const withCurrency = (rows ?? []).map(({ transaction_id, ...r }) => ({
+      ...r,
+      currency: asCurrency(transaction_id ? currencyOf.get(transaction_id) : null),
+    }));
 
-    return { rows: rows ?? [], totalCents, pendingCents };
+    const total: MoneyTotals = {};
+    const pending: MoneyTotals = {};
+    for (const r of withCurrency) {
+      addTo(total, r.currency, r.amount_cents);
+      if (r.status === "pending") addTo(pending, r.currency, r.amount_cents);
+    }
+
+    return { rows: withCurrency, total, pending };
   });
 
 // --- Server-only helpers used by checkout.functions.ts ---

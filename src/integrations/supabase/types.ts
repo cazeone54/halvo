@@ -83,6 +83,8 @@ export type Database = {
           gallery_paths: string[];
           stock_limit: number | null;
           sale_price_cents: number | null;
+          // Seller's own dollar price (migration 0026); null = same number as euros.
+          price_usd_cents: number | null;
           sale_ends_at: string | null;
           billing_type: string;
           billing_interval: string | null;
@@ -107,6 +109,7 @@ export type Database = {
           gallery_paths?: string[];
           stock_limit?: number | null;
           sale_price_cents?: number | null;
+          price_usd_cents?: number | null;
           sale_ends_at?: string | null;
           billing_type?: string;
           billing_interval?: string | null;
@@ -131,6 +134,7 @@ export type Database = {
           gallery_paths?: string[];
           stock_limit?: number | null;
           sale_price_cents?: number | null;
+          price_usd_cents?: number | null;
           sale_ends_at?: string | null;
           billing_type?: string;
           billing_interval?: string | null;
@@ -153,6 +157,7 @@ export type Database = {
           stripe_customer_id: string;
           status: string;
           amount_cents: number;
+          currency: string;
           billing_interval: string;
           installments_total: number | null;
           current_period_end: string | null;
@@ -173,6 +178,7 @@ export type Database = {
           stripe_customer_id: string;
           status: string;
           amount_cents: number;
+          currency?: string;
           billing_interval?: string;
           installments_total?: number | null;
           current_period_end?: string | null;
@@ -193,6 +199,7 @@ export type Database = {
           stripe_customer_id?: string;
           status?: string;
           amount_cents?: number;
+          currency?: string;
           billing_interval?: string;
           installments_total?: number | null;
           current_period_end?: string | null;
@@ -333,6 +340,7 @@ export type Database = {
           buyer_email: string;
           status: string;
           amount_paid_cents: number;
+          currency: string;
           stripe_payment_intent_id: string | null;
           buyer_subscription_id: string | null;
           is_renewal: boolean;
@@ -350,6 +358,7 @@ export type Database = {
           buyer_email: string;
           status?: string;
           amount_paid_cents: number;
+          currency?: string;
           stripe_payment_intent_id?: string | null;
           buyer_subscription_id?: string | null;
           is_renewal?: boolean;
@@ -367,6 +376,7 @@ export type Database = {
           buyer_email?: string;
           status?: string;
           amount_paid_cents?: number;
+          currency?: string;
           stripe_payment_intent_id?: string | null;
           buyer_subscription_id?: string | null;
           is_renewal?: boolean;

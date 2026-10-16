@@ -174,6 +174,8 @@ export const updateProduct = createServerFn({ method: "POST" })
         name: z.string().trim().min(1).max(120).optional(),
         description: z.string().trim().max(2000).optional(),
         priceCents: z.number().int().min(0).optional(),
+        // The seller's own dollar price; null = the same number as the euro price.
+        priceUsdCents: z.number().int().min(50, "A dollar price must be at least $0.50.").nullable().optional(),
         payWhatYouWant: z.boolean().optional(),
         category: z.string().trim().max(60).optional(),
         refundPolicy: z.string().trim().max(2000).optional(),
@@ -187,6 +189,7 @@ export const updateProduct = createServerFn({ method: "POST" })
     if (rest.name !== undefined) update.name = rest.name;
     if (rest.description !== undefined) update.description = rest.description;
     if (rest.priceCents !== undefined) update.price_cents = rest.priceCents;
+    if (rest.priceUsdCents !== undefined) update.price_usd_cents = rest.priceUsdCents;
     if (rest.payWhatYouWant !== undefined) update.pay_what_you_want = rest.payWhatYouWant;
     if (rest.category !== undefined) update.category = rest.category;
 

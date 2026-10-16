@@ -1,5 +1,6 @@
 import { BRAND_NAME } from "@/lib/site";
 import { formatCents } from "@/lib/format";
+import type { Currency } from "@/lib/currency";
 
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -23,6 +24,7 @@ export function buildPurchaseEmail(params: {
   // Optional so callers that don't have it still work; when present it turns the
   // email into a simple receipt (amount + date) the buyer can keep for records.
   amountCents?: number;
+  currency?: Currency;
 }): {
   subject: string;
   html: string;
@@ -33,7 +35,7 @@ export function buildPurchaseEmail(params: {
 
   const hasReceipt = params.amountCents !== undefined;
   const isPaid = (params.amountCents ?? 0) > 0;
-  const amountLabel = params.amountCents === 0 ? "Free" : formatCents(params.amountCents ?? 0);
+  const amountLabel = params.amountCents === 0 ? "Free" : formatCents(params.amountCents ?? 0, params.currency);
   const dateLabel = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
   const receiptHtml = hasReceipt
     ? `<p style="margin-top:4px;color:#94a3b8;font-size:13px;">${amountLabel} &middot; ${dateLabel}</p>`

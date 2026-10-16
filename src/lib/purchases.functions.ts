@@ -1,11 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { asCurrency, type Currency } from "@/lib/currency";
 
 export type MyPurchase = {
   transactionId: string;
   productName: string;
   productSlug: string | null;
   amountPaidCents: number;
+  currency: Currency;
   createdAt: string;
   refunded: boolean;
   disputed: boolean;
@@ -27,7 +29,7 @@ export const listMyPurchases = createServerFn({ method: "GET" })
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const email = (context.claims.email as string | undefined)?.toLowerCase();
 
-      const columns = "id, product_id, amount_paid_cents, status, created_at, refunded_at, disputed_at, products(name, url_slug)";
+      const columns = "id, product_id, amount_paid_cents, currency, status, created_at, refunded_at, disputed_at, products(name, url_slug)";
 
       // Two scoped reads (by id, by email) merged and de-duped — clearer and
       // safer than a PostgREST .or() with an email value that could contain
@@ -67,6 +69,7 @@ export const listMyPurchases = createServerFn({ method: "GET" })
         productName: (r.products as unknown as { name: string } | null)?.name ?? "Product",
         productSlug: (r.products as unknown as { url_slug: string | null } | null)?.url_slug ?? null,
         amountPaidCents: r.amount_paid_cents,
+        currency: asCurrency(r.currency),
         createdAt: r.created_at,
         refunded: r.refunded_at != null,
         disputed: r.disputed_at != null,

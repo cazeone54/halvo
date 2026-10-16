@@ -6,8 +6,9 @@ import { GRACE_DAYS } from "@/lib/recurring";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { formatCents } from "@/lib/format";
+import { addTo, asCurrency, formatTotals, type MoneyTotals } from "@/lib/currency";
 
-const money = (cents: number) => formatCents(cents);
+const money = (cents: number, currency?: string | null) => formatCents(cents, asCurrency(currency));
 const date = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
 // Seller's view of memberships and payment plans. Hidden until there is at least one.
@@ -19,7 +20,11 @@ export function SubscribersCard() {
 
   const live = subs.filter((s) => s.status === "active" || s.status === "trialing" || s.status === "past_due");
   const memberships = live.filter((s) => s.kind === "membership");
-  const mrr = memberships.reduce((sum, s) => sum + (s.billing_interval === "year" ? s.amount_cents / 12 : s.amount_cents), 0);
+  // Per currency: euro and dollar members are never added together.
+  const mrr = memberships.reduce<MoneyTotals>(
+    (totals, s) => addTo(totals, s.currency, Math.round(s.billing_interval === "year" ? s.amount_cents / 12 : s.amount_cents)),
+    {},
+  );
   const atRisk = live.filter((s) => s.past_due_since).length;
 
   return (
@@ -30,7 +35,7 @@ export function SubscribersCard() {
             <Repeat className="h-4 w-4 text-muted-foreground" aria-hidden="true" /> Memberships & payment plans
           </p>
           <p className="text-sm text-muted-foreground">
-            {memberships.length} active member{memberships.length === 1 ? "" : "s"} · {money(Math.round(mrr))}/month
+            {memberships.length} active member{memberships.length === 1 ? "" : "s"} · {formatTotals(mrr)}/month
             {atRisk > 0 ? ` · ${atRisk} with a failed payment` : ""}
           </p>
         </div>
@@ -53,8 +58,8 @@ export function SubscribersCard() {
                     <td className="max-w-[14rem] truncate py-2 pr-3">{s.buyer_email}</td>
                     <td className="py-2 pr-3 whitespace-nowrap">
                       {s.kind === "installments"
-                        ? `${s.installments_total} × ${money(s.amount_cents)}`
-                        : `${money(s.amount_cents)}/${s.billing_interval === "year" ? "yr" : "mo"}`}
+                        ? `${s.installments_total} × ${money(s.amount_cents, s.currency)}`
+                        : `${money(s.amount_cents, s.currency)}/${s.billing_interval === "year" ? "yr" : "mo"}`}
                     </td>
                     <td className="py-2 pr-3">
                       <span

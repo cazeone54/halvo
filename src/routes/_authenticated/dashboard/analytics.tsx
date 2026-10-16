@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { BarChart3, Wallet, ShoppingBag, Eye, Percent } from "lucide-react";
 import { getMyAnalytics } from "@/lib/analytics.functions";
-import { formatCents } from "@/lib/format";
+import { formatTotals, totalsWeight } from "@/lib/currency";
 import { formatConversionRate } from "@/lib/conversion";
 import { RevenueChart } from "@/components/revenue-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,7 +40,7 @@ function AnalyticsPage() {
   const analyticsQ = useQuery({ queryKey: ["my-analytics"], queryFn: () => analyticsFn() });
   const data = analyticsQ.data;
 
-  const topProductMax = Math.max(1, ...(data?.topProducts.map((p) => p.revenueCents) ?? [0]));
+  const topProductMax = Math.max(1, ...(data?.topProducts.map((p) => totalsWeight(p.revenue)) ?? [0]));
   // Bar length tracks VIEWS, because that's the volume the row is reporting;
   // the sales and conversion figures sit in the label where they can be read
   // exactly rather than estimated from a bar.
@@ -77,7 +77,7 @@ function AnalyticsPage() {
               <Wallet className="h-3.5 w-3.5" /> Revenue
             </div>
             <p className="font-[family-name:var(--font-display)] text-xl font-bold tracking-tight tabular-nums sm:text-2xl">
-              {formatCents(data?.totalRevenueCents ?? 0)}
+              {formatTotals(data?.totalRevenue ?? {})}
             </p>
           </CardContent>
         </Card>
@@ -118,7 +118,15 @@ function AnalyticsPage() {
           <CardTitle className="text-base">Revenue, last 30 days</CardTitle>
         </CardHeader>
         <CardContent>
-          <RevenueChart data={data?.dailyRevenue ?? []} />
+          {(data?.dailyRevenue.length ?? 0) === 0 ? (
+            <RevenueChart data={[]} />
+          ) : (
+            <div className="flex flex-col gap-6">
+              {data!.dailyRevenue.map((s) => (
+                <RevenueChart key={s.currency} data={s.days} currency={s.currency} labelled={data!.dailyRevenue.length > 1} />
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -164,11 +172,11 @@ function AnalyticsPage() {
             <BarRow
               key={p.name}
               label={p.name}
-              value={formatCents(p.revenueCents)}
+              value={formatTotals(p.revenue)}
               sublabel={`· ${p.sales} sale${p.sales === 1 ? "" : "s"}${
                 p.views > 0 ? ` · ${formatConversionRate(p.sales, p.views)} conv.` : ""
               }`}
-              fraction={p.revenueCents / topProductMax}
+              fraction={totalsWeight(p.revenue) / topProductMax}
             />
           ))}
           {data?.topProducts.length === 0 ? (

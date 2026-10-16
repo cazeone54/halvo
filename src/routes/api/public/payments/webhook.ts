@@ -4,6 +4,7 @@ import { sendPurchaseConfirmationEmail } from "@/lib/email.server";
 import { notifySellerOfSale } from "@/lib/sale-notify.server";
 import { decideDisputeClose } from "@/lib/dispute-liability";
 import type Stripe from "stripe";
+import { asCurrency } from "@/lib/currency";
 import { BUYER_SUB_KIND, recordFailedInvoice, recordPaidInvoice, syncSubscriptionRow } from "@/lib/recurring.server";
 
 // Reconciliation fallback: purchases are normally recorded synchronously by
@@ -34,6 +35,7 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
 
   const buyerEmail = intent.receipt_email ?? "unknown@buyer.reconciled";
   const couponCode = (intent.metadata?.coupon_code as string | undefined) ?? null;
+  const currency = asCurrency(intent.currency);
 
   // Note: this fallback can't know the buyer's signed-in user id or any
   // referral code — those only ever reach the server via the client-driven
@@ -50,6 +52,7 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
       buyer_email: buyerEmail.toLowerCase(),
       status: "success",
       amount_paid_cents: intent.amount_received,
+      currency,
       stripe_payment_intent_id: intent.id,
       coupon_code: couponCode,
     })
@@ -66,6 +69,7 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
       productName: product.name,
       transactionId: inserted.id,
       amountCents: intent.amount_received,
+      currency,
     });
     // The webhook usually wins the race with the buyer's browser, so without
     // this the seller was almost never told about a sale.
@@ -74,6 +78,7 @@ async function handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
       sellerId: product.owner_id,
       productName: product.name,
       amountCents: intent.amount_received,
+      currency,
     });
   }
 }

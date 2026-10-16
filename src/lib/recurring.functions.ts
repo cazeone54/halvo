@@ -28,7 +28,8 @@ import {
   recordPaidInvoice,
   sellerChargeAccount,
 } from "@/lib/recurring.server";
-import { BASE_URL, CURRENCY } from "@/lib/site";
+import { BASE_URL } from "@/lib/site";
+import { asCurrency, DEFAULT_CURRENCY, pricedIn } from "@/lib/currency";
 import type Stripe from "stripe";
 
 const UNAVAILABLE_MESSAGE = "This product isn't available for purchase yet.";
@@ -46,7 +47,13 @@ function missingMigration(error: { code?: string; message: string }): boolean {
 // payment with the same Payment Element.
 export const createSubscriptionCheckout = createServerFn({ method: "POST" })
   .validator((data) =>
-    z.object({ productId: z.string().uuid(), plan: z.enum(["membership", "installments"]) }).parse(data),
+    z
+      .object({
+        productId: z.string().uuid(),
+        plan: z.enum(["membership", "installments"]),
+        currency: z.enum(["eur", "usd"]).optional(),
+      })
+      .parse(data),
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -75,17 +82,20 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
     if (!account?.charges_enabled) throw new Error(UNAVAILABLE_MESSAGE);
 
     // A launch price applies to a payment plan's total; memberships bill the regular price.
+    // Billed in the currency the buyer saw, for the whole life of the plan.
+    const currency = data.currency ?? DEFAULT_CURRENCY;
+    const priced = pricedIn(product, currency);
     const count = product.installment_count ?? 0;
     const amountCents =
       data.plan === "membership"
-        ? product.price_cents
-        : installmentAmountCents(activeSalePriceCents(product, new Date()) ?? product.price_cents, count);
+        ? priced.price_cents
+        : installmentAmountCents(activeSalePriceCents(priced, new Date()) ?? priced.price_cents, count);
     const interval = data.plan === "membership" && product.billing_interval === "year" ? "year" : "month";
     const problem = validateBilling({
       billingType: isMembership ? "membership" : "one_time",
       billingInterval: isMembership ? interval : null,
       installmentCount: isMembership ? null : count,
-      priceCents: product.price_cents,
+      priceCents: priced.price_cents,
       payWhatYouWant: product.pay_what_you_want,
     });
     if (problem) throw new Error(UNAVAILABLE_MESSAGE);
@@ -104,7 +114,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
         {
           customer: customer.id,
           items: [
-            { price_data: { currency: CURRENCY, product: stripeProductId, unit_amount: amountCents, recurring: { interval } } },
+            { price_data: { currency, product: stripeProductId, unit_amount: amountCents, recurring: { interval } } },
           ],
           payment_behavior: "default_incomplete",
           payment_settings: { save_default_payment_method: "on_subscription" },
@@ -288,7 +298,7 @@ export const describeBilling = createServerFn({ method: "GET" })
     return {
       productName: product?.name ?? "Your purchase",
       kind: row.kind,
-      planLabel: planLabel(row.kind, row.amount_cents, row.billing_interval, row.installments_total),
+      planLabel: planLabel(row.kind, row.amount_cents, row.billing_interval, row.installments_total, asCurrency(row.currency)),
       paidCount: paid ?? 0,
       installmentsTotal: row.installments_total,
       currentPeriodEnd: row.current_period_end,
@@ -337,7 +347,7 @@ export const getBillingForTransaction = createServerFn({ method: "GET" })
       .maybeSingle();
     if (!row) return null;
     return {
-      planLabel: planLabel(row.kind, row.amount_cents, row.billing_interval, row.installments_total),
+      planLabel: planLabel(row.kind, row.amount_cents, row.billing_interval, row.installments_total, asCurrency(row.currency)),
       manageUrl: await manageUrl(row.id),
       access: await accessForSubscriptionRow(supabaseAdmin, row.id),
     };
@@ -348,7 +358,7 @@ export const listMyBuyerSubscriptions = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("buyer_subscriptions")
-      .select("id, product_id, buyer_email, kind, status, amount_cents, billing_interval, installments_total, current_period_end, cancel_at_period_end, past_due_since, created_at")
+      .select("id, product_id, buyer_email, kind, status, amount_cents, currency, billing_interval, installments_total, current_period_end, cancel_at_period_end, past_due_since, created_at")
       .eq("seller_id", context.userId)
       .order("created_at", { ascending: false })
       .limit(200);

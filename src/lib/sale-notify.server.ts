@@ -1,4 +1,5 @@
 import { sendSaleNotificationEmail } from "@/lib/email.server";
+import type { Currency } from "@/lib/currency";
 
 type Admin = Awaited<typeof import("@/integrations/supabase/client.server")>["supabaseAdmin"];
 
@@ -13,6 +14,7 @@ export async function notifySellerOfSale(args: {
   sellerId: string | null;
   productName: string;
   amountCents: number;
+  currency?: Currency;
 }): Promise<void> {
   if (!args.sellerId) return;
   try {
@@ -32,6 +34,7 @@ export async function notifySellerOfSale(args: {
       sellerEmail,
       productName: args.productName,
       amountCents: args.amountCents,
+      currency: args.currency,
       isFirstSale: count === 1,
     });
   } catch (error) {
