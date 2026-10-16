@@ -29,6 +29,26 @@ export const AUDIENCES: Audience[] = [
     proofPoint: "Put the duplicate link in a small PDF, upload it, set a price. That's the whole setup.",
   },
   {
+    slug: "coaches",
+    noun: "coaches",
+    headline: "Stop selling your programme over DMs",
+    intro: `Sending bank details in a DM, waiting to see if it arrives, then emailing the workbook yourself. ${BRAND_NAME} turns that into one link: they pay by card, they get the file straight away, and the money goes to your own Stripe.`,
+    sells: [
+      "Workbooks, worksheets and templates",
+      "Self-paced mini-courses and video programmes",
+      "Training, meal and habit plans",
+      "Group programmes paid monthly or in instalments",
+    ],
+    painPoints: [
+      "Sending your bank details to strangers in DMs",
+      "Chasing people who said they'd transfer the money",
+      "Emailing the same PDF over and over by hand",
+      "Needing a website before you can take a card payment",
+    ],
+    proofPoint:
+      "Upload the workbook you already send clients, set a price, and reply to the next DM with the link instead of your bank details.",
+  },
+  {
     slug: "photographers",
     noun: "photographers",
     headline: "Sell your presets and Lightroom profiles",
