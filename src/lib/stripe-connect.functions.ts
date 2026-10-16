@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getStripeErrorMessage } from "@/lib/stripe.server";
 import { createSellerAccount } from "@/lib/stripe-seller-account.server";
 import { isSellerCountry } from "@/lib/seller-countries";
+import { isGoneForGood } from "@/lib/stripe-account-gone";
 import { BASE_URL } from "@/lib/site";
 
 export const startStripeConnectOnboarding = createServerFn({ method: "POST" })
@@ -27,10 +28,14 @@ export const startStripeConnectOnboarding = createServerFn({ method: "POST" })
 
     let accountId = profile?.stripe_connect_id ?? null;
 
+    // A stored account is replaced only if live Stripe says it's gone; on any
+    // other error (an outage, test keys) the seller keeps their real account
+    // and sees Stripe's message instead.
     if (accountId) {
       try {
         await stripe.accounts.retrieve(accountId);
-      } catch {
+      } catch (error) {
+        if (!isGoneForGood(error)) throw new Error(getStripeErrorMessage(error));
         accountId = null;
       }
     }
@@ -129,8 +134,22 @@ export const getStripeConnectStatus = createServerFn({ method: "GET" })
         payoutsEnabled: !!account.payouts_enabled,
         requirementsDue,
       };
-    } catch {
-      // Stale/foreign account id — self-heal by clearing it.
+    } catch (error) {
+      // Only an account Stripe says doesn't exist (or that disconnected Halvo)
+      // is cleared, and only with live keys: a test-mode server can't see live
+      // accounts, and a Stripe outage or timeout says nothing about the
+      // account. Clearing on those once disconnected a live seller and hid
+      // their products. Otherwise the stored connection is kept as it is.
+      if (!isGoneForGood(error)) {
+        return {
+          connected: true,
+          chargesEnabled: false,
+          detailsSubmitted: false,
+          payoutsEnabled: false,
+          requirementsDue: [] as string[],
+          unavailable: true,
+        };
+      }
       await context.supabase.from("profiles").update({ stripe_connect_id: null }).eq("id", context.userId);
       await syncChargesEnabled(context.userId, false);
       return {
