@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireCreatorTier } from "@/lib/user-plan.functions";
+import { couponIn, DEFAULT_CURRENCY } from "@/lib/currency";
 import { applyCouponDiscount, type CouponDiscount } from "@/lib/coupon-math";
 
 export const listMyCoupons = createServerFn({ method: "GET" })
@@ -124,10 +125,23 @@ export async function findValidCoupon(
 
 // Public — lets the checkout UI preview the discounted price before paying.
 export const applyCouponPreview = createServerFn({ method: "POST" })
-  .validator((data) => z.object({ code: z.string().min(1), productId: z.string().uuid(), amountCents: z.number().int().positive() }).parse(data))
+  .validator((data) =>
+    z
+      .object({
+        code: z.string().min(1),
+        productId: z.string().uuid(),
+        amountCents: z.number().int().positive(),
+        // The amount above is in the buyer's currency, so a fixed-amount
+        // coupon (set in euros) has to be converted to match.
+        currency: z.enum(["eur", "usd"]).optional(),
+      })
+      .parse(data),
+  )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const coupon = await findValidCoupon(supabaseAdmin, data.code, data.productId);
     if (!coupon) throw new Error("Invalid or expired coupon code.");
-    return { discountedAmountCents: applyCouponDiscount(data.amountCents, coupon) };
+    return {
+      discountedAmountCents: applyCouponDiscount(data.amountCents, couponIn(coupon, data.currency ?? DEFAULT_CURRENCY)),
+    };
   });

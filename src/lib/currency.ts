@@ -1,14 +1,16 @@
 // Buyers in Europe see and pay euros; everyone else sees and pays US dollars.
 //
-// Prices are stored in euros (products.price_cents). The dollar price is the
-// same number (€19 → $19) unless the seller set their own
-// (products.price_usd_cents), in which case a launch price follows the same
-// ratio. Order-bump prices and fixed-amount coupons are always the same number
-// in both currencies.
+// Prices are stored in euros (products.price_cents) and converted for dollar
+// buyers, so a seller keeps roughly the same money whichever currency a sale
+// comes in. A seller can set an exact dollar price instead
+// (products.price_usd_cents); a launch price then follows the same ratio.
+// Order bumps and fixed-amount coupons are converted the same way.
 //
 // The currency is chosen per request on the server (currency.server.ts) from
 // the country Cloudflare reports, and a buyer can switch it themselves. Each
 // sale records the currency it was actually charged in.
+
+import { MIN_CHARGE_CENTS } from "@/lib/fees";
 
 export type Currency = "eur" | "usd";
 
@@ -119,26 +121,69 @@ export function totalsWeight(totals: MoneyTotals): number {
   return (totals.eur ?? 0) + (totals.usd ?? 0);
 }
 
+// Dollars per euro, fixed in the code rather than fetched, so a product's
+// price doesn't move from day to day under buyers (or in search results).
+// ECB reference rate was 1.1253 on 2026-10-16; the rest covers Stripe's cost
+// for converting a dollar sale into a euro payout, so the seller nets about
+// what they asked for. Worth reviewing every few months.
+export const USD_PER_EUR = 1.14;
+
+// A euro amount as the dollar price buyers see. Keeps the shape of the price
+// the seller chose: whole euros stay whole dollars, €x.99 stays $x.99.
+export function eurToUsdCents(eurCents: number): number {
+  if (!Number.isFinite(eurCents) || eurCents <= 0) return 0;
+  const raw = eurCents * USD_PER_EUR;
+  const tail = eurCents % 100;
+  let out: number;
+  if (tail === 0) out = Math.round(raw / 100) * 100; // €19 → $22
+  else if (tail === 99) out = Math.round(raw / 100) * 100 - 1; // €19.99 → $22.99
+  else if (tail === 50) out = Math.round(raw / 50) * 50; // €4.50 → $5.00
+  else out = Math.round(raw);
+  return Math.max(MIN_CHARGE_CENTS, out);
+}
+
+// A fixed euro amount a seller set — an order bump, a "€5 off" coupon — in the
+// buyer's currency.
+export function amountIn(eurCents: number, currency: Currency): number {
+  return currency === "usd" ? eurToUsdCents(eurCents) : eurCents;
+}
+
+type CouponAmounts = { percent_off: number | null; amount_off_cents: number | null };
+
+// A percentage coupon needs no conversion; a fixed amount does.
+export function couponIn<T extends CouponAmounts>(coupon: T, currency: Currency): T {
+  if (currency === "eur" || !coupon.amount_off_cents) return coupon;
+  return { ...coupon, amount_off_cents: eurToUsdCents(coupon.amount_off_cents) };
+}
+
 type Priced = {
   price_cents: number;
   sale_price_cents?: number | null;
   price_usd_cents?: number | null;
+  // Set by pricedIn so converting twice can't double a buyer's price.
+  _pricedIn?: Currency;
 };
 
-// How many dollar cents per euro cent for this product.
-function usdRatio(p: Priced): number {
-  return p.price_usd_cents && p.price_usd_cents > 0 && p.price_cents > 0 ? p.price_usd_cents / p.price_cents : 1;
+// What this product costs a dollar buyer: the seller's own dollar price if
+// they set one, otherwise the converted euro price. A free product is free in
+// both currencies, whatever dollar price may be left over on the row.
+export function usdPriceCents(p: Priced): number {
+  if (p.price_cents <= 0) return 0;
+  return p.price_usd_cents && p.price_usd_cents > 0 ? p.price_usd_cents : eurToUsdCents(p.price_cents);
 }
 
 // The product with its price (and launch price) in the given currency, so the
 // existing price/checkout math runs unchanged on it.
 export function pricedIn<T extends Priced>(p: T, currency: Currency): T {
-  if (currency === "eur") return p;
-  const ratio = usdRatio(p);
-  if (ratio === 1) return p;
-  return {
-    ...p,
-    price_cents: p.price_usd_cents!,
-    sale_price_cents: p.sale_price_cents == null ? p.sale_price_cents : Math.round(p.sale_price_cents * ratio),
-  };
+  if (currency === "eur" || p._pricedIn === currency) return p;
+  const priceCents = usdPriceCents(p);
+  // A launch price follows whatever the seller's dollar price implies, so an
+  // exact dollar price discounts by the same proportion the euro one does.
+  const salePriceCents =
+    p.sale_price_cents == null
+      ? p.sale_price_cents
+      : p.price_usd_cents && p.price_usd_cents > 0 && p.price_cents > 0
+        ? Math.round(p.sale_price_cents * (p.price_usd_cents / p.price_cents))
+        : eurToUsdCents(p.sale_price_cents);
+  return { ...p, price_cents: priceCents, sale_price_cents: salePriceCents, _pricedIn: currency };
 }

@@ -22,7 +22,7 @@ import {
   isFreeProduct,
   composeChargeAmount,
 } from "@/lib/checkout-math";
-import { asCurrency, DEFAULT_CURRENCY, pricedIn } from "@/lib/currency";
+import { amountIn, asCurrency, couponIn, DEFAULT_CURRENCY, pricedIn } from "@/lib/currency";
 import { DIRECT_CHARGES } from "@/lib/plans";
 
 // Shown to a *buyer*, so it never leaks the seller's setup state (missing file,
@@ -124,7 +124,9 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
     const priced = pricedIn(product, currency);
     const salePriceCents = activeSalePriceCents(priced, new Date());
     let chargeAmountCents = computeChargeAmountCents(effectivePricing(priced, new Date()), data.amountCents);
-    if (coupon) chargeAmountCents = applyCouponDiscount(chargeAmountCents, coupon);
+    // A fixed-amount coupon and the bump are set in euros, so both are
+    // converted for a dollar buyer exactly as the price is.
+    if (coupon) chargeAmountCents = applyCouponDiscount(chargeAmountCents, couponIn(coupon, currency));
 
     // Order bump: its price is resolved server-side and added after the coupon,
     // so a coupon can't also discount the (already-discounted) add-on. Stamped
@@ -135,7 +137,7 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
     const bump = bumpRes.data;
     if (bump) {
       bumpProductId = bump.bump_product_id;
-      bumpPriceCents = Math.max(0, bump.price_cents);
+      bumpPriceCents = Math.max(0, amountIn(bump.price_cents, currency));
       chargeAmountCents = composeChargeAmount({ baseAfterCouponCents: chargeAmountCents, bumpPriceCents });
     }
 
@@ -274,7 +276,7 @@ export const recordSuccessfulTransaction = createServerFn({ method: "POST" })
         ? { ...priced, price_cents: saleMeta }
         : priced;
 
-    if (intent.amount_received < computeRequiredMinCents(pricing, coupon)) {
+    if (intent.amount_received < computeRequiredMinCents(pricing, coupon ? couponIn(coupon, currency) : null)) {
       throw new Error("Payment amount is below the required minimum for this product.");
     }
 

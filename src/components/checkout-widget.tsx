@@ -130,8 +130,8 @@ export function CheckoutWidget({ product, embedded = false }: { product: Product
   const free = isFreeProduct({ price_cents: product.priceCents, pay_what_you_want: product.payWhatYouWant });
 
   const bumpQ = useQuery({
-    queryKey: ["product-bump", product.id],
-    queryFn: () => bumpFn({ data: { productId: product.id } }),
+    queryKey: ["product-bump", product.id, currency],
+    queryFn: () => bumpFn({ data: { productId: product.id, currency } }),
     enabled: !free && !isMembership,
   });
   // Coupons, order bumps and name-your-price apply to single payments only.
@@ -194,7 +194,7 @@ export function CheckoutWidget({ product, embedded = false }: { product: Product
     setCouponError(null);
     try {
       const res = await previewCouponFn({
-        data: { code: couponCode.trim(), productId: product.id, amountCents },
+        data: { code: couponCode.trim(), productId: product.id, amountCents, currency },
       });
       setAppliedCoupon({ code: couponCode.trim(), discountedAmountCents: res.discountedAmountCents });
     } catch (e) {

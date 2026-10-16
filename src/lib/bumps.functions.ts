@@ -2,12 +2,15 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { productImageUrl } from "@/lib/public-image-url";
+import { amountIn, DEFAULT_CURRENCY } from "@/lib/currency";
 
 // Public — the order-bump offer shown at checkout for a given product. Returns
 // null (never throws) so a product page renders identically whether or not a
 // bump is configured, and whether or not migration 0012 has been applied.
 export const getProductBump = createServerFn({ method: "GET" })
-  .validator((data) => z.object({ productId: z.string().uuid() }).parse(data))
+  .validator((data) =>
+    z.object({ productId: z.string().uuid(), currency: z.enum(["eur", "usd"]).optional() }).parse(data),
+  )
   .handler(async ({ data }) => {
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -30,7 +33,8 @@ export const getProductBump = createServerFn({ method: "GET" })
         bumpProductId: bumpProduct.id,
         name: bumpProduct.name,
         description: bumpProduct.description,
-        priceCents: bump.price_cents,
+        // Set in euros by the seller; shown in the buyer's currency.
+        priceCents: amountIn(bump.price_cents, data.currency ?? DEFAULT_CURRENCY),
         imageUrl: productImageUrl(bumpProduct.id, bumpProduct.image_url),
       };
     } catch {

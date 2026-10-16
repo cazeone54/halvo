@@ -1,5 +1,5 @@
 import { CURRENCY_CODE } from "@/lib/site";
-import { addTo, formatTotals, type MoneyTotals } from "@/lib/currency";
+import { addTo, eurToUsdCents, formatTotals, type MoneyTotals } from "@/lib/currency";
 import { isPaidFeatureLocked } from "@/lib/feature-gates";
 import { SINGLE_TIER_PRICING, DIRECT_CHARGES } from "@/lib/plans";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -1285,7 +1285,7 @@ function ProductRow({
               </div>
               <p className="text-sm text-muted-foreground">
                 {formatCents(product.price_cents)}
-                {product.price_cents > 0 ? ` · ${formatCents(product.price_usd_cents ?? product.price_cents, "usd")}` : null}
+                {product.price_cents > 0 ? ` · ${formatCents(product.price_usd_cents ?? eurToUsdCents(product.price_cents), "usd")}` : null}
                 {!product.url_slug
                   ? " · add a file below to publish"
                   : hiddenFromBuyers
@@ -1350,8 +1350,8 @@ function ProductRow({
               <Textarea id={`${uid}-f6`} value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={3} />
             </div>
             <p className="-mb-1 text-xs text-muted-foreground">
-              Buyers in Europe pay in euros; everyone else pays in US dollars. Leave the dollar price empty to use the
-              same number (€19 → $19).
+              Buyers in Europe pay in euros; everyone else pays in US dollars. Leave the dollar price empty and it's
+              converted for you, so a dollar sale is worth about the same to you as a euro one.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <div className="flex-1">
@@ -1368,7 +1368,7 @@ function ProductRow({
                   inputMode="decimal"
                   value={editPriceUsd}
                   onChange={(e) => setEditPriceUsd(e.target.value)}
-                  placeholder={`${Number(editPrice || 0).toFixed(2)} (same number)`}
+                  placeholder={`${(eurToUsdCents(Math.round(Number(editPrice || 0) * 100)) / 100).toFixed(2)} (converted)`}
                 />
               </div>
               <div className="flex-1">

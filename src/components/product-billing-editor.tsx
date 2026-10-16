@@ -7,6 +7,7 @@ import { GRACE_DAYS, installmentAmountCents, validateBilling, type BillingInterv
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatCents } from "@/lib/format";
+import { CURRENCY_SYMBOL } from "@/lib/site";
 
 type Model = "one_time" | "plan" | "membership";
 const money = (cents: number) => formatCents(cents);
@@ -54,8 +55,11 @@ export function ProductBillingEditor({
     { value: "one_time", title: "One payment", detail: `Buyers pay ${money(priceCents)} once.` },
     {
       value: "plan",
-      title: "One payment, or split it",
-      detail: "Buyers choose to pay in full or in monthly payments. Helps with higher prices.",
+      // Named for the thing itself, not for how it differs from the option
+      // above it: titles that both began "One payment" were indistinguishable
+      // when scanning the row.
+      title: "Payment plan",
+      detail: `Buyers choose to pay in full, or spread it over monthly payments — useful above about ${CURRENCY_SYMBOL}100.`,
     },
     {
       value: "membership",
