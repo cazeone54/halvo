@@ -25,7 +25,12 @@ export type EntitledFile = {
 export async function resolveEntitledFiles(
   admin: Admin,
   transactionId: string,
-): Promise<{ transaction: { id: string; seller_id: string | null }; files: EntitledFile[] } | null> {
+): Promise<{
+  // amount_paid_cents is carried so delivery can tell a free claim from a paid
+  // sale — only free ones are subject to the monthly cap.
+  transaction: { id: string; seller_id: string | null; amount_paid_cents: number };
+  files: EntitledFile[];
+} | null> {
   // select("*") so buyer_subscription_id (migration 0020) comes through when present.
   const { data: transaction, error } = await admin.from("transactions").select("*").eq("id", transactionId).single();
   if (error || !transaction || transaction.status !== "success" || transaction.refunded_at || transaction.disputed_at) {
@@ -65,5 +70,12 @@ export async function resolveEntitledFiles(
     .in("product_id", Array.from(deliverableIds));
   if (filesError) throw new Error(filesError.message);
 
-  return { transaction: { id: transaction.id, seller_id: transaction.seller_id }, files: files ?? [] };
+  return {
+    transaction: {
+      id: transaction.id,
+      seller_id: transaction.seller_id,
+      amount_paid_cents: transaction.amount_paid_cents ?? 0,
+    },
+    files: files ?? [],
+  };
 }

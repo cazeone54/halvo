@@ -817,37 +817,6 @@ function DashboardHome() {
               ) : null}
             </div>
 
-            {bandwidthQ.data && productCount > 0 ? (
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Downloads this month</span>
-                  <span className={bandwidthQ.data.level === "over" ? "font-medium text-destructive" : "font-medium"}>
-                    {bandwidthQ.data.usedGb.toFixed(1)} / {bandwidthQ.data.limitGb} GB
-                  </span>
-                </div>
-                <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                  <div
-                    className={cn(
-                      "h-full rounded-full transition-all",
-                      bandwidthQ.data.level === "over"
-                        ? "bg-destructive"
-                        : bandwidthQ.data.level === "warning"
-                          ? "bg-amber-500"
-                          : "bg-primary",
-                    )}
-                    style={{ width: `${Math.min(100, bandwidthQ.data.percent)}%` }}
-                  />
-                </div>
-                {bandwidthQ.data.level !== "ok" && bandwidthQ.data.tier !== "pro" ? (
-                  <p className="text-xs text-muted-foreground">
-                    You’re {bandwidthQ.data.level === "over" ? "over" : "near"} your plan’s monthly download bandwidth —
-                    {SINGLE_TIER_PRICING ? " email us if you need more." : " upgrade for more headroom."} Your buyers are never
-                    blocked.
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-
             {planQ.data && isPaidFeatureLocked(planQ.data.tier) && productCount > 0 ? (
               <div className="flex flex-col gap-2">
                 {annualBillingConfigured() ? (
@@ -899,6 +868,62 @@ function DashboardHome() {
             ) : null}
           </CardContent>
         </Card>
+        ) : null}
+
+        {/* Usage lives outside the Plan card above, because that card only
+            exists under tiered pricing — with one plan for everyone it never
+            renders, so this was invisible. A seller has to be able to see
+            what they've served, not least when free downloads are about to
+            pause. */}
+        {bandwidthQ.data && productCount > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Upload className="h-4 w-4 rotate-180 text-muted-foreground" aria-hidden="true" />
+                Downloads this month
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Served to buyers</span>
+                <span className={bandwidthQ.data.level === "over" ? "font-medium text-destructive" : "font-medium"}>
+                  {bandwidthQ.data.usedGb.toFixed(1)} / {bandwidthQ.data.limitGb} GB
+                </span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className={cn(
+                    "h-full rounded-full transition-all",
+                    bandwidthQ.data.level === "over"
+                      ? "bg-destructive"
+                      : bandwidthQ.data.level === "warning"
+                        ? "bg-amber-500"
+                        : "bg-primary",
+                  )}
+                  style={{ width: `${Math.min(100, bandwidthQ.data.percent)}%` }}
+                />
+              </div>
+              {bandwidthQ.data.level !== "ok" && bandwidthQ.data.tier !== "pro" ? (
+                <p className="text-xs text-muted-foreground">
+                  You’re {bandwidthQ.data.level === "over" ? "over" : "near"} your monthly download allowance —
+                  {SINGLE_TIER_PRICING ? " email us if you need more." : " upgrade for more headroom."} Your buyers are
+                  never blocked.
+                </p>
+              ) : null}
+
+              {/* Free products earn nothing, so their delivery has a real
+                  monthly ceiling. Shown once it's worth knowing about, so a
+                  seller finds out before downloads stop, not after. */}
+              {bandwidthQ.data.free.level !== "ok" ? (
+                <p className={cn("text-xs", bandwidthQ.data.free.blocked ? "text-destructive" : "text-muted-foreground")}>
+                  Free downloads: {bandwidthQ.data.free.usedGb.toFixed(1)} / {bandwidthQ.data.free.limitGb} GB this month.{" "}
+                  {bandwidthQ.data.free.blocked
+                    ? "Free products are paused until the 1st. Put a price on one and it delivers again straight away — paid downloads are never paused."
+                    : "Once it's used up, free products pause until the 1st; anything with a price keeps delivering."}
+                </p>
+              ) : null}
+            </CardContent>
+          </Card>
         ) : null}
 
         <Card>

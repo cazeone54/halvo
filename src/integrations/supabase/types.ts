@@ -405,6 +405,8 @@ export type Database = {
           user_agent: string | null;
           bytes: number;
           seller_id: string | null;
+          // Free delivery, subject to the monthly cap (migration 0027).
+          is_free: boolean;
           created_at: string;
         };
         Insert: {
@@ -415,6 +417,7 @@ export type Database = {
           user_agent?: string | null;
           bytes?: number;
           seller_id?: string | null;
+          is_free?: boolean;
           created_at?: string;
         };
         Update: {
@@ -425,6 +428,7 @@ export type Database = {
           user_agent?: string | null;
           bytes?: number;
           seller_id?: string | null;
+          is_free?: boolean;
           created_at?: string;
         };
         Relationships: [
