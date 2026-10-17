@@ -1,15 +1,52 @@
+// Ten per row rather than five: a short list loops back to the same few words
+// while someone is still reading it, which makes the market look narrower than
+// it is. The marquee duration in styles.css is paired to this length — see the
+// note there before adding or removing items.
 const ROWS: { items: string[]; direction: "left" | "right" }[] = [
   {
     direction: "left",
-    items: ["Course creators", "Ebook authors", "Notion template makers", "Preset packs", "Design assets"],
+    items: [
+      "Course creators",
+      "Ebook authors",
+      "Notion template makers",
+      "Preset packs",
+      "Design assets",
+      "UI kits",
+      "Icon sets",
+      "Font designers",
+      "Printable planners",
+      "Study guides",
+    ],
   },
   {
     direction: "right",
-    items: ["Newsletter writers", "Coaches", "Musicians & sample packs", "Photographers", "Indie developers"],
+    items: [
+      "Newsletter writers",
+      "Coaches",
+      "Musicians & sample packs",
+      "Photographers",
+      "Indie developers",
+      "Podcasters",
+      "Language tutors",
+      "Nutrition coaches",
+      "Copywriters",
+      "Business consultants",
+    ],
   },
   {
     direction: "left",
-    items: ["Fitness plans", "Resume templates", "Stock photography", "Audio & sound design", "Digital illustrators"],
+    items: [
+      "Fitness plans",
+      "Resume templates",
+      "Stock photography",
+      "Audio & sound design",
+      "Digital illustrators",
+      "Video LUT packs",
+      "3D asset makers",
+      "Game asset packs",
+      "Spreadsheet templates",
+      "Wedding planners",
+    ],
   },
 ];
 
