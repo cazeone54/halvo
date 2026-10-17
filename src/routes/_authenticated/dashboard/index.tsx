@@ -73,6 +73,7 @@ import { ListPager } from "@/components/list-pager";
 import { effectiveLimits, formatMb } from "@/lib/upload-limits";
 import { PAGE_SIZES, isPageSize, paginate, type PageSize } from "@/lib/paginate";
 import { ProductsEmptyState } from "@/components/products-empty-state";
+import { EmptyState } from "@/components/empty-state";
 import { describeAdvancedOptions } from "@/lib/advanced-options";
 import { CopySnippet } from "@/components/copy-snippet";
 import { buildProductLink, buildButtonSnippet, buildIframeSnippet, buildOverlaySnippet } from "@/lib/share-snippets";
@@ -1017,28 +1018,6 @@ function DashboardHome() {
           </CardContent>
         </Card>
       </section>
-    </div>
-  );
-}
-
-function EmptyState({
-  icon: Icon,
-  message,
-  action,
-}: {
-  icon: typeof Package;
-  message: string;
-  action?: { label: string; onClick: () => void };
-}) {
-  return (
-    <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed px-4 py-10 text-center">
-      <Icon className="h-8 w-8 text-muted-foreground/50" aria-hidden="true" />
-      <p className="max-w-sm text-sm text-muted-foreground">{message}</p>
-      {action ? (
-        <Button size="sm" variant="outline" onClick={action.onClick}>
-          {action.label}
-        </Button>
-      ) : null}
     </div>
   );
 }

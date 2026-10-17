@@ -20,7 +20,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export const APP_NAV_LINKS = [
-  { to: "/dashboard", label: "Products", exact: true },
+  // "Dashboard", not "Products": this page carries the KPIs, the products list
+  // AND the sales list, so labelling it after one of them sent sellers hunting
+  // under Analytics or Customers for the sale they'd just been emailed about.
+  { to: "/dashboard", label: "Dashboard", exact: true },
   { to: "/dashboard/discounts", label: "Discounts" },
   { to: "/dashboard/referrals", label: "Affiliate" },
   { to: "/dashboard/analytics", label: "Analytics" },

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { BarChart3, Wallet, ShoppingBag, Eye, Percent } from "lucide-react";
@@ -6,6 +6,8 @@ import { getMyAnalytics } from "@/lib/analytics.functions";
 import { formatTotals, totalsWeight } from "@/lib/currency";
 import { formatConversionRate } from "@/lib/conversion";
 import { RevenueChart } from "@/components/revenue-chart";
+import { EmptyState } from "@/components/empty-state";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const Route = createFileRoute("/_authenticated/dashboard/analytics")({
@@ -64,6 +66,19 @@ function AnalyticsPage() {
         <p className="text-sm text-muted-foreground">
           We couldn't load your analytics just now. Refresh the page to try again.
         </p>
+      ) : data && data.totalViews === 0 && data.totalSales === 0 && data.topProducts.length === 0 ? (
+        // Four zeros, a flat chart and "No sales yet." is a deflating first
+        // screen, and it's most of what a new seller sees. The dashboard home
+        // already hides its own KPIs until there's something in them.
+        <EmptyState
+          icon={BarChart3}
+          title="Nothing to measure yet"
+          message="Analytics start the moment someone opens one of your product pages. Publish a product and share the link — views, sales and conversion for each product show up here."
+        >
+          <Button asChild size="sm" variant="outline">
+            <Link to="/dashboard">Go to your products</Link>
+          </Button>
+        </EmptyState>
       ) : (
         <>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { BroadcastComposer } from "@/components/broadcast-composer";
 import { SubscribersCard } from "@/components/subscribers-card";
+import { EmptyState } from "@/components/empty-state";
 
 export const Route = createFileRoute("/_authenticated/dashboard/customers")({
   component: CustomersPage,
@@ -105,12 +106,15 @@ function CustomersPage() {
         ))}
 
             {all.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-10 text-center">
-                <Users className="h-8 w-8 text-muted-foreground/50" />
-                <p className="text-sm text-muted-foreground">
-                  No customers yet — they'll appear here after your first sale.
-                </p>
-              </div>
+              <EmptyState
+                icon={Users}
+                title="No customers yet"
+                message="Everyone who buys from you lands here, with what they bought and what they've spent. You'll be able to email them about a new product and take the whole list with you whenever you want."
+              >
+                <Button asChild size="sm" variant="outline">
+                  <Link to="/dashboard">Go to your products</Link>
+                </Button>
+              </EmptyState>
             ) : filtered.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">No emails match “{search}”.</p>
             ) : null}

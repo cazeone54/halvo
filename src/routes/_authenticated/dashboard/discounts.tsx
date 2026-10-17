@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmAction } from "@/components/confirm-action";
+import { EmptyState } from "@/components/empty-state";
 import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/_authenticated/dashboard/discounts")({
@@ -155,10 +156,11 @@ function DiscountsPage() {
           </Card>
         ))}
         {couponsQ.data?.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-10 text-center">
-            <Tag className="h-8 w-8 text-muted-foreground/50" />
-            <p className="text-sm text-muted-foreground">No coupons yet.</p>
-          </div>
+          <EmptyState
+            icon={Tag}
+            title="No discount codes yet"
+            message="Create one above, then share it in a launch post, a newsletter or a DM. Buyers type it at checkout and see the lower price before they pay. You can deactivate a code at any time without deleting it."
+          />
         ) : null}
       </div>
     </div>

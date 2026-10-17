@@ -176,7 +176,11 @@ function ReferralsPage() {
             );
           })}
           {productCodes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No product links yet.</p>
+            <p className="text-sm text-muted-foreground">
+              {availableProducts.length > 0
+                ? "No product links yet. Pick a product above to get a link just for that one — handy when you're recommending a single product rather than Halvo itself."
+                : "Product links point at one specific product. Publish a product first and you'll be able to create one here."}
+            </p>
           ) : null}
         </CardContent>
       </Card>
@@ -194,7 +198,10 @@ function ReferralsPage() {
             </div>
           ))}
           {stats.rows.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No commissions yet.</p>
+            <p className="text-sm text-muted-foreground">
+              No commissions yet. When someone buys through one of your links, {COMMISSION_PERCENT}% of that sale
+              lands here and is paid out with the rest of your money.
+            </p>
           ) : null}
         </CardContent>
       </Card>
