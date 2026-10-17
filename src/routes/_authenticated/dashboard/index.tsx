@@ -720,14 +720,23 @@ function DashboardHome() {
                   <Badge variant={sale.status === "refunded" ? "secondary" : "default"}>{sale.status}</Badge>
                   {sale.status === "success" && !sale.disputed ? (
                     // Refunds are irreversible (buyer refunded via Stripe,
-                    // transfer reversed, access revoked) — confirm before firing.
+                    // access revoked) and Stripe keeps its card fee either way,
+                    // so this is deliberately the quietest control on the row.
+                    // A solid red button made the rarest, costliest action the
+                    // loudest thing in every sale — the trailing "…" says it
+                    // opens a confirmation rather than refunding on the spot.
                     <ConfirmAction
-                      message={`Refund ${formatCents(sale.amountPaidCents, sale.currency)} to the buyer? They're refunded through Stripe and lose access to the download. This can't be undone.`}
+                      message={`Refund ${formatCents(sale.amountPaidCents, sale.currency)} to the buyer? They lose access to the download. Halvo's fee comes back to you, but Stripe keeps its card fee on a refunded sale. This can't be undone.`}
                       confirmLabel="Refund"
                       onConfirm={() => refundMut.mutate(sale.id)}
                       trigger={
-                        <Button variant="destructive" size="sm" disabled={refundMut.isPending}>
-                          Refund
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-muted-foreground hover:text-destructive focus-visible:text-destructive"
+                          disabled={refundMut.isPending}
+                        >
+                          Refund…
                         </Button>
                       }
                     />
