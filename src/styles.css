@@ -182,14 +182,15 @@
 
 /* The duration is tied to how many pills a row holds: the track always moves
    50% of itself, so a row twice as long travels twice as far and would scroll
-   twice as fast at the same duration. These 64s match the ten-per-row lists in
-   persona-marquee.tsx — change both together or the pills will race past. */
+   twice as fast at the same duration. These 128s match the twenty-per-row
+   lists in persona-marquee.tsx — change both together or the pills race past.
+   Roughly 6.4s per pill, which is the pace the strip has always read at. */
 @utility animate-marquee-left {
-  animation: marquee-left 64s linear infinite;
+  animation: marquee-left 128s linear infinite;
 }
 
 @utility animate-marquee-right {
-  animation: marquee-right 64s linear infinite;
+  animation: marquee-right 128s linear infinite;
 }
 
 @utility card-hover {

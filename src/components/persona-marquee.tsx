@@ -1,7 +1,9 @@
-// Ten per row rather than five: a short list loops back to the same few words
-// while someone is still reading it, which makes the market look narrower than
-// it is. The marquee duration in styles.css is paired to this length — see the
-// note there before adding or removing items.
+// Twenty per row. A short list loops back to the same few words while someone
+// is still reading it, which makes the market look narrower than it is — and
+// the point of this strip is that almost anything sells here. The marquee
+// duration in styles.css is paired to this length: the track always travels
+// 50% of itself, so changing the count changes the speed. See the note there
+// before adding or removing items.
 const ROWS: { items: string[]; direction: "left" | "right" }[] = [
   {
     direction: "left",
@@ -16,6 +18,16 @@ const ROWS: { items: string[]; direction: "left" | "right" }[] = [
       "Font designers",
       "Printable planners",
       "Study guides",
+      "Mockup packs",
+      "Brand kits",
+      "Social media templates",
+      "Email templates",
+      "Canva templates",
+      "Website themes",
+      "Figma files",
+      "Pattern packs",
+      "Workbook authors",
+      "Lesson plans",
     ],
   },
   {
@@ -31,6 +43,16 @@ const ROWS: { items: string[]; direction: "left" | "right" }[] = [
       "Nutrition coaches",
       "Copywriters",
       "Business consultants",
+      "Yoga teachers",
+      "Dance instructors",
+      "Voice coaches",
+      "Marketing agencies",
+      "SEO consultants",
+      "Financial educators",
+      "Real estate agents",
+      "Bloggers",
+      "Public speakers",
+      "Community builders",
     ],
   },
   {
@@ -46,6 +68,16 @@ const ROWS: { items: string[]; direction: "left" | "right" }[] = [
       "Game asset packs",
       "Spreadsheet templates",
       "Wedding planners",
+      "Meal plans",
+      "Travel guides",
+      "Sewing patterns",
+      "Knitting patterns",
+      "Woodworking plans",
+      "Tattoo flash sets",
+      "Sheet music",
+      "CAD blocks",
+      "Recipe packs",
+      "Motion graphics",
     ],
   },
 ];
