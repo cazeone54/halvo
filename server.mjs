@@ -16,6 +16,54 @@ import { serve } from "srvx";
 
 const CLIENT_DIR = resolve(fileURLToPath(new URL("./dist/client", import.meta.url))) + sep;
 
+// Security headers, added to every response.
+//
+// Framing is the one that needs care: a seller's buy button renders Halvo
+// checkout inside an iframe on their OWN site (public/embed.js, and the inline
+// iframe snippet they copy from the dashboard), and once the card clears the
+// widget navigates that same iframe to /success. Blocking frames outright
+// would break paid checkout at the worst possible moment, so those two paths
+// stay framable and everything else — dashboard, settings, sign-in — does not.
+function isFramable(pathname) {
+  return pathname.startsWith("/p/") || pathname === "/success";
+}
+
+function securityHeaders(pathname) {
+  const headers = {
+    // Never reach this site over plain HTTP again. Deliberately without
+    // includeSubDomains: that would force HTTPS on every subdomain too, and
+    // it's not worth finding out the hard way which ones aren't ready.
+    "Strict-Transport-Security": "max-age=31536000",
+    // Serve what we declared; don't let a browser guess a type from content.
+    "X-Content-Type-Options": "nosniff",
+    // Other sites get our origin at most, never the path or query string.
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    // Hardware this site never uses. `payment` is deliberately absent: Stripe
+    // needs it for Apple Pay and Google Pay, including inside the embed.
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), browsing-topics=()",
+  };
+  if (!isFramable(pathname)) {
+    headers["X-Frame-Options"] = "SAMEORIGIN";
+    headers["Content-Security-Policy"] = "frame-ancestors 'self'";
+  }
+  return headers;
+}
+
+// Rebuilt rather than mutated: a Response that came from fetch() has immutable
+// headers, and the body is passed through untouched so streaming still works.
+function withSecurityHeaders(response, pathname) {
+  const headers = new Headers(response.headers);
+  for (const [name, value] of Object.entries(securityHeaders(pathname))) {
+    // Never override a header the app set deliberately for this route.
+    if (!headers.has(name)) headers.set(name, value);
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 const TYPES = {
   ".js": "text/javascript; charset=utf-8",
   ".mjs": "text/javascript; charset=utf-8",
@@ -64,12 +112,13 @@ async function staticFile(request) {
 serve({
   port: Number(process.env.PORT) || 3000,
   async fetch(request) {
+    const { pathname } = new URL(request.url);
     try {
       const file = await staticFile(request);
-      if (file) return file;
+      if (file) return withSecurityHeaders(file, pathname);
     } catch {
       // Malformed path (bad % escape) — let the app answer it.
     }
-    return server.fetch(request);
+    return withSecurityHeaders(await server.fetch(request), pathname);
   },
 });
