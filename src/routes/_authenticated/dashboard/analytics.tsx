@@ -41,10 +41,6 @@ function AnalyticsPage() {
   const data = analyticsQ.data;
 
   const topProductMax = Math.max(1, ...(data?.topProducts.map((p) => totalsWeight(p.revenue)) ?? [0]));
-  // Bar length tracks VIEWS, because that's the volume the row is reporting;
-  // the sales and conversion figures sit in the label where they can be read
-  // exactly rather than estimated from a bar.
-  const topSourceMax = Math.max(1, ...(data?.topSources.map((s) => s.views) ?? [0]));
 
   return (
     <div className="flex flex-col gap-6">
@@ -127,39 +123,6 @@ function AnalyticsPage() {
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Where your visitors came from</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          {(data?.topSources ?? []).map((s) => (
-            <BarRow
-              key={s.source}
-              label={s.source}
-              value={`${s.views.toLocaleString()} view${s.views === 1 ? "" : "s"}`}
-              sublabel={`· ${s.sales} sale${s.sales === 1 ? "" : "s"}${
-                s.views > 0 ? ` · ${formatConversionRate(s.sales, s.views)} conv.` : ""
-              }`}
-              fraction={s.views / topSourceMax}
-            />
-          ))}
-          {(data?.topSources?.length ?? 0) === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Nothing yet. Once someone visits a product page, this shows which link or platform sent
-              them — and how many of them bought.
-            </p>
-          ) : null}
-          {(data?.topSources?.length ?? 0) > 0 ? (
-            <p className="mt-1 text-xs text-muted-foreground">
-              Compare the conversion figures, not the view counts: a channel sending a little traffic
-              that buys beats one sending a lot that doesn&apos;t. Add{" "}
-              <code className="rounded bg-muted px-1">?utm_source=yourname</code> to links you post so
-              they don&apos;t all collapse into one row.
-            </p>
-          ) : null}
         </CardContent>
       </Card>
 
