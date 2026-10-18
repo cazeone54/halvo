@@ -1,5 +1,17 @@
 import { CURRENCY_CODE } from "@/lib/site";
-import { addTo, eurToUsdCents, formatTotals, type MoneyTotals } from "@/lib/currency";
+import {
+  addTo,
+  convertCents,
+  DEFAULT_CURRENCY,
+  eurToUsdCents,
+  totalsIn,
+  totalsNeedConversion,
+  USD_PER_EUR,
+  type Currency,
+  type MoneyTotals,
+} from "@/lib/currency";
+import { getDisplayCurrency } from "@/lib/display-currency.functions";
+import { CurrencySwitch } from "@/components/currency-switch";
 import { isPaidFeatureLocked } from "@/lib/feature-gates";
 import { SINGLE_TIER_PRICING, DIRECT_CHARGES } from "@/lib/plans";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -127,6 +139,12 @@ function DashboardHome() {
   const productsQ = useQuery({ queryKey: ["my-products"], queryFn: () => productsFn() });
   const connectQ = useQuery({ queryKey: ["stripe-connect-status"], queryFn: () => connectStatusFn() });
   const salesQ = useQuery({ queryKey: ["my-sales"], queryFn: () => salesFn() });
+  const displayCurrencyFn = useServerFn(getDisplayCurrency);
+  const displayCurrencyQ = useQuery({
+    queryKey: ["display-currency"],
+    queryFn: () => displayCurrencyFn(),
+    staleTime: Infinity, // a cookie; it only changes via a reload
+  });
   const planQ = useQuery({ queryKey: ["my-plan"], queryFn: () => planFn() });
   const bandwidthFn = useServerFn(getMyBandwidthUsage);
   const bandwidthQ = useQuery({ queryKey: ["my-bandwidth"], queryFn: () => bandwidthFn() });
@@ -311,9 +329,16 @@ function DashboardHome() {
 
   const sales = salesQ.data ?? [];
   const paidSales = sales.filter((s) => s.status === "success" && !s.disputed);
-  // Per currency: euro and dollar sales are never added together.
+  // Kept per currency because that's what actually happened; collapsed to one
+  // figure only for display, below.
   const revenue = paidSales.reduce<MoneyTotals>((totals, s) => addTo(totals, s.currency, s.amountPaidCents), {});
   const productCount = productsQ.data?.length ?? 0;
+
+  // The whole dashboard is shown in one currency — this one. Same cookie the
+  // storefront switch sets, so the seller has a single preference rather than
+  // one for browsing and another for their own numbers.
+  const displayCurrency = displayCurrencyQ.data?.currency ?? DEFAULT_CURRENCY;
+  const revenueConverted = totalsNeedConversion(revenue, displayCurrency);
 
   // Products are paged (10 / 20 / 50) so a big catalogue isn't one endless list.
   // The page size is remembered in this browser; read after mount so the server
@@ -395,7 +420,11 @@ function DashboardHome() {
                 🎉 You made your first sale
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {formatCents(paidSales[0].amountPaidCents, paidSales[0].currency)} for {paidSales[0].productName}. The loop works — now
+                {formatCents(
+                  convertCents(paidSales[0].amountPaidCents, paidSales[0].currency, displayCurrency),
+                  displayCurrency,
+                )}{" "}
+                for {paidSales[0].productName}. The loop works — now
                 share your link again and do it a second time.
               </p>
             </div>
@@ -426,6 +455,8 @@ function DashboardHome() {
         hasProduct={(productsQ.data?.length ?? 0) > 0}
         stripeConnected={!!connect?.chargesEnabled}
         hasSupportEmail={!!profile?.support_email?.trim()}
+        // Every answer the card needs, before it draws anything.
+        ready={profileQ.isSuccess && productsQ.isSuccess && connectQ.isSuccess}
         onCreateProduct={() => setShowNewProduct(true)}
         onConnectStripe={() => {
           // Mid-setup sellers already have an account, so go straight back to
@@ -443,10 +474,29 @@ function DashboardHome() {
       {/* KPI overview — hidden until there's something to show. Three zeros and
           an upgrade pitch is a deflating first screen for a new seller. */}
       {productCount > 0 ? (
-        <div className="grid grid-cols-3 gap-3">
-          <StatCard icon={Wallet} label="Revenue" value={formatTotals(revenue)} />
-          <StatCard icon={ShoppingBag} label="Sales" value={String(paidSales.length)} />
-          <StatCard icon={Package} label="Products" value={String(productCount)} />
+        <div className="flex flex-col gap-1.5">
+          <div className="grid grid-cols-3 gap-3">
+            <StatCard
+              icon={Wallet}
+              label="Revenue"
+              value={formatCents(totalsIn(revenue, displayCurrency), displayCurrency)}
+            />
+            <StatCard icon={ShoppingBag} label="Sales" value={String(paidSales.length)} />
+            <StatCard icon={Package} label="Products" value={String(productCount)} />
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-x-3">
+            {/* Only when something was actually converted — on a dashboard
+                where every sale came in one currency this note would be noise,
+                and worse, it would imply a conversion that never happened. */}
+            {revenueConverted ? (
+              <p className="text-xs text-muted-foreground">
+                Converted for display at €1 = ${USD_PER_EUR}. Stripe holds each sale in the currency it was charged.
+              </p>
+            ) : (
+              <span />
+            )}
+            <CurrencySwitch current={displayCurrency} className="text-xs text-muted-foreground" />
+          </div>
         </div>
       ) : null}
 
@@ -627,6 +677,7 @@ function DashboardHome() {
               product={product}
               canTakePayments={connectQ.isSuccess ? !!connect?.chargesEnabled : null}
               onDelete={() => deleteMut.mutate(product.id)}
+              displayCurrency={displayCurrency}
             />
           ))}
           {productPage.total > PAGE_SIZES[0] ? (
@@ -688,7 +739,8 @@ function DashboardHome() {
                 <div className="min-w-0">
                   <p className="truncate font-medium">{sale.productName}</p>
                   <p className="truncate text-sm text-muted-foreground">
-                    {sale.buyerEmail} · {formatCents(sale.amountPaidCents, sale.currency)}
+                    {sale.buyerEmail} ·{" "}
+                    {formatCents(convertCents(sale.amountPaidCents, sale.currency, displayCurrency), displayCurrency)}
                   </p>
                   <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                     {sale.termsAcked ? (
@@ -706,7 +758,12 @@ function DashboardHome() {
                     </span>
                     {sale.affiliateFeeCents > 0 ? (
                       <span className="flex items-center gap-1" title="This sale came through an affiliate link">
-                        <Users2 className="h-3 w-3" />−{formatCents(sale.affiliateFeeCents, sale.currency)} to affiliate
+                        <Users2 className="h-3 w-3" />−
+                        {formatCents(
+                          convertCents(sale.affiliateFeeCents, sale.currency, displayCurrency),
+                          displayCurrency,
+                        )}{" "}
+                        to affiliate
                       </span>
                     ) : null}
                   </div>
@@ -1086,11 +1143,14 @@ function ProductRow({
   product,
   onDelete,
   canTakePayments,
+  displayCurrency,
 }: {
   product: ProductRowData;
   onDelete: () => void;
   // False until Stripe is connected; null while the Stripe status is loading.
   canTakePayments: boolean | null;
+  // The one currency this dashboard is being shown in.
+  displayCurrency: Currency;
 }) {
   const uid = useId();
   const isFree = !product.pay_what_you_want && product.price_cents === 0;
@@ -1350,8 +1410,12 @@ function ProductRow({
                 ) : null}
               </div>
               <p className="text-sm text-muted-foreground">
-                {formatCents(product.price_cents)}
-                {product.price_cents > 0 ? ` · ${formatCents(product.price_usd_cents ?? eurToUsdCents(product.price_cents), "usd")}` : null}
+                {/* The price this seller's buyers see in the currency the
+                    dashboard is set to — not both at once. A dollar price the
+                    seller set by hand wins over the converted one. */}
+                {displayCurrency === "usd" && product.price_cents > 0
+                  ? formatCents(product.price_usd_cents ?? eurToUsdCents(product.price_cents), "usd")
+                  : formatCents(product.price_cents)}
                 {!product.url_slug
                   ? " · add a file below to publish"
                   : hiddenFromBuyers

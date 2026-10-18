@@ -121,6 +121,34 @@ export function totalsWeight(totals: MoneyTotals): number {
   return (totals.eur ?? 0) + (totals.usd ?? 0);
 }
 
+// Money that has ALREADY been charged, restated in one currency so a seller's
+// dashboard can show a single figure instead of "€120.00 + $45.00".
+//
+// Deliberately NOT eurToUsdCents: that shapes a PRICE (€19.99 → $22.99, whole
+// euros to whole dollars) which would be wrong here — €19.99 already taken is
+// worth what it's worth, not what it would have been priced at. This is a
+// straight rate conversion and is for display only; never charge or pay out
+// from it, and never let it replace the real per-currency figures in an export.
+export function convertCents(cents: number, from: Currency, to: Currency): number {
+  if (from === to || !Number.isFinite(cents)) return cents;
+  return to === "usd" ? Math.round(cents * USD_PER_EUR) : Math.round(cents / USD_PER_EUR);
+}
+
+// A per-currency breakdown collapsed into one currency.
+export function totalsIn(totals: MoneyTotals, to: Currency): number {
+  return (Object.keys(CURRENCY_META) as Currency[]).reduce(
+    (sum, from) => sum + convertCents(totals[from] ?? 0, from, to),
+    0,
+  );
+}
+
+// True when collapsing would actually convert something — i.e. there is money
+// in a currency other than the one being shown, so the figure needs its
+// "converted at this rate" note. No note when nothing was converted.
+export function totalsNeedConversion(totals: MoneyTotals, to: Currency): boolean {
+  return (Object.keys(CURRENCY_META) as Currency[]).some((c) => c !== to && (totals[c] ?? 0) !== 0);
+}
+
 // Dollars per euro, fixed in the code rather than fetched, so a product's
 // price doesn't move from day to day under buyers (or in search results).
 // ECB reference rate was 1.1253 on 2026-10-16; the rest covers Stripe's cost

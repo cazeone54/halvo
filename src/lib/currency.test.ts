@@ -11,8 +11,53 @@ import {
   formatMoney,
   formatTotals,
   pricedIn,
+  convertCents,
+  totalsIn,
+  totalsNeedConversion,
+  USD_PER_EUR,
 } from "./currency";
 import { listingPrice } from "./format";
+
+describe("showing a mixed-currency dashboard in one currency", () => {
+  it("leaves money already in the target currency exactly alone", () => {
+    expect(convertCents(1999, "eur", "eur")).toBe(1999);
+    expect(convertCents(1999, "usd", "usd")).toBe(1999);
+  });
+
+  it("converts at the plain rate, without price shaping", () => {
+    // eurToUsdCents would make this $22.99 because it keeps the .99 shape of a
+    // PRICE. Money already taken is just worth what it's worth.
+    expect(eurToUsdCents(1999)).toBe(2299);
+    expect(convertCents(1999, "eur", "usd")).toBe(Math.round(1999 * USD_PER_EUR));
+    expect(convertCents(1999, "eur", "usd")).not.toBe(2299);
+  });
+
+  it("round-trips close enough not to drift visibly", () => {
+    const there = convertCents(10000, "eur", "usd");
+    expect(Math.abs(convertCents(there, "usd", "eur") - 10000)).toBeLessThanOrEqual(1);
+  });
+
+  it("collapses a split total into the chosen currency", () => {
+    const totals = { eur: 10000, usd: 11400 };
+    // €100 + $114, shown in euros, is about €200.
+    expect(totalsIn(totals, "eur")).toBe(10000 + Math.round(11400 / USD_PER_EUR));
+    expect(totalsIn(totals, "usd")).toBe(Math.round(10000 * USD_PER_EUR) + 11400);
+  });
+
+  it("an empty or single-currency total is unchanged", () => {
+    expect(totalsIn({}, "eur")).toBe(0);
+    expect(totalsIn({ eur: 2500 }, "eur")).toBe(2500);
+  });
+
+  it("only claims a conversion happened when one actually did", () => {
+    // Otherwise the dashboard footnotes a rate it never applied.
+    expect(totalsNeedConversion({ eur: 2500 }, "eur")).toBe(false);
+    expect(totalsNeedConversion({ eur: 2500, usd: 0 }, "eur")).toBe(false);
+    expect(totalsNeedConversion({}, "usd")).toBe(false);
+    expect(totalsNeedConversion({ eur: 2500 }, "usd")).toBe(true);
+    expect(totalsNeedConversion({ eur: 2500, usd: 100 }, "eur")).toBe(true);
+  });
+});
 
 describe("currencyForCountry", () => {
   it("gives Europe euros and everyone else dollars", () => {
