@@ -4,12 +4,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { z } from "zod";
 import { zodValidator } from "@tanstack/zod-adapter";
-import { Search } from "lucide-react";
+import { Package, Search } from "lucide-react";
 import { listDiscover, listDiscoverCategories, type DiscoverSort } from "@/lib/discover.functions";
 import { Stars } from "@/components/stars";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { cn } from "@/lib/utils";
@@ -23,6 +21,14 @@ const SORT_LABELS: Array<{ value: DiscoverSort; label: string }> = [
   { value: "best-selling", label: "Best selling" },
   { value: "newest", label: "Newest" },
 ];
+
+// "-30%" on the cover when a launch price is running. Worked out from the euro
+// figures, which is the same proportion in any currency the page is shown in.
+function discountLabel(p: { price: { regularLabel: string | null }; price_cents: number; sale_price_cents?: number | null }): string | null {
+  if (!p.price.regularLabel || !p.sale_price_cents || !p.price_cents) return null;
+  const off = Math.round((1 - p.sale_price_cents / p.price_cents) * 100);
+  return off >= 5 ? `-${off}%` : null;
+}
 
 export const Route = createFileRoute("/discover")({
   validateSearch: zodValidator(z.object({ q: z.string().optional() })),
@@ -65,15 +71,28 @@ function DiscoverPage() {
       discoverFn({ data: { search: debouncedSearch || undefined, category: category ?? undefined, sort } }),
   });
   const categoriesQ = useQuery({ queryKey: ["discover-categories"], queryFn: () => categoriesFn() });
-  const paged = usePagedList(productsQ.data ?? [], "halvo:discover:per-page", `${debouncedSearch}|${category}|${sort}`);
+  const paged = usePagedList(
+    productsQ.data ?? [],
+    "halvo:discover:per-page",
+    `${debouncedSearch}|${category}|${sort}`,
+    20,
+  );
 
   return (
     <div className="flex min-h-screen flex-col">
       <PublicNav />
-      <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6">
-        <div>
+      {/* Wider than the reading pages on purpose: this is the shop floor, and
+          at 768px a 1440px screen showed two products with half the window
+          empty. */}
+      <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
           <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold">Discover</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Browse digital products from creators on Halvo.</p>
+          {productsQ.data ? (
+            <p className="text-sm text-muted-foreground tabular-nums">
+              {productsQ.data.length} product{productsQ.data.length === 1 ? "" : "s"}
+            </p>
+          ) : null}
+          <p className="w-full text-sm text-muted-foreground">Digital products from creators on Halvo.</p>
         </div>
 
         <div className="relative mt-6">
@@ -105,71 +124,110 @@ function DiscoverPage() {
           ))}
         </div>
 
+        {/* Real buttons, not clickable badges: these are the shop's filters and
+            they have to work from the keyboard. */}
         {categoriesQ.data && categoriesQ.data.length > 0 ? (
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Badge
-              variant={category === null ? "default" : "outline"}
-              className="cursor-pointer capitalize"
-              onClick={() => setCategory(null)}
-            >
-              All
-            </Badge>
-            {categoriesQ.data.map((c) => (
-              <Badge
-                key={c}
-                variant={category === c ? "default" : "outline"}
-                className={cn("cursor-pointer capitalize")}
-                onClick={() => setCategory(category === c ? null : c)}
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {[null, ...categoriesQ.data].map((c) => (
+              <button
+                key={c ?? "all"}
+                type="button"
+                onClick={() => setCategory(c === null ? null : category === c ? null : c)}
+                aria-pressed={category === c}
+                className={cn(
+                  "rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors",
+                  category === c
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border text-muted-foreground hover:text-foreground",
+                )}
               >
-                {c}
-              </Badge>
+                {c ?? "All"}
+              </button>
             ))}
           </div>
         ) : null}
 
-        <div id="discover-results" className="mt-6 grid scroll-mt-20 grid-cols-1 gap-4 sm:grid-cols-2">
-          {paged.items.map((product) => (
-            <Link key={product.id} to="/p/$slug" params={{ slug: product.url_slug! }}>
-              <Card className="card-hover h-full overflow-hidden">
-                <div className="aspect-video w-full bg-muted">
-                  {product.imageUrl ? (
-                    <img
-                      src={product.imageUrl}
-                      alt={product.name}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : null}
+        {/* A shelf, not an article: four across on a wide screen, two on a
+            phone, and the cover doing the selling. Descriptions are left for
+            the product page — in a grid they push the next row off screen and
+            stop the covers being scannable. */}
+        <div
+          id="discover-results"
+          className="mt-6 grid scroll-mt-20 grid-cols-2 gap-x-4 gap-y-6 md:grid-cols-3 lg:grid-cols-4"
+        >
+          {productsQ.isLoading
+            ? Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="flex flex-col gap-2" aria-hidden="true">
+                  <div className="aspect-video w-full animate-pulse rounded-xl bg-muted" />
+                  <div className="h-4 w-4/5 animate-pulse rounded bg-muted" />
+                  <div className="h-3 w-2/5 animate-pulse rounded bg-muted" />
                 </div>
-                <CardContent className="pt-4">
-                  <p className="font-medium">{product.name}</p>
-                  {product.description ? (
-                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{product.description}</p>
-                  ) : null}
-                  {product.ratingCount > 0 ? (
-                    <div className="mt-1.5 flex items-center gap-1.5">
-                      <Stars value={product.ratingRounded} />
-                      <span className="text-xs text-muted-foreground">
-                        {product.ratingAverage.toFixed(1)} ({product.ratingCount})
+              ))
+            : paged.items.map((product) => (
+                <Link
+                  key={product.id}
+                  to="/p/$slug"
+                  params={{ slug: product.url_slug! }}
+                  className="group flex h-full flex-col focus-visible:outline-none"
+                >
+                  <div className="relative aspect-video w-full overflow-hidden rounded-xl border bg-muted transition-colors group-hover:border-primary/50 group-focus-visible:ring-2 group-focus-visible:ring-ring">
+                    {product.imageUrl ? (
+                      <img
+                        src={product.imageUrl}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                        <Package className="h-7 w-7" aria-hidden="true" />
+                      </div>
+                    )}
+                    {discountLabel(product) ? (
+                      <span className="absolute left-2 top-2 rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-primary-foreground shadow-sm">
+                        {discountLabel(product)}
                       </span>
-                    </div>
-                  ) : null}
-                  <div className="mt-2 flex items-center justify-between gap-2">
-                    <p className="font-semibold text-primary">
-                      {product.price.label}
-                      {product.price.regularLabel ? (<s className="ml-1.5 text-xs font-normal text-muted-foreground">{product.price.regularLabel}</s>) : null}
-                    </p>
-                    {product.salesCount > 0 ? (
-                      <span className="shrink-0 text-xs text-muted-foreground">{product.salesCount} sold</span>
+                    ) : product.price.label === "Free" ? (
+                      <span className="absolute left-2 top-2 rounded-full bg-background/95 px-2 py-0.5 text-[11px] font-semibold shadow-sm">
+                        Free
+                      </span>
                     ) : null}
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-          {productsQ.data?.length === 0 ? (
-            <p className="col-span-full py-10 text-center text-sm text-muted-foreground">No products found.</p>
+
+                  <div className="flex min-w-0 flex-1 flex-col gap-0.5 pt-2">
+                    <h2 className="line-clamp-2 text-sm font-medium leading-snug group-hover:text-primary">
+                      {product.name}
+                    </h2>
+                    {product.sellerName ? (
+                      <p className="truncate text-xs text-muted-foreground">{product.sellerName}</p>
+                    ) : null}
+
+                    {product.ratingCount > 0 ? (
+                      <div className="flex items-center gap-1.5 pt-0.5">
+                        <Stars value={product.ratingRounded} />
+                        <span className="text-xs text-muted-foreground">({product.ratingCount})</span>
+                      </div>
+                    ) : null}
+
+                    <div className="mt-auto flex flex-wrap items-baseline gap-x-2 pt-1.5">
+                      <span className="font-semibold tabular-nums text-primary">{product.price.label}</span>
+                      {product.price.regularLabel ? (
+                        <s className="text-xs text-muted-foreground">{product.price.regularLabel}</s>
+                      ) : null}
+                      {product.salesCount > 0 ? (
+                        <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+                          {product.salesCount} sold
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+          {!productsQ.isLoading && productsQ.data?.length === 0 ? (
+            <p className="col-span-full py-10 text-center text-sm text-muted-foreground">
+              Nothing matches that yet. Try a different search, or clear the filters.
+            </p>
           ) : null}
         </div>
 
@@ -191,6 +249,9 @@ function DiscoverPage() {
             />
           </div>
         ) : null}
+        {/* Every row carries the currency it was priced in, so the shop floor
+            offers the same choice as a product page. */}
+        {shownCurrency ? <CurrencySwitch current={shownCurrency} /> : null}
       </main>
       <PublicFooter />
     </div>

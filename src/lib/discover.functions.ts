@@ -117,17 +117,40 @@ export const listDiscover = createServerFn({ method: "GET" })
       }
     }
 
+    // Who is selling each one. A marketplace card without a shop name on it is
+    // just a product list — this is what makes a browser able to tell two
+    // sellers apart, and to go and see the rest of someone's work.
+    const sellers = new Map<string, { name: string | null; handle: string | null }>();
+    const ownerIds = Array.from(new Set(visible.map((p) => p.owner_id).filter((id): id is string => !!id)));
+    if (ownerIds.length > 0) {
+      try {
+        const { data: profiles } = await supabaseAdmin
+          .from("profiles")
+          .select("id, display_name, handle")
+          .in("id", ownerIds);
+        for (const s of profiles ?? []) sellers.set(s.id, { name: s.display_name, handle: s.handle });
+      } catch {
+        // Cards render without a seller name rather than not at all.
+      }
+    }
+
     const currency = requestCurrency();
     return visible.map((p) => {
       const summary = summarizeRatings(ratingSum.get(p.id) ?? []);
+      const seller = p.owner_id ? sellers.get(p.owner_id) : undefined;
       return {
         ...p,
         imageUrl: productImageUrl(p.id, p.image_url),
         price: listingPrice(p, new Date(), currency),
+        // Carried on the row so the page can offer the currency choice without
+        // a second round trip just to ask what currency it's showing.
+        currency,
         salesCount: salesTotal.get(p.id) ?? 0,
         ratingAverage: summary.average,
         ratingRounded: summary.rounded,
         ratingCount: summary.count,
+        sellerName: seller?.name ?? seller?.handle ?? null,
+        sellerHandle: seller?.handle ?? null,
       };
     });
   });

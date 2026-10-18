@@ -4,8 +4,17 @@ import { isPageSize, paginate, type PageSize } from "@/lib/paginate";
 // Client-side paging for a list already in memory: 10 / 20 / 50 per page, the
 // size remembered per browser under `storageKey`, and back to page 1 whenever
 // `resetKey` changes (a new search, filter or sort).
-export function usePagedList<T>(items: readonly T[], storageKey: string, resetKey = "") {
-  const [pageSize, setPageSizeState] = useState<PageSize>(10);
+//
+// `defaultSize` is for lists that want more on screen before anyone touches the
+// control — a four-across product grid looks thin at ten, and ten leaves a
+// half-empty last row.
+export function usePagedList<T>(
+  items: readonly T[],
+  storageKey: string,
+  resetKey = "",
+  defaultSize: PageSize = 10,
+) {
+  const [pageSize, setPageSizeState] = useState<PageSize>(defaultSize);
   const [page, setPage] = useState(1);
 
   // Read after mount so the server render and first client render agree.
