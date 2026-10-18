@@ -13,6 +13,7 @@ import {
   Package,
   ShoppingBag,
   FileText,
+  Eye,
   Sparkles,
   Plus,
   Trash2,
@@ -38,6 +39,7 @@ import {
   checkCanUploadFile,
   attachProductFile,
   removeProductFile,
+  getMyProductFileUrl,
   setProductImage,
 } from "@/lib/products.functions";
 import { startStripeConnectOnboarding, getStripeConnectStatus } from "@/lib/stripe-connect.functions";
@@ -71,6 +73,8 @@ import { ConfirmAction } from "@/components/confirm-action";
 import { PurchasesShortcut } from "@/components/purchases-shortcut";
 import { ListPager } from "@/components/list-pager";
 import { effectiveLimits, formatMb } from "@/lib/upload-limits";
+import { previewFor, type Preview } from "@/lib/file-preview";
+import { FilePreviewOverlay } from "@/components/file-preview-overlay";
 import { PAGE_SIZES, isPageSize, paginate, type PageSize } from "@/lib/paginate";
 import { ProductsEmptyState } from "@/components/products-empty-state";
 import { EmptyState } from "@/components/empty-state";
@@ -1070,6 +1074,14 @@ type ProductRowData = {
   files?: Array<{ id: string; file_name: string | null; storage_file_path: string; size_bytes: number | null }>;
 };
 
+// Enough precision for a seller to recognise a file, and to spot the classic
+// mistake of having uploaded a 2 KB placeholder instead of the real thing.
+function fileSize(bytes: number | null | undefined): string | null {
+  if (!bytes || bytes < 0) return null;
+  const mb = bytes / (1024 * 1024);
+  return mb >= 1 ? `${mb.toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
 function ProductRow({
   product,
   onDelete,
@@ -1092,6 +1104,7 @@ function ProductRow({
   const checkCanUploadFn = useServerFn(checkCanUploadFile);
   const attachFn = useServerFn(attachProductFile);
   const removeFn = useServerFn(removeProductFile);
+  const fileUrlFn = useServerFn(getMyProductFileUrl);
   const setImageFn = useServerFn(setProductImage);
   const updateProductFn = useServerFn(updateProduct);
 
@@ -1110,6 +1123,38 @@ function ProductRow({
   );
   const [editCategory, setEditCategory] = useState(product.category ?? "");
   const [editLicenseEnabled, setEditLicenseEnabled] = useState(!!product.license_key_enabled);
+  const [previewingId, setPreviewingId] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{ fileName: string; signedUrl: string; preview: Preview } | null>(null);
+
+  // Show the seller the file a buyer would get. Anything a browser can render
+  // opens in the preview panel; anything else (a zip, a .psd) is downloaded,
+  // which is all that can honestly be offered for it.
+  const previewFile = async (file: { id: string; file_name: string | null; size_bytes: number | null }) => {
+    const name = file.file_name ?? "file";
+    setPreviewingId(file.id);
+    try {
+      const { url } = await fileUrlFn({ data: { fileId: file.id } });
+      const kind = previewFor(name, file.size_bytes);
+      if (kind) {
+        setPreview({ fileName: name, signedUrl: url, preview: kind });
+      } else {
+        // Storage serves every file as application/octet-stream, so this
+        // downloads rather than navigating the dashboard away.
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = name;
+        a.rel = "noreferrer noopener";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        toast.success(`Downloading ${name} — it can't be shown in the browser.`);
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't open that file.");
+    } finally {
+      setPreviewingId(null);
+    }
+  };
 
   const filesQ = useQuery({
     queryKey: ["product-files", product.id],
@@ -1259,6 +1304,14 @@ function ProductRow({
 
   return (
     <Card className="card-hover">
+      {preview ? (
+        <FilePreviewOverlay
+          fileName={preview.fileName}
+          signedUrl={preview.signedUrl}
+          preview={preview.preview}
+          onClose={() => setPreview(null)}
+        />
+      ) : null}
       <CardContent className="flex flex-col gap-2 pt-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
@@ -1607,21 +1660,36 @@ function ProductRow({
 
         <div className="flex flex-col gap-1 border-t pt-2">
           {(filesQ.data ?? []).map((f) => (
-            <div key={f.id} className="flex items-center justify-between text-sm">
-              <span className="flex items-center gap-1.5 text-muted-foreground">
-                <FileText className="h-3.5 w-3.5" />
-                {f.file_name}
+            <div key={f.id} className="flex items-center justify-between gap-2 text-sm">
+              <span className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
+                <FileText className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{f.file_name}</span>
+                {fileSize(f.size_bytes) ? (
+                  <span className="shrink-0 text-xs tabular-nums">· {fileSize(f.size_bytes)}</span>
+                ) : null}
               </span>
-              <ConfirmAction
-                message="Remove this file? Buyers of this product may lose access to this download."
-                confirmLabel="Remove"
-                onConfirm={() => removeMut.mutate(f.id)}
-                trigger={
-                  <Button variant="ghost" size="sm">
-                    Remove
-                  </Button>
-                }
-              />
+              <span className="flex shrink-0 items-center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => previewFile(f)}
+                  disabled={previewingId === f.id}
+                  title="See the file buyers receive"
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                  {previewingId === f.id ? "Opening…" : "Preview"}
+                </Button>
+                <ConfirmAction
+                  message="Remove this file? Buyers of this product may lose access to this download."
+                  confirmLabel="Remove"
+                  onConfirm={() => removeMut.mutate(f.id)}
+                  trigger={
+                    <Button variant="ghost" size="sm">
+                      Remove
+                    </Button>
+                  }
+                />
+              </span>
             </div>
           ))}
           {/* A labelled button instead of the browser's own "Choose File / No

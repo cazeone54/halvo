@@ -470,6 +470,36 @@ export const attachProductFile = createServerFn({ method: "POST" })
     return { ok: true, published: wasDraft, urlSlug };
   });
 
+// A seller opening one of their own uploads, to check it's the right file and
+// not a half-saved draft. Deliberately not the buyer path: it never touches
+// download_events, so looking at your own work neither pads your sales
+// evidence nor counts against the free-delivery cap.
+//
+// The link lasts five minutes — long enough to open, short enough that a
+// copied URL is useless by the time it's shared.
+export const getMyProductFileUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data) => z.object({ fileId: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    // Ownership is settled here, against the caller's own client, before any
+    // signing happens.
+    const { data: file } = await context.supabase
+      .from("product_files")
+      .select("storage_file_path, file_name")
+      .eq("id", data.fileId)
+      .eq("owner_id", context.userId)
+      .single();
+    if (!file) throw new Error("File not found");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: signed, error } = await supabaseAdmin.storage
+      .from("digital-assets")
+      .createSignedUrl(file.storage_file_path, 300);
+    if (error || !signed?.signedUrl) throw new Error("Couldn't open this file just now. Please try again.");
+
+    return { url: signed.signedUrl, fileName: file.file_name };
+  });
+
 export const removeProductFile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data) => z.object({ fileId: z.string().uuid() }).parse(data))
