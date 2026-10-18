@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { usePagedList } from "@/lib/use-paged-list";
 import { PAGE_SIZES } from "@/lib/paginate";
 import { ListPager } from "@/components/list-pager";
+import { CurrencySwitch } from "@/components/currency-switch";
 import { BRAND_NAME, BASE_URL } from "@/lib/site";
 
 const SORT_LABELS: Array<{ value: DiscoverSort; label: string }> = [
@@ -71,6 +72,8 @@ function DiscoverPage() {
       discoverFn({ data: { search: debouncedSearch || undefined, category: category ?? undefined, sort } }),
   });
   const categoriesQ = useQuery({ queryKey: ["discover-categories"], queryFn: () => categoriesFn() });
+  // Only offer the switch once there are real prices on screen to switch.
+  const shownCurrency = productsQ.data?.[0]?.currency;
   const paged = usePagedList(
     productsQ.data ?? [],
     "halvo:discover:per-page",

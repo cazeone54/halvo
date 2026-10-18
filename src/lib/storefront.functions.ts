@@ -57,10 +57,15 @@ export const getSellerStorefront = createServerFn({ method: "GET" })
       }
     }
 
+    // Resolved once rather than per product: it reads the same request every
+    // time. Returned to the page as well, so the storefront can offer the same
+    // "pay in the other currency" choice a product page does.
+    const currency = requestCurrency();
+
     return {
+      currency,
       profile: { ...profile, avatarUrl: avatarImageUrl(profile.id, profile.avatar_url) },
       products: rows.map((p) => {
-        const currency = requestCurrency();
         const summary = summarizeRatings(ratingsByProduct.get(p.id) ?? []);
         return {
           ...p,

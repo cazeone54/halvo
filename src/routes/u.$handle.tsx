@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { usePagedList } from "@/lib/use-paged-list";
 import { PAGE_SIZES } from "@/lib/paginate";
 import { ListPager } from "@/components/list-pager";
+import { CurrencySwitch } from "@/components/currency-switch";
 import type { CSSProperties } from "react";
 
 export const Route = createFileRoute("/u/$handle")({
@@ -49,7 +50,7 @@ export const Route = createFileRoute("/u/$handle")({
 });
 
 function StorefrontPage() {
-  const { profile, products } = Route.useLoaderData();
+  const { profile, products, currency } = Route.useLoaderData();
   const brandStyle = brandThemeStyle(profile.accent_color);
   const paged = usePagedList(products, "halvo:storefront:per-page", profile.handle ?? "");
 
@@ -150,6 +151,9 @@ function StorefrontPage() {
               />
             </div>
           ) : null}
+          {/* Same choice the product page offers, so a buyer browsing a
+              storefront isn't stuck with a currency until they click in. */}
+          {products.length > 0 ? <CurrencySwitch current={currency} /> : null}
         </div>
       </main>
       <PublicFooter />
