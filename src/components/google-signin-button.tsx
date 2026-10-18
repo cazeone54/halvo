@@ -80,9 +80,13 @@ export function GoogleSignInButton({ onUnavailable }: { onUnavailable?: () => vo
 
   return (
     <div className="flex flex-col gap-2">
-      {/* Google renders its button inside this element. Centred because its
-          fixed width won't always match the card. */}
-      <div ref={holder} className="flex justify-center [color-scheme:light]" />
+      {/* Google renders its button inside this element, about half a second
+          after the page loads. The height it will take is reserved from the
+          first paint: without it the card grew by 40px on arrival, and since
+          the page centres the card vertically, the whole thing jumped —
+          under the cursor of anyone already typing their email.
+          Centred because its fixed width won't always match the card. */}
+      <div ref={holder} className="flex min-h-10 justify-center [color-scheme:light]" />
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
     </div>
   );

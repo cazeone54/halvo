@@ -65,8 +65,11 @@ function LoginPage() {
     else setSent(true);
   };
 
+  // Centred on a desktop, but anchored near the top on a phone: a centred card
+  // is re-centred when the on-screen keyboard opens, so the form slid up as
+  // soon as the email field was tapped.
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-4">
+    <div className="flex min-h-screen flex-col items-center justify-start gap-6 px-4 pb-10 pt-12 sm:justify-center sm:pb-0 sm:pt-0">
       <Link to="/">
         <Logo markClassName="h-8 w-8" />
       </Link>
