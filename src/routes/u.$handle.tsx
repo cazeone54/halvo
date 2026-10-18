@@ -86,6 +86,11 @@ function StorefrontPage() {
                 {products.length} product{products.length === 1 ? "" : "s"}
               </p>
             ) : null}
+            {/* In the header rather than under the grid, so the choice is
+                visible before a buyer starts reading prices. */}
+            {products.length > 0 ? (
+              <CurrencySwitch current={currency} className="text-xs text-muted-foreground" />
+            ) : null}
           </div>
         </div>
 
@@ -151,9 +156,6 @@ function StorefrontPage() {
               />
             </div>
           ) : null}
-          {/* Same choice the product page offers, so a buyer browsing a
-              storefront isn't stuck with a currency until they click in. */}
-          {products.length > 0 ? <CurrencySwitch current={currency} /> : null}
         </div>
       </main>
       <PublicFooter />

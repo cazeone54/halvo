@@ -96,6 +96,11 @@ function DiscoverPage() {
             </p>
           ) : null}
           <p className="w-full text-sm text-muted-foreground">Digital products from creators on Halvo.</p>
+          {/* Up here with the heading, not under the grid: a buyer shouldn't
+              have to scroll past every product to find out they can switch. */}
+          {shownCurrency ? (
+            <CurrencySwitch current={shownCurrency} className="w-full text-xs text-muted-foreground" />
+          ) : null}
         </div>
 
         <div className="relative mt-6">
@@ -252,9 +257,6 @@ function DiscoverPage() {
             />
           </div>
         ) : null}
-        {/* Every row carries the currency it was priced in, so the shop floor
-            offers the same choice as a product page. */}
-        {shownCurrency ? <CurrencySwitch current={shownCurrency} /> : null}
       </main>
       <PublicFooter />
     </div>
