@@ -6,7 +6,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BRAND_KEY, BASE_URL } from "@/lib/site";
 
-const SHARED_KEY = `${BRAND_KEY}:onboarding:shared`;
+const HIDDEN_KEY = `${BRAND_KEY}:onboarding:hidden`;
+
+/**
+ * Whether an account is set up, and so has nothing left to be told about.
+ *
+ * These four are facts about the account, checked on every visit — so the card
+ * disappears by itself and stays gone, on any device. It used to also require
+ * clicking "Copy link" inside the card, which is a flag in one browser rather
+ * than anything true: a seller who shared their link any other way kept this
+ * card at the top of their dashboard forever.
+ */
+export function isSetUp(s: {
+  handle: string | null;
+  hasProduct: boolean;
+  stripeConnected: boolean;
+  hasSupportEmail: boolean;
+}): boolean {
+  return !!s.handle && s.hasProduct && s.stripeConnected && s.hasSupportEmail;
+}
 
 type Props = {
   // The saved handle (null until claimed) drives both the first step's done
@@ -24,6 +42,10 @@ type Props = {
   // Buyers are told to contact the seller about a faulty file (the refund
   // policy), so a seller with no support email leaves them nowhere to go.
   hasSupportEmail: boolean;
+  // False until the caller's own queries have answered, so the card never
+  // shows a state it is about to contradict. Optional, defaulting to shown,
+  // so a caller that hasn't been wired up yet still renders correctly.
+  ready?: boolean;
   onCreateProduct: () => void;
   onConnectStripe: () => void;
 };
@@ -38,21 +60,34 @@ export function OnboardingChecklist({
   hasProduct,
   stripeConnected,
   hasSupportEmail,
+  ready = true,
   onCreateProduct,
   onConnectStripe,
 }: Props) {
   const navigate = useNavigate();
-  const [shared, setShared] = useState(
-    () => typeof window !== "undefined" && window.localStorage.getItem(SHARED_KEY) === "1",
+  const [hidden, setHidden] = useState(
+    () => typeof window !== "undefined" && window.localStorage.getItem(HIDDEN_KEY) === "1",
   );
 
-  if (savedHandle && hasProduct && stripeConnected && hasSupportEmail && shared) return null;
+  // Nothing at all until the dashboard knows the answers. Rendering before
+  // then drew a "0 of 5, nothing done" panel for a fully set-up seller, which
+  // then vanished a moment later and moved the page under them.
+  if (!ready || hidden) return null;
+
+  if (isSetUp({ handle: savedHandle, hasProduct, stripeConnected, hasSupportEmail })) return null;
+
+  const hide = () => {
+    try {
+      window.localStorage.setItem(HIDDEN_KEY, "1");
+    } catch {
+      // Storage blocked — it just won't stay hidden next time.
+    }
+    setHidden(true);
+  };
 
   const copyLink = async () => {
     if (!savedHandle) return;
     await navigator.clipboard.writeText(`${BASE_URL}/u/${savedHandle}`);
-    window.localStorage.setItem(SHARED_KEY, "1");
-    setShared(true);
   };
 
   const steps = [
@@ -88,10 +123,12 @@ export function OnboardingChecklist({
     },
     {
       key: "share",
-      done: shared,
+      // Never ticked, and deliberately last: it is the thing to do once the
+      // four above are true, at which point this whole card is gone.
+      done: false,
       label: "Share your link and make your first sale",
       hint: "Nothing sells until someone sees it.",
-      action: !shared && savedHandle ? copyLink : undefined,
+      action: savedHandle ? copyLink : undefined,
       actionLabel: "Copy link",
     },
   ];
@@ -107,9 +144,20 @@ export function OnboardingChecklist({
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-3">
           <CardTitle className="text-base">Get set up</CardTitle>
-          <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
-            {doneCount} of {steps.length}
-          </span>
+          <div className="flex shrink-0 items-center gap-2">
+            <span className="text-xs font-medium tabular-nums text-muted-foreground">
+              {doneCount} of {steps.length}
+            </span>
+            {/* Somewhere to put it for anyone who would rather finish setup in
+                their own order than be reminded on every visit. */}
+            <button
+              type="button"
+              onClick={hide}
+              className="rounded-md px-1.5 py-0.5 text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+            >
+              Hide
+            </button>
+          </div>
         </div>
         {/* An unfinished progress bar is a strong nudge to finish it. */}
         <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
