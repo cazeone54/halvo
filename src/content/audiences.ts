@@ -31,13 +31,13 @@ export const AUDIENCES: Audience[] = [
   {
     slug: "coaches",
     noun: "coaches",
-    headline: "Stop selling your programme over DMs",
+    headline: "Stop selling your program over DMs",
     intro: `Sending bank details in a DM, waiting to see if it arrives, then emailing the workbook yourself. ${BRAND_NAME} turns that into one link: they pay by card, they get the file straight away, and the money goes to your own Stripe.`,
     sells: [
       "Workbooks, worksheets and templates",
-      "Self-paced mini-courses and video programmes",
+      "Self-paced mini-courses and video programs",
       "Training, meal and habit plans",
-      "Group programmes paid monthly or in instalments",
+      "Group programs paid monthly or in installments",
     ],
     painPoints: [
       "Sending your bank details to strangers in DMs",
