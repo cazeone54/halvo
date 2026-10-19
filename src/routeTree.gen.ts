@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AccessRouteImport } from './routes/access'
 import { Route as BillingRouteImport } from './routes/billing'
+import { Route as ContactRouteImport } from './routes/contact'
 import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as FeaturesRouteImport } from './routes/features'
@@ -72,6 +73,11 @@ const AccessRoute = AccessRouteImport.update({
 const BillingRoute = BillingRouteImport.update({
   id: '/billing',
   path: '/billing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DiscoverRoute = DiscoverRouteImport.update({
@@ -297,6 +303,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/access': typeof AccessRoute
   '/billing': typeof BillingRoute
+  '/contact': typeof ContactRoute
   '/discover': typeof DiscoverRoute
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
@@ -343,6 +350,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/access': typeof AccessRoute
   '/billing': typeof BillingRoute
+  '/contact': typeof ContactRoute
   '/discover': typeof DiscoverRoute
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
@@ -390,6 +398,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/access': typeof AccessRoute
   '/billing': typeof BillingRoute
+  '/contact': typeof ContactRoute
   '/discover': typeof DiscoverRoute
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
@@ -438,6 +447,7 @@ export interface FileRouteTypes {
     | '/'
     | '/access'
     | '/billing'
+    | '/contact'
     | '/discover'
     | '/faq'
     | '/features'
@@ -484,6 +494,7 @@ export interface FileRouteTypes {
     | '/'
     | '/access'
     | '/billing'
+    | '/contact'
     | '/discover'
     | '/faq'
     | '/features'
@@ -530,6 +541,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/access'
     | '/billing'
+    | '/contact'
     | '/discover'
     | '/faq'
     | '/features'
@@ -578,6 +590,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AccessRoute: typeof AccessRoute
   BillingRoute: typeof BillingRoute
+  ContactRoute: typeof ContactRoute
   DiscoverRoute: typeof DiscoverRoute
   FaqRoute: typeof FaqRoute
   FeaturesRoute: typeof FeaturesRoute
@@ -639,6 +652,13 @@ declare module '@tanstack/react-router' {
       path: '/billing'
       fullPath: '/billing'
       preLoaderRoute: typeof BillingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/discover': {
@@ -980,6 +1000,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AccessRoute: AccessRoute,
   BillingRoute: BillingRoute,
+  ContactRoute: ContactRoute,
   DiscoverRoute: DiscoverRoute,
   FaqRoute: FaqRoute,
   FeaturesRoute: FeaturesRoute,

@@ -1,7 +1,8 @@
 import type { Currency } from "@/lib/currency";
 import { buildPurchaseEmail } from "@/lib/purchase-email";
 import { buildSaleNotificationEmail } from "@/lib/sale-email";
-import { BASE_URL, BRAND_NAME } from "@/lib/site";
+import { buildContactEmail } from "@/lib/contact-message";
+import { BASE_URL, BRAND_EMAIL, BRAND_NAME } from "@/lib/site";
 
 // Direct fetch to Resend's REST API — no SDK dependency, same pattern as
 // stripe.server.ts / anthropic.server.ts.
@@ -50,7 +51,16 @@ function warnIfSandboxSender(recipient: string): void {
   );
 }
 
-async function sendEmail(params: { to: string; subject: string; html: string; text: string }): Promise<void> {
+// Returns whether Resend accepted the message. Most callers fire-and-forget —
+// a purchase must not fail because a receipt didn't send — but the contact form
+// has to know, or it would thank someone for a message that reached nobody.
+async function sendEmail(params: {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+  replyTo?: string;
+}): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     // Shared by purchase confirmations, sale notifications, access recovery and
@@ -59,7 +69,7 @@ async function sendEmail(params: { to: string; subject: string; html: string; te
       `RESEND_API_KEY not set — NOT sending "${params.subject}" to ${params.to}. ` +
         `No email will be delivered by this install until it is configured.`,
     );
-    return;
+    return false;
   }
 
   warnIfSandboxSender(params.to);
@@ -77,6 +87,7 @@ async function sendEmail(params: { to: string; subject: string; html: string; te
         subject: params.subject,
         html: params.html,
         text: params.text,
+        ...(params.replyTo ? { reply_to: params.replyTo } : {}),
       }),
     });
     if (!res.ok) {
@@ -89,11 +100,23 @@ async function sendEmail(params: { to: string; subject: string; html: string; te
             ? ` — almost certainly because EMAIL_FROM_ADDRESS is unset and the sandbox sender only reaches the Resend account owner.`
             : ""),
       );
+      return false;
     }
+    return true;
   } catch (error) {
     // Never let an email provider hiccup break the actual purchase recording.
     console.error("Resend email send threw:", error);
+    return false;
   }
+}
+
+// The contact form. Goes to our own inbox, with reply-to set to the person who
+// wrote in — so answering them is just pressing Reply, and their address is
+// never used as the From (which would fail SPF and land us in spam).
+export async function sendContactEmail(params: { fromEmail: string; message: string }): Promise<boolean> {
+  const to = process.env.CONTACT_EMAIL?.trim() || BRAND_EMAIL;
+  const { subject, html, text } = buildContactEmail(params);
+  return sendEmail({ to, subject, html, text, replyTo: params.fromEmail });
 }
 
 export async function sendPurchaseConfirmationEmail(params: {

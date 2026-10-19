@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { BRAND_NAME, BRAND_EMAIL } from "@/lib/site";
+import { BRAND_NAME } from "@/lib/site";
 import { LogoMark } from "@/components/logo";
 
 // The "Built for" row of audience links used to sit above this. Those pages
@@ -19,9 +19,11 @@ export function PublicFooter() {
           <Link to="/blog">Blog</Link>
           <Link to="/faq">FAQ</Link>
           <Link to="/access">Recover a purchase</Link>
-          <a href={`mailto:${BRAND_EMAIL}`} className="font-medium text-foreground hover:text-primary">
+          {/* A form, not a mailto: a mailto does nothing at all on a phone
+              with no mail app set up, and silently loses the question. */}
+          <Link to="/contact" className="font-medium text-foreground hover:text-primary">
             Contact
-          </a>
+          </Link>
           <Link to="/terms">Terms</Link>
           <Link to="/privacy">Privacy</Link>
           <Link to="/refund-policy">Refund policy</Link>
