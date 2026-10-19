@@ -14,7 +14,6 @@ import {
   Layers,
   ShieldCheck,
   Store,
-  Check,
   ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -87,22 +86,6 @@ const GROW: Feature[] = [
   { icon: Package, title: "Discover marketplace", body: "Get found by buyers browsing Halvo, on top of the traffic you bring yourself." },
 ];
 
-// Honest, widely-published competitor facts — the point is a fair comparison,
-// not spin. Verify current terms on each provider's site before relying on them.
-const COMPARISON: Array<{ label: string; halvo: string; gumroad: string; lemon: string }> = [
-  { label: "Platform fee", halvo: FEE_ALL_IN ? `${FEE}, all-in` : `${FEE} + Stripe's fee`, gumroad: "10% flat", lemon: "5% + 50¢" },
-  { label: "Monthly fee", halvo: "None", gumroad: "None", lemon: "None" },
-  { label: "Where your money goes", halvo: "Your own Stripe", gumroad: "Held, then paid out", lemon: "Held (merchant of record)" },
-  { label: "Instant download delivery", halvo: "yes", gumroad: "yes", lemon: "yes" },
-  { label: "Order bumps at checkout", halvo: "yes", gumroad: "no", lemon: "yes" },
-  { label: "Affiliate program", halvo: "yes", gumroad: "yes", lemon: "no" },
-  { label: "Embeddable buy button", halvo: "yes", gumroad: "yes", lemon: "yes" },
-  { label: "Marketplace to get discovered", halvo: "yes", gumroad: "yes", lemon: "no" },
-  // Gumroad became a full merchant of record in Jan 2025 — that's what its 10%
-  // buys, and why this row matters more than the fee row above it.
-  { label: "Handles your sales tax / VAT", halvo: "You handle it", gumroad: "Yes (merchant of record)", lemon: "Yes (merchant of record)" },
-];
-
 function FeatureGrid({ items }: { items: Feature[] }) {
   return (
     <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -121,12 +104,6 @@ function FeatureGrid({ items }: { items: Feature[] }) {
       ))}
     </div>
   );
-}
-
-function Cell({ value }: { value: string }) {
-  if (value === "yes") return <Check className="mx-auto h-4 w-4 text-primary" aria-label="Yes" />;
-  if (value === "no") return <span className="text-muted-foreground/50" aria-label="No">—</span>;
-  return <span>{value}</span>;
 }
 
 function FeaturesPage() {
@@ -174,51 +151,6 @@ function FeaturesPage() {
             <h2 className="text-xs font-semibold uppercase tracking-wider text-primary">Grow your sales</h2>
             <p className="mt-1 font-[family-name:var(--font-display)] text-2xl font-semibold">More buyers, bigger orders</p>
             <FeatureGrid items={GROW} />
-          </section>
-
-          {/* Comparison */}
-          <section className="mt-20">
-            <div className="text-center">
-              <h2 className="font-[family-name:var(--font-display)] text-2xl font-semibold sm:text-3xl">
-                How {BRAND_NAME} compares
-              </h2>
-              <p className="mt-2 text-sm text-muted-foreground">
-                The honest version — including where others do more.
-              </p>
-            </div>
-            <div className="mt-8 overflow-x-auto">
-              <table className="w-full min-w-[34rem] border-collapse text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="py-3 pr-4 text-left font-medium text-muted-foreground"> </th>
-                    <th className="px-4 py-3 text-center">
-                      <span className="font-[family-name:var(--font-display)] font-bold text-primary">{BRAND_NAME}</span>
-                    </th>
-                    <th className="px-4 py-3 text-center font-medium text-muted-foreground">Gumroad</th>
-                    <th className="px-4 py-3 text-center font-medium text-muted-foreground">Lemon Squeezy</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {COMPARISON.map((row) => (
-                    <tr key={row.label} className="border-b last:border-b-0">
-                      <td className="py-3 pr-4 text-left font-medium">{row.label}</td>
-                      <td className="bg-primary/5 px-4 py-3 text-center font-medium">
-                        <Cell value={row.halvo} />
-                      </td>
-                      <td className="px-4 py-3 text-center text-muted-foreground">
-                        <Cell value={row.gumroad} />
-                      </td>
-                      <td className="px-4 py-3 text-center text-muted-foreground">
-                        <Cell value={row.lemon} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <p className="mt-3 text-center text-xs text-muted-foreground">
-              Competitor details as commonly published and subject to change — check their sites for current terms.
-            </p>
           </section>
 
           {/* CTA */}
