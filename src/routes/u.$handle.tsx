@@ -1,9 +1,7 @@
-import { createFileRoute, notFound, Link } from "@tanstack/react-router";
-import { Package } from "lucide-react";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { UserAvatar } from "@/components/user-avatar";
+import { ProductCard, ProductGrid } from "@/components/product-card";
 import { getSellerStorefront } from "@/lib/storefront.functions";
-import { Stars } from "@/components/stars";
-import { Card, CardContent } from "@/components/ui/card";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { BRAND_NAME, BASE_URL } from "@/lib/site";
@@ -94,50 +92,19 @@ function StorefrontPage() {
           </div>
         </div>
 
-        {/* Products */}
-        <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
-          <div id="storefront-products" className="grid scroll-mt-20 grid-cols-1 gap-4 sm:grid-cols-2">
+        {/* The same shelf as Discover, from the same component: a seller's own
+            page should look like the marketplace it sits in, not like a
+            different website. The seller's name is left off the cards here —
+            it's the name at the top of the page. */}
+        <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
+          <ProductGrid id="storefront-products">
             {paged.items.map((product) => (
-              <Link key={product.id} to="/p/$slug" params={{ slug: product.url_slug! }}>
-                <Card className="card-hover h-full overflow-hidden">
-                  <div className="flex aspect-video w-full items-center justify-center bg-muted">
-                    {product.imageUrl ? (
-                      <img
-                        src={product.imageUrl}
-                        alt={product.name}
-                        loading="lazy"
-                        decoding="async"
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <Package className="h-8 w-8 text-muted-foreground/40" />
-                    )}
-                  </div>
-                  <CardContent className="pt-4">
-                    <p className="font-medium">{product.name}</p>
-                    {product.description ? (
-                      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{product.description}</p>
-                    ) : null}
-                    {product.ratingCount > 0 ? (
-                      <div className="mt-1.5 flex items-center gap-1.5">
-                        <Stars value={product.ratingRounded} />
-                        <span className="text-xs text-muted-foreground">
-                          {product.ratingAverage.toFixed(1)} ({product.ratingCount})
-                        </span>
-                      </div>
-                    ) : null}
-                    <p className="mt-2 font-semibold text-primary">
-                      {product.price.label}
-                      {product.price.regularLabel ? (<s className="ml-1.5 text-xs font-normal text-muted-foreground">{product.price.regularLabel}</s>) : null}
-                    </p>
-                  </CardContent>
-                </Card>
-              </Link>
+              <ProductCard key={product.id} product={product} />
             ))}
             {products.length === 0 ? (
               <p className="col-span-full py-10 text-center text-sm text-muted-foreground">No products yet.</p>
             ) : null}
-          </div>
+          </ProductGrid>
           {paged.total > PAGE_SIZES[0] ? (
             <div className="mt-6">
               <ListPager
