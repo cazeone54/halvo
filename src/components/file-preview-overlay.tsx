@@ -14,12 +14,14 @@ type Loaded =
 // storage serves everything as application/octet-stream — see lib/file-preview.
 export function FilePreviewOverlay({
   fileName,
-  signedUrl,
+  fileUrl,
   preview,
   onClose,
 }: {
   fileName: string;
-  signedUrl: string;
+  // A link on this site (/f/<ticket>), not the storage URL: same origin, so
+  // the download attribute below works and no foreign hostname is shown.
+  fileUrl: string;
   preview: Preview;
   onClose: () => void;
 }) {
@@ -31,7 +33,7 @@ export function FilePreviewOverlay({
     let objectUrl = "";
     (async () => {
       try {
-        const res = await fetch(signedUrl);
+        const res = await fetch(fileUrl);
         if (!res.ok) throw new Error("This file couldn't be loaded.");
         const raw = await res.blob();
         const typed = new Blob([raw], { type: preview.mime });
@@ -51,7 +53,7 @@ export function FilePreviewOverlay({
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [signedUrl, preview.mime, preview.kind]);
+  }, [fileUrl, preview.mime, preview.kind]);
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -84,8 +86,8 @@ export function FilePreviewOverlay({
           </p>
           <div className="flex shrink-0 items-center gap-1">
             <Button asChild variant="outline" size="sm">
-              {/* The signed link, so the seller can keep a copy if they want one. */}
-              <a href={signedUrl} download={fileName} rel="noreferrer noopener">
+              {/* Goes through this site, which asks storage for an attachment. */}
+              <a href={fileUrl} download={fileName} rel="noreferrer noopener">
                 <Download className="h-3.5 w-3.5" /> Download
               </a>
             </Button>

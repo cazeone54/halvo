@@ -1184,7 +1184,7 @@ function ProductRow({
   const [editCategory, setEditCategory] = useState(product.category ?? "");
   const [editLicenseEnabled, setEditLicenseEnabled] = useState(!!product.license_key_enabled);
   const [previewingId, setPreviewingId] = useState<string | null>(null);
-  const [preview, setPreview] = useState<{ fileName: string; signedUrl: string; preview: Preview } | null>(null);
+  const [preview, setPreview] = useState<{ fileName: string; fileUrl: string; preview: Preview } | null>(null);
 
   // Show the seller the file a buyer would get. Anything a browser can render
   // opens in the preview panel; anything else (a zip, a .psd) is downloaded,
@@ -1196,7 +1196,7 @@ function ProductRow({
       const { url } = await fileUrlFn({ data: { fileId: file.id } });
       const kind = previewFor(name, file.size_bytes);
       if (kind) {
-        setPreview({ fileName: name, signedUrl: url, preview: kind });
+        setPreview({ fileName: name, fileUrl: url, preview: kind });
       } else {
         // Storage serves every file as application/octet-stream, so this
         // downloads rather than navigating the dashboard away.
@@ -1367,7 +1367,7 @@ function ProductRow({
       {preview ? (
         <FilePreviewOverlay
           fileName={preview.fileName}
-          signedUrl={preview.signedUrl}
+          fileUrl={preview.fileUrl}
           preview={preview.preview}
           onClose={() => setPreview(null)}
         />

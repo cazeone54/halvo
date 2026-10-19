@@ -31,6 +31,7 @@ import { Route as AuthConfirmRouteImport } from './routes/auth.confirm'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
+import { Route as FTokenRouteImport } from './routes/f.$token'
 import { Route as ForSlugRouteImport } from './routes/for.$slug'
 import { Route as GuidesIndexRouteImport } from './routes/guides.index'
 import { Route as GuidesSlugRouteImport } from './routes/guides.$slug'
@@ -162,6 +163,11 @@ const BlogSlugRoute = BlogSlugRouteImport.update({
 const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
   id: '/checkout/return',
   path: '/checkout/return',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FTokenRoute = FTokenRouteImport.update({
+  id: '/f/$token',
+  path: '/f/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForSlugRoute = ForSlugRouteImport.update({
@@ -308,6 +314,7 @@ export interface FileRoutesByFullPath {
   '/auth/confirm': typeof AuthConfirmRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
+  '/f/$token': typeof FTokenRoute
   '/for/$slug': typeof ForSlugRoute
   '/guides/$slug': typeof GuidesSlugRoute
   '/p/$slug': typeof PSlugRoute
@@ -352,6 +359,7 @@ export interface FileRoutesByTo {
   '/auth/confirm': typeof AuthConfirmRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
+  '/f/$token': typeof FTokenRoute
   '/for/$slug': typeof ForSlugRoute
   '/guides/$slug': typeof GuidesSlugRoute
   '/p/$slug': typeof PSlugRoute
@@ -399,6 +407,7 @@ export interface FileRoutesById {
   '/auth/confirm': typeof AuthConfirmRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
+  '/f/$token': typeof FTokenRoute
   '/for/$slug': typeof ForSlugRoute
   '/guides/$slug': typeof GuidesSlugRoute
   '/p/$slug': typeof PSlugRoute
@@ -446,6 +455,7 @@ export interface FileRouteTypes {
     | '/auth/confirm'
     | '/blog/$slug'
     | '/checkout/return'
+    | '/f/$token'
     | '/for/$slug'
     | '/guides/$slug'
     | '/p/$slug'
@@ -490,6 +500,7 @@ export interface FileRouteTypes {
     | '/auth/confirm'
     | '/blog/$slug'
     | '/checkout/return'
+    | '/f/$token'
     | '/for/$slug'
     | '/guides/$slug'
     | '/p/$slug'
@@ -536,6 +547,7 @@ export interface FileRouteTypes {
     | '/auth/confirm'
     | '/blog/$slug'
     | '/checkout/return'
+    | '/f/$token'
     | '/for/$slug'
     | '/guides/$slug'
     | '/p/$slug'
@@ -582,6 +594,7 @@ export interface RootRouteChildren {
   AuthConfirmRoute: typeof AuthConfirmRoute
   BlogSlugRoute: typeof BlogSlugRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
+  FTokenRoute: typeof FTokenRoute
   ForSlugRoute: typeof ForSlugRoute
   GuidesSlugRoute: typeof GuidesSlugRoute
   PSlugRoute: typeof PSlugRoute
@@ -752,6 +765,13 @@ declare module '@tanstack/react-router' {
       path: '/checkout/return'
       fullPath: '/checkout/return'
       preLoaderRoute: typeof CheckoutReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/f/$token': {
+      id: '/f/$token'
+      path: '/f/$token'
+      fullPath: '/f/$token'
+      preLoaderRoute: typeof FTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/for/$slug': {
@@ -976,6 +996,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthConfirmRoute: AuthConfirmRoute,
   BlogSlugRoute: BlogSlugRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
+  FTokenRoute: FTokenRoute,
   ForSlugRoute: ForSlugRoute,
   GuidesSlugRoute: GuidesSlugRoute,
   PSlugRoute: PSlugRoute,

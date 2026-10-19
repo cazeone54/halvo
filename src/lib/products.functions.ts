@@ -475,8 +475,8 @@ export const attachProductFile = createServerFn({ method: "POST" })
 // download_events, so looking at your own work neither pads your sales
 // evidence nor counts against the free-delivery cap.
 //
-// The link lasts five minutes — long enough to open, short enough that a
-// copied URL is useless by the time it's shared.
+// Returns a link on this site, good for five minutes — long enough to open,
+// short enough that a copied URL is useless by the time it's shared.
 export const getMyProductFileUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data) => z.object({ fileId: z.string().uuid() }).parse(data))
@@ -491,13 +491,17 @@ export const getMyProductFileUrl = createServerFn({ method: "POST" })
       .single();
     if (!file) throw new Error("File not found");
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: signed, error } = await supabaseAdmin.storage
-      .from("digital-assets")
-      .createSignedUrl(file.storage_file_path, 300);
-    if (error || !signed?.signedUrl) throw new Error("Couldn't open this file just now. Please try again.");
+    // A ticket for /f/<token> on this site rather than the storage URL itself:
+    // the seller sees our own address, and the file saves instead of opening.
+    const { signFileToken } = await import("@/lib/file-token");
+    const { unsubscribeSecret } = await import("@/lib/unsubscribe.server");
+    const secret = unsubscribeSecret();
+    if (!secret) throw new Error("Couldn't open this file just now. Please try again.");
 
-    return { url: signed.signedUrl, fileName: file.file_name };
+    return {
+      url: `/f/${await signFileToken(data.fileId, context.userId, secret)}`,
+      fileName: file.file_name,
+    };
   });
 
 export const removeProductFile = createServerFn({ method: "POST" })
