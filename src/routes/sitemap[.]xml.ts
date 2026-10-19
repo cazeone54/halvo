@@ -3,6 +3,7 @@ import { BASE_URL } from "@/lib/site";
 import { GUIDES } from "@/content/guides";
 import { BLOG_POSTS } from "@/content/blog";
 import { AUDIENCES } from "@/content/audiences";
+import { COMPARISONS } from "@/content/comparisons";
 
 const STATIC_PATHS = [
   "/",
@@ -21,6 +22,8 @@ const STATIC_PATHS = [
   ...GUIDES.map((guide) => `/guides/${guide.slug}`),
   ...BLOG_POSTS.map((post) => `/blog/${post.slug}`),
   ...AUDIENCES.map((audience) => `/for/${audience.slug}`),
+  "/tools/fee-calculator",
+  ...COMPARISONS.map((c) => `/compare/${c.slug}`),
 ];
 
 export const Route = createFileRoute("/sitemap.xml")({
