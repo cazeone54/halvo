@@ -45,6 +45,7 @@ import { Route as AuthenticatedDashboardReferralsRouteImport } from './routes/_a
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard/settings'
 import { Route as ApiCronStorageSweepRouteImport } from './routes/api/cron/storage-sweep'
 import { Route as ApiPublicUnsubscribeRouteImport } from './routes/api/public/unsubscribe'
+import { Route as DTransactionIdFileIdRouteImport } from './routes/d.$transactionId.$fileId'
 import { Route as ImgAvatarUserIdRouteImport } from './routes/img.avatar.$userId'
 import { Route as ImgProductProductIdRouteImport } from './routes/img.product.$productId'
 import { Route as AuthenticatedDashboardStripeRefreshRouteImport } from './routes/_authenticated/dashboard/stripe.refresh'
@@ -240,6 +241,11 @@ const ApiPublicUnsubscribeRoute = ApiPublicUnsubscribeRouteImport.update({
   path: '/api/public/unsubscribe',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DTransactionIdFileIdRoute = DTransactionIdFileIdRouteImport.update({
+  id: '/d/$transactionId/$fileId',
+  path: '/d/$transactionId/$fileId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ImgAvatarUserIdRoute = ImgAvatarUserIdRouteImport.update({
   id: '/img/avatar/$userId',
   path: '/img/avatar/$userId',
@@ -316,6 +322,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/api/cron/storage-sweep': typeof ApiCronStorageSweepRoute
   '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
+  '/d/$transactionId/$fileId': typeof DTransactionIdFileIdRoute
   '/img/avatar/$userId': typeof ImgAvatarUserIdRoute
   '/img/product/$productId': typeof ImgProductProductIdRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
@@ -359,6 +366,7 @@ export interface FileRoutesByTo {
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/api/cron/storage-sweep': typeof ApiCronStorageSweepRoute
   '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
+  '/d/$transactionId/$fileId': typeof DTransactionIdFileIdRoute
   '/img/avatar/$userId': typeof ImgAvatarUserIdRoute
   '/img/product/$productId': typeof ImgProductProductIdRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
@@ -405,6 +413,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/api/cron/storage-sweep': typeof ApiCronStorageSweepRoute
   '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
+  '/d/$transactionId/$fileId': typeof DTransactionIdFileIdRoute
   '/img/avatar/$userId': typeof ImgAvatarUserIdRoute
   '/img/product/$productId': typeof ImgProductProductIdRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
@@ -451,6 +460,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings'
     | '/api/cron/storage-sweep'
     | '/api/public/unsubscribe'
+    | '/d/$transactionId/$fileId'
     | '/img/avatar/$userId'
     | '/img/product/$productId'
     | '/dashboard/'
@@ -494,6 +504,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings'
     | '/api/cron/storage-sweep'
     | '/api/public/unsubscribe'
+    | '/d/$transactionId/$fileId'
     | '/img/avatar/$userId'
     | '/img/product/$productId'
     | '/dashboard'
@@ -539,6 +550,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/settings'
     | '/api/cron/storage-sweep'
     | '/api/public/unsubscribe'
+    | '/d/$transactionId/$fileId'
     | '/img/avatar/$userId'
     | '/img/product/$productId'
     | '/_authenticated/dashboard/'
@@ -578,6 +590,7 @@ export interface RootRouteChildren {
   GuidesIndexRoute: typeof GuidesIndexRoute
   ApiCronStorageSweepRoute: typeof ApiCronStorageSweepRoute
   ApiPublicUnsubscribeRoute: typeof ApiPublicUnsubscribeRoute
+  DTransactionIdFileIdRoute: typeof DTransactionIdFileIdRoute
   ImgAvatarUserIdRoute: typeof ImgAvatarUserIdRoute
   ImgProductProductIdRoute: typeof ImgProductProductIdRoute
   ApiPublicLicenseValidateRoute: typeof ApiPublicLicenseValidateRoute
@@ -839,6 +852,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicUnsubscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/d/$transactionId/$fileId': {
+      id: '/d/$transactionId/$fileId'
+      path: '/d/$transactionId/$fileId'
+      fullPath: '/d/$transactionId/$fileId'
+      preLoaderRoute: typeof DTransactionIdFileIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/img/avatar/$userId': {
       id: '/img/avatar/$userId'
       path: '/img/avatar/$userId'
@@ -964,6 +984,7 @@ const rootRouteChildren: RootRouteChildren = {
   GuidesIndexRoute: GuidesIndexRoute,
   ApiCronStorageSweepRoute: ApiCronStorageSweepRoute,
   ApiPublicUnsubscribeRoute: ApiPublicUnsubscribeRoute,
+  DTransactionIdFileIdRoute: DTransactionIdFileIdRoute,
   ImgAvatarUserIdRoute: ImgAvatarUserIdRoute,
   ImgProductProductIdRoute: ImgProductProductIdRoute,
   ApiPublicLicenseValidateRoute: ApiPublicLicenseValidateRoute,

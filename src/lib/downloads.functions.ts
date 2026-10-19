@@ -1,48 +1,18 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { resolveEntitledFiles } from "@/lib/entitlement.server";
 import { isReadableOnline } from "@/lib/lesson-reader";
 import { assertFreeDownloadAllowed } from "@/lib/free-download-cap.server";
+import { logDownloadAccess } from "@/lib/download-log.server";
 
-const SIGNED_URL_TTL_SECONDS = 60 * 10; // 10 minutes
-
-// Best-effort access log — doubles as dispute evidence (who downloaded, when)
-// and as the raw data for a seller's monthly bandwidth usage (bytes served,
-// denormalized seller_id). Wrapped so a logging failure can never block the
-// buyer from actually getting their download.
-async function logDownloadAccess(args: {
-  transactionId: string;
-  sellerId: string | null;
-  bytes: number;
-  // Free deliveries are counted separately: they earn nothing and are the only
-  // ones the monthly cap applies to (see free-download-cap.ts).
-  isFree: boolean;
-}): Promise<void> {
-  try {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const request = getRequest();
-    const forwarded = request?.headers.get("x-forwarded-for");
-    const ip = forwarded?.split(",")[0]?.trim() || request?.headers.get("x-real-ip") || null;
-    const userAgent = request?.headers.get("user-agent") ?? null;
-    const row = {
-      transaction_id: args.transactionId,
-      seller_id: args.sellerId,
-      bytes: args.bytes,
-      ip_address: ip,
-      user_agent: userAgent,
-    };
-    const { error } = await supabaseAdmin.from("download_events").insert({ ...row, is_free: args.isFree });
-    // Before migration 0027 the column doesn't exist; still log the access.
-    if (error) await supabaseAdmin.from("download_events").insert(row);
-  } catch {
-    // Never let logging break the download.
-  }
-}
-
-// Public — the only gate on file access is a verified, non-refunded
-// transaction. `transactionId` is only ever revealed post-purchase.
-export const getDownloadUrlForTransaction = createServerFn({ method: "GET" })
+// Public — what this purchase may download. The only gate is a verified,
+// non-refunded transaction; `transactionId` is only ever revealed post-purchase.
+//
+// It hands back names, not links. Each file is fetched through
+// /d/<purchase>/<file> on this site, which checks the purchase again and
+// redirects to storage asking for an attachment — so the buyer sees our own
+// address and gets a file saved rather than a tab opened.
+export const listPurchasedFiles = createServerFn({ method: "GET" })
   .validator((data) => z.object({ transactionId: z.string().uuid() }).parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -51,39 +21,20 @@ export const getDownloadUrlForTransaction = createServerFn({ method: "GET" })
     if (!entitlement) throw new Error("This purchase could not be verified.");
     const { transaction, files } = entitlement;
 
-    // Record the access — evidence if disputed, and the bytes/seller for
-    // monthly bandwidth. We count the whole product's size (an honest upper
-    // bound, since the signed URL is pulled directly and we can't see which
-    // files the buyer actually fetched). Best-effort; never blocks the download.
-    // A free product earns the seller nothing, so there's a monthly ceiling on
-    // how much of it we'll serve. Checked before the links are signed, and only
-    // ever for free claims — a paid buyer is never turned away.
-    const isFree = transaction.amount_paid_cents === 0;
-    if (isFree) await assertFreeDownloadAllowed(supabaseAdmin, transaction.seller_id);
-
-    const totalBytes = (files ?? []).reduce((sum, f) => sum + (f.size_bytes ?? 0), 0);
-    await logDownloadAccess({ transactionId: transaction.id, sellerId: transaction.seller_id, bytes: totalBytes, isFree });
-
-    if (!files || files.length === 0) {
-      return { files: [] as Array<{ id: string; fileName: string | null; url: string; readable: boolean }> };
+    // Tells a buyer the free product is paused before they click, rather than
+    // after. The download route checks it again, which is what actually holds.
+    if (transaction.amount_paid_cents === 0) {
+      await assertFreeDownloadAllowed(supabaseAdmin, transaction.seller_id);
     }
 
-    const signed = await Promise.all(
-      files.map(async (file) => {
-        const { data: signedUrl } = await supabaseAdmin.storage
-          .from("digital-assets")
-          .createSignedUrl(file.storage_file_path, SIGNED_URL_TTL_SECONDS);
-        return {
-          id: file.id,
-          fileName: file.file_name,
-          url: signedUrl?.signedUrl ?? "",
-          // A text lesson file gets a "Read online" option beside Download.
-          readable: isReadableOnline({ fileName: file.file_name, sizeBytes: file.size_bytes }),
-        };
-      }),
-    );
-
-    return { files: signed.filter((f) => f.url) };
+    return {
+      files: (files ?? []).map((file) => ({
+        id: file.id,
+        fileName: file.file_name,
+        // A text lesson file gets a "Read online" option beside Download.
+        readable: isReadableOnline({ fileName: file.file_name, sizeBytes: file.size_bytes }),
+      })),
+    };
   });
 
 // Public — the text of one lesson file, for the online reader. Same gate as

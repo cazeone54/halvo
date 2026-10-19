@@ -9,7 +9,7 @@ import { rememberPurchase } from "@/lib/local-purchases";
 import { SaveAccessLink } from "@/components/save-access-link";
 import { useState, useEffect } from "react";
 import { BookOpen, CircleCheck, Download, Mail } from "lucide-react";
-import { getDownloadUrlForTransaction } from "@/lib/downloads.functions";
+import { listPurchasedFiles } from "@/lib/downloads.functions";
 import { getLicenseKeyForTransaction } from "@/lib/license.functions";
 import { submitReview } from "@/lib/reviews.functions";
 import { getBillingForTransaction } from "@/lib/recurring.functions";
@@ -31,7 +31,7 @@ export const Route = createFileRoute("/success")({
 function SuccessPage() {
   const { id } = Route.useSearch();
   const transactionFn = useServerFn(getVerifiedTransaction);
-  const downloadFn = useServerFn(getDownloadUrlForTransaction);
+  const downloadFn = useServerFn(listPurchasedFiles);
   const licenseFn = useServerFn(getLicenseKeyForTransaction);
   const billingFn = useServerFn(getBillingForTransaction);
 
@@ -160,14 +160,14 @@ function SuccessPage() {
                       </Link>
                     </Button>
                     <Button asChild size="lg" variant="outline">
-                      <a href={file.url} download aria-label={`Download ${file.fileName ?? "file"}`}>
+                      <a href={`/d/${id}/${file.id}`} download aria-label={`Download ${file.fileName ?? "file"}`}>
                         <Download className="h-4 w-4" /> Download
                       </a>
                     </Button>
                   </div>
                 ) : (
                   <Button key={file.id} asChild size="lg">
-                    <a href={file.url} download>
+                    <a href={`/d/${id}/${file.id}`} download>
                       <Download className="h-4 w-4" /> Download {file.fileName ?? "file"}
                     </a>
                   </Button>
