@@ -6,14 +6,17 @@ import { CONTACT_MESSAGE_MAX, CONTACT_MESSAGE_MIN } from "@/lib/contact-message"
 import { sendContactEmail } from "@/lib/email.server";
 
 // Whoever is sending this, as well as we can tell behind Railway's proxy. Only
-// ever used as a rate-limit key.
-function senderKey(): string {
+// ever used as a rate-limit key. Null when the proxy tells us nothing: one
+// shared "unknown" bucket would mean the eleventh person in an hour is turned
+// away because of the ten before them, which is worse than not limiting by
+// sender at all — the per-address limit still applies.
+function senderKey(): string | null {
   try {
     const { headers } = getRequest();
     const forwarded = headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-    return forwarded || headers.get("x-real-ip") || "unknown";
+    return forwarded || headers.get("x-real-ip") || null;
   } catch {
-    return "unknown";
+    return null;
   }
 }
 
@@ -42,7 +45,8 @@ export const sendContactMessage = createServerFn({ method: "POST" })
     // Per address and per sender: one stops a single person hammering send,
     // the other stops one machine working through a list of addresses.
     if (isRateLimited(`contact:${data.email}`, 3, 15 * 60 * 1000)) return { ok: false, reason: "rate" };
-    if (isRateLimited(`contact-ip:${senderKey()}`, 10, 60 * 60 * 1000)) return { ok: false, reason: "rate" };
+    const sender = senderKey();
+    if (sender && isRateLimited(`contact-ip:${sender}`, 10, 60 * 60 * 1000)) return { ok: false, reason: "rate" };
 
     const sent = await sendContactEmail({ fromEmail: data.email, message: data.message });
     return sent ? { ok: true } : { ok: false, reason: "send" };
