@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router";
 import { BRAND_NAME, BRAND_EMAIL } from "@/lib/site";
 import { LogoMark } from "@/components/logo";
 import { AUDIENCES } from "@/content/audiences";
-import { COMPARISONS } from "@/content/comparisons";
 
 export function PublicFooter() {
   return (
@@ -15,17 +14,6 @@ export function PublicFooter() {
           {AUDIENCES.map((audience) => (
             <Link key={audience.slug} to="/for/$slug" params={{ slug: audience.slug }} className="capitalize">
               {audience.noun}
-            </Link>
-          ))}
-        </nav>
-        {/* Same reason: these answer the searches a seller makes when deciding
-            where to sell, so every page links to them. */}
-        <p className="mt-5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Compare</p>
-        <nav className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
-          <Link to="/tools/fee-calculator">Fee calculator</Link>
-          {COMPARISONS.map((c) => (
-            <Link key={c.slug} to="/compare/$slug" params={{ slug: c.slug }}>
-              {BRAND_NAME} vs {c.competitor}
             </Link>
           ))}
         </nav>

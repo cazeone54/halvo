@@ -31,13 +31,11 @@ import { Route as AuthConfirmRouteImport } from './routes/auth.confirm'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
-import { Route as CompareSlugRouteImport } from './routes/compare.$slug'
 import { Route as FTokenRouteImport } from './routes/f.$token'
 import { Route as ForSlugRouteImport } from './routes/for.$slug'
 import { Route as GuidesIndexRouteImport } from './routes/guides.index'
 import { Route as GuidesSlugRouteImport } from './routes/guides.$slug'
 import { Route as PSlugRouteImport } from './routes/p.$slug'
-import { Route as ToolsFeeCalculatorRouteImport } from './routes/tools.fee-calculator'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
 import { Route as AuthenticatedDashboardAnalyticsRouteImport } from './routes/_authenticated/dashboard/analytics'
@@ -167,11 +165,6 @@ const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
   path: '/checkout/return',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CompareSlugRoute = CompareSlugRouteImport.update({
-  id: '/compare/$slug',
-  path: '/compare/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const FTokenRoute = FTokenRouteImport.update({
   id: '/f/$token',
   path: '/f/$token',
@@ -195,11 +188,6 @@ const GuidesSlugRoute = GuidesSlugRouteImport.update({
 const PSlugRoute = PSlugRouteImport.update({
   id: '/p/$slug',
   path: '/p/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ToolsFeeCalculatorRoute = ToolsFeeCalculatorRouteImport.update({
-  id: '/tools/fee-calculator',
-  path: '/tools/fee-calculator',
   getParentRoute: () => rootRouteImport,
 } as any)
 const UHandleRoute = UHandleRouteImport.update({
@@ -326,12 +314,10 @@ export interface FileRoutesByFullPath {
   '/auth/confirm': typeof AuthConfirmRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
-  '/compare/$slug': typeof CompareSlugRoute
   '/f/$token': typeof FTokenRoute
   '/for/$slug': typeof ForSlugRoute
   '/guides/$slug': typeof GuidesSlugRoute
   '/p/$slug': typeof PSlugRoute
-  '/tools/fee-calculator': typeof ToolsFeeCalculatorRoute
   '/u/$handle': typeof UHandleRoute
   '/blog/': typeof BlogIndexRoute
   '/guides/': typeof GuidesIndexRoute
@@ -373,12 +359,10 @@ export interface FileRoutesByTo {
   '/auth/confirm': typeof AuthConfirmRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
-  '/compare/$slug': typeof CompareSlugRoute
   '/f/$token': typeof FTokenRoute
   '/for/$slug': typeof ForSlugRoute
   '/guides/$slug': typeof GuidesSlugRoute
   '/p/$slug': typeof PSlugRoute
-  '/tools/fee-calculator': typeof ToolsFeeCalculatorRoute
   '/u/$handle': typeof UHandleRoute
   '/blog': typeof BlogIndexRoute
   '/guides': typeof GuidesIndexRoute
@@ -423,12 +407,10 @@ export interface FileRoutesById {
   '/auth/confirm': typeof AuthConfirmRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/checkout/return': typeof CheckoutReturnRoute
-  '/compare/$slug': typeof CompareSlugRoute
   '/f/$token': typeof FTokenRoute
   '/for/$slug': typeof ForSlugRoute
   '/guides/$slug': typeof GuidesSlugRoute
   '/p/$slug': typeof PSlugRoute
-  '/tools/fee-calculator': typeof ToolsFeeCalculatorRoute
   '/u/$handle': typeof UHandleRoute
   '/blog/': typeof BlogIndexRoute
   '/guides/': typeof GuidesIndexRoute
@@ -473,12 +455,10 @@ export interface FileRouteTypes {
     | '/auth/confirm'
     | '/blog/$slug'
     | '/checkout/return'
-    | '/compare/$slug'
     | '/f/$token'
     | '/for/$slug'
     | '/guides/$slug'
     | '/p/$slug'
-    | '/tools/fee-calculator'
     | '/u/$handle'
     | '/blog/'
     | '/guides/'
@@ -520,12 +500,10 @@ export interface FileRouteTypes {
     | '/auth/confirm'
     | '/blog/$slug'
     | '/checkout/return'
-    | '/compare/$slug'
     | '/f/$token'
     | '/for/$slug'
     | '/guides/$slug'
     | '/p/$slug'
-    | '/tools/fee-calculator'
     | '/u/$handle'
     | '/blog'
     | '/guides'
@@ -569,12 +547,10 @@ export interface FileRouteTypes {
     | '/auth/confirm'
     | '/blog/$slug'
     | '/checkout/return'
-    | '/compare/$slug'
     | '/f/$token'
     | '/for/$slug'
     | '/guides/$slug'
     | '/p/$slug'
-    | '/tools/fee-calculator'
     | '/u/$handle'
     | '/blog/'
     | '/guides/'
@@ -618,12 +594,10 @@ export interface RootRouteChildren {
   AuthConfirmRoute: typeof AuthConfirmRoute
   BlogSlugRoute: typeof BlogSlugRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
-  CompareSlugRoute: typeof CompareSlugRoute
   FTokenRoute: typeof FTokenRoute
   ForSlugRoute: typeof ForSlugRoute
   GuidesSlugRoute: typeof GuidesSlugRoute
   PSlugRoute: typeof PSlugRoute
-  ToolsFeeCalculatorRoute: typeof ToolsFeeCalculatorRoute
   UHandleRoute: typeof UHandleRoute
   BlogIndexRoute: typeof BlogIndexRoute
   GuidesIndexRoute: typeof GuidesIndexRoute
@@ -793,13 +767,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckoutReturnRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/compare/$slug': {
-      id: '/compare/$slug'
-      path: '/compare/$slug'
-      fullPath: '/compare/$slug'
-      preLoaderRoute: typeof CompareSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/f/$token': {
       id: '/f/$token'
       path: '/f/$token'
@@ -833,13 +800,6 @@ declare module '@tanstack/react-router' {
       path: '/p/$slug'
       fullPath: '/p/$slug'
       preLoaderRoute: typeof PSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/tools/fee-calculator': {
-      id: '/tools/fee-calculator'
-      path: '/tools/fee-calculator'
-      fullPath: '/tools/fee-calculator'
-      preLoaderRoute: typeof ToolsFeeCalculatorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/u/$handle': {
@@ -1036,12 +996,10 @@ const rootRouteChildren: RootRouteChildren = {
   AuthConfirmRoute: AuthConfirmRoute,
   BlogSlugRoute: BlogSlugRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
-  CompareSlugRoute: CompareSlugRoute,
   FTokenRoute: FTokenRoute,
   ForSlugRoute: ForSlugRoute,
   GuidesSlugRoute: GuidesSlugRoute,
   PSlugRoute: PSlugRoute,
-  ToolsFeeCalculatorRoute: ToolsFeeCalculatorRoute,
   UHandleRoute: UHandleRoute,
   BlogIndexRoute: BlogIndexRoute,
   GuidesIndexRoute: GuidesIndexRoute,
