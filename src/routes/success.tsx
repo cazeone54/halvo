@@ -1,9 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { z } from "zod";
-import { zodValidator } from "@tanstack/zod-adapter";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getVerifiedTransaction } from "@/lib/checkout.functions";
+import { readPurchaseId } from "@/lib/purchase-link";
 import { CURRENCY_META } from "@/lib/currency";
 import { rememberPurchase } from "@/lib/local-purchases";
 import { SaveAccessLink } from "@/components/save-access-link";
@@ -22,9 +21,11 @@ import { Logo } from "@/components/logo";
 import { KeyRound, Copy, Check, ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/success")({
-  // .optional().catch(undefined) so hitting /success with a missing or
-  // malformed id degrades to a friendly message instead of a hard 500.
-  validateSearch: zodValidator(z.object({ id: z.string().uuid().optional().catch(undefined) })),
+  // A missing or malformed id degrades to a friendly message instead of a
+  // hard 500, and a link saved with the older parameter name still resolves.
+  // See lib/purchase-link: the builder and this reader live together so they
+  // cannot drift apart again.
+  validateSearch: (search: Record<string, unknown>): { id?: string } => ({ id: readPurchaseId(search) }),
   component: SuccessPage,
 });
 

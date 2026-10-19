@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BASE_URL } from "@/lib/site";
+import { purchaseLink } from "@/lib/purchase-link";
 
 // The success URL is a durable capability link: it carries an unguessable
 // transaction id, needs no account, and the server re-checks status and refund
@@ -10,7 +11,7 @@ import { BASE_URL } from "@/lib/site";
 // reason to think the address bar was worth keeping.
 export function SaveAccessLink({ transactionId }: { transactionId: string }) {
   const [copied, setCopied] = useState(false);
-  const url = `${BASE_URL}/success?transactionId=${transactionId}`;
+  const url = purchaseLink(BASE_URL, transactionId);
 
   return (
     <div className="rounded-lg border bg-muted/40 p-4">
