@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Zap, Wallet, Percent, Sparkles, ArrowRight, ShieldCheck, Users2, Unlock } from "lucide-react";
+import { Zap, Wallet, Percent, Code2, ArrowRight, ShieldCheck, Users2, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PublicNav } from "@/components/public-nav";
@@ -66,9 +66,9 @@ const FEATURES = [
     body: "Run percent-off or flat discount codes, and let affiliates earn a commission on every sale they refer.",
   },
   {
-    icon: Sparkles,
-    title: "AI-assisted listings",
-    body: "Turn a rough pitch into a polished product name and description in seconds.",
+    icon: Code2,
+    title: "Buy button for your own site",
+    body: "Drop one snippet on your Webflow, Framer, WordPress or Ghost site and buyers check out in a popup without leaving the page.",
   },
 ];
 
