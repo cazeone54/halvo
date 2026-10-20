@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatCents } from "@/lib/format";
-import { CURRENCY_SYMBOL } from "@/lib/site";
+import { CURRENCY_SYMBOL, RECURRING_BILLING_ENABLED } from "@/lib/site";
 
 type Model = "one_time" | "plan" | "membership";
 const money = (cents: number) => formatCents(cents);
@@ -49,7 +49,7 @@ export function ProductBillingEditor({
   const problem = validateBilling({ ...input, priceCents, payWhatYouWant });
 
   const saveMut = useMutation({
-    mutationFn: () => saveFn({ data: { productId, ...input } }),
+    mutationFn: (payload: typeof input) => saveFn({ data: { productId, ...payload } }),
     onSuccess: () => {
       toast.success("Pricing model saved.");
       qc.invalidateQueries({ queryKey: ["my-products"] });
@@ -60,9 +60,43 @@ export function ProductBillingEditor({
   // One payment is the only model offered, so for an ordinary product this
   // whole block is a question with a single answer — it just sits in the edit
   // form taking up room. It still appears for a product already billing
-  // monthly, because hiding it there would leave its seller no way to turn the
-  // recurring charges off.
+  // repeatedly, because hiding it there would leave its seller no way to turn
+  // the recurring charges off.
   if (!billsRepeatedly({ billingType, installmentCount })) return null;
+
+  // With recurring billing switched off, there is exactly one move available,
+  // so this is a button rather than a chooser dressed up as a choice.
+  if (!RECURRING_BILLING_ENABLED) {
+    const current =
+      billingType === "membership"
+        ? `every ${billingInterval === "year" ? "year" : "month"}`
+        : `in ${installmentCount} monthly payments`;
+    return (
+      <div className="flex flex-col gap-3 rounded-lg border border-dashed p-3">
+        <div>
+          <p className="text-sm font-medium">Pricing model</p>
+          <p className="text-xs text-muted-foreground">
+            This product charges buyers {current}. Products are a single payment now, so this is the last one left
+            on the old model.
+          </p>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Switching changes what <em>new</em> buyers pay. Anyone already subscribed stays subscribed and keeps being
+          charged — end those from the Subscribers list, so nobody loses access they've paid for without warning.
+        </p>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="self-start"
+          disabled={saveMut.isPending}
+          onClick={() => saveMut.mutate({ billingType: "one_time", billingInterval: null, installmentCount: null })}
+        >
+          {saveMut.isPending ? "Switching…" : `Switch to one payment of ${money(priceCents)}`}
+        </Button>
+      </div>
+    );
+  }
 
   const options: Array<{ value: Model; title: string; detail: string }> = [
     { value: "one_time", title: "One payment", detail: `Buyers pay ${money(priceCents)} once.` },
@@ -86,9 +120,8 @@ export function ProductBillingEditor({
       <div>
         <p className="text-sm font-medium">Pricing model</p>
         <p className="text-xs text-muted-foreground">
-          This product bills repeatedly. New products are a single payment — switch to One payment to stop the
-          recurring charges. Recurring payments retry automatically; if one fails, buyers keep access for{" "}
-          {GRACE_DAYS} days while they update their card.
+          Recurring payments retry automatically. If one fails, buyers keep access for {GRACE_DAYS} days while they
+          update their card.
         </p>
       </div>
 
@@ -164,7 +197,7 @@ export function ProductBillingEditor({
         variant="outline"
         className="self-start"
         disabled={!!problem || saveMut.isPending}
-        onClick={() => saveMut.mutate()}
+        onClick={() => saveMut.mutate(input)}
       >
         {saveMut.isPending ? "Saving…" : "Save pricing model"}
       </Button>

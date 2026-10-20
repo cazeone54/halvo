@@ -37,7 +37,7 @@ export const AUDIENCES: Audience[] = [
       "Workbooks, worksheets and templates",
       "Self-paced mini-courses and video programs",
       "Training, meal and habit plans",
-      "Group programs paid monthly or in installments",
+      "Resource packs and session notes for group programs",
     ],
     painPoints: [
       "Sending your bank details to strangers in DMs",

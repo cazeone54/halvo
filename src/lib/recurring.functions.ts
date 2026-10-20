@@ -28,7 +28,7 @@ import {
   recordPaidInvoice,
   sellerChargeAccount,
 } from "@/lib/recurring.server";
-import { BASE_URL } from "@/lib/site";
+import { BASE_URL, RECURRING_BILLING_ENABLED } from "@/lib/site";
 import { asCurrency, DEFAULT_CURRENCY, pricedIn } from "@/lib/currency";
 import type Stripe from "stripe";
 
@@ -233,6 +233,13 @@ export const setProductBilling = createServerFn({ method: "POST" })
       .eq("owner_id", context.userId)
       .maybeSingle();
     if (!product) throw new Error("Product not found");
+
+    // The chooser is gone from the UI, but a server function is reachable
+    // directly — the same reason the AI copywriter checks its own flag. Moving
+    // a product back to a single payment stays allowed: that's the way off.
+    if (!RECURRING_BILLING_ENABLED && (data.billingType === "membership" || data.installmentCount != null)) {
+      throw new Error("Products on Halvo are a single payment. Memberships and payment plans aren't available.");
+    }
 
     const problem = validateBilling({
       billingType: data.billingType,

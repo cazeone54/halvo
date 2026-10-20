@@ -39,3 +39,13 @@ export const CURRENCY_SYMBOL = "€";
 // to true to bring back the dashboard button, the server function and its
 // mentions on /features and the pricing card together.
 export const AI_COPYWRITER_ENABLED = false;
+
+// Memberships and payment plans. Off: no product can be put on recurring
+// billing, and the pricing-model chooser appears only for a product already on
+// one — so its seller can still switch the charges off.
+//
+// Deliberately NOT a kill switch for the machinery. Subscriptions that already
+// exist keep billing, keep their access and keep their manage-billing page;
+// webhooks, dunning and cancellation all still run. Turning a feature off must
+// never strand somebody who has already paid for it.
+export const RECURRING_BILLING_ENABLED = false;
