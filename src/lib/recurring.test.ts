@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   applicationFeePercent,
+  billsRepeatedly,
   installmentAmountCents,
   installmentCancelAt,
   signManageToken,
@@ -127,6 +128,24 @@ describe("validateBilling", () => {
     expect(validateBilling({ ...ok, installmentCount: 13 })).toMatch(/2 to 12/);
     expect(validateBilling({ ...ok, installmentCount: 12, priceCents: 300 })).toMatch(/too small/);
     expect(validateBilling({ ...ok, installmentCount: 3, payWhatYouWant: true })).toMatch(/Pay-what/);
+  });
+});
+
+// Decides whether the pricing-model chooser appears in the product editor at
+// all. A product that bills once never sees it; one that bills repeatedly must,
+// or there is no way left to turn the charges off.
+describe("billsRepeatedly", () => {
+  it("is false for an ordinary one-off product", () => {
+    expect(billsRepeatedly({ billingType: "one_time", installmentCount: null })).toBe(false);
+    expect(billsRepeatedly({ billingType: null, installmentCount: null })).toBe(false);
+    expect(billsRepeatedly({ billingType: undefined, installmentCount: undefined })).toBe(false);
+    // 0 installments is not a payment plan — it's the absence of one.
+    expect(billsRepeatedly({ billingType: "one_time", installmentCount: 0 })).toBe(false);
+  });
+
+  it("is true for a membership or a payment plan", () => {
+    expect(billsRepeatedly({ billingType: "membership", installmentCount: null })).toBe(true);
+    expect(billsRepeatedly({ billingType: "one_time", installmentCount: 3 })).toBe(true);
   });
 });
 

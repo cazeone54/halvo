@@ -85,6 +85,17 @@ export function intervalLabel(interval: string): string {
   return interval === "year" ? "year" : "month";
 }
 
+// Whether a product charges more than once — a membership, or a price split
+// into installments. New products are all a single payment, so this is what
+// decides whether the seller is shown a pricing-model chooser at all: only a
+// product that is already recurring needs one, to switch the charges off.
+export function billsRepeatedly(product: {
+  billingType: string | null | undefined;
+  installmentCount: number | null | undefined;
+}): boolean {
+  return product.billingType === "membership" || (product.installmentCount ?? 0) > 0;
+}
+
 export function validateBilling(input: {
   billingType: "one_time" | "membership";
   billingInterval: BillingInterval | null;

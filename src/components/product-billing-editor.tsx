@@ -3,7 +3,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { setProductBilling } from "@/lib/recurring.functions";
-import { GRACE_DAYS, installmentAmountCents, validateBilling, type BillingInterval } from "@/lib/recurring";
+import {
+  billsRepeatedly,
+  GRACE_DAYS,
+  installmentAmountCents,
+  validateBilling,
+  type BillingInterval,
+} from "@/lib/recurring";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatCents } from "@/lib/format";
@@ -51,6 +57,13 @@ export function ProductBillingEditor({
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // One payment is the only model offered, so for an ordinary product this
+  // whole block is a question with a single answer — it just sits in the edit
+  // form taking up room. It still appears for a product already billing
+  // monthly, because hiding it there would leave its seller no way to turn the
+  // recurring charges off.
+  if (!billsRepeatedly({ billingType, installmentCount })) return null;
+
   const options: Array<{ value: Model; title: string; detail: string }> = [
     { value: "one_time", title: "One payment", detail: `Buyers pay ${money(priceCents)} once.` },
     {
@@ -73,8 +86,9 @@ export function ProductBillingEditor({
       <div>
         <p className="text-sm font-medium">Pricing model</p>
         <p className="text-xs text-muted-foreground">
-          Recurring payments retry automatically. If one fails, buyers keep access for {GRACE_DAYS} days while they
-          update their card.
+          This product bills repeatedly. New products are a single payment — switch to One payment to stop the
+          recurring charges. Recurring payments retry automatically; if one fails, buyers keep access for{" "}
+          {GRACE_DAYS} days while they update their card.
         </p>
       </div>
 
