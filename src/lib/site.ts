@@ -13,6 +13,13 @@ export const BASE_URL = (import.meta.env.VITE_SITE_URL ?? "https://halvo.io").re
 export const BRAND_DOMAIN = BASE_URL.replace(/^https?:\/\//, "");
 export const BRAND_EMAIL = `hello@${BRAND_DOMAIN}`;
 
+// Where the contact form lands, and the address shown beside it. Separate from
+// BRAND_EMAIL so the inbox people write questions to can move without touching
+// the address on the terms and privacy pages. CONTACT_EMAIL overrides it at
+// run time. Whatever this says must exist in Cloudflare Email Routing, or the
+// mail bounces and nobody finds out.
+export const SUPPORT_EMAIL = `support@${BRAND_DOMAIN}`;
+
 // ─── Currency ───────────────────────────────────────────────────────────────
 // EUR because every connected account settles in EUR (all BG). Charging in a
 // non-settlement currency means a conversion on every sale — and under direct

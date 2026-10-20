@@ -2,7 +2,7 @@ import type { Currency } from "@/lib/currency";
 import { buildPurchaseEmail } from "@/lib/purchase-email";
 import { buildSaleNotificationEmail } from "@/lib/sale-email";
 import { buildContactEmail } from "@/lib/contact-message";
-import { BASE_URL, BRAND_EMAIL, BRAND_NAME } from "@/lib/site";
+import { BASE_URL, BRAND_NAME, SUPPORT_EMAIL } from "@/lib/site";
 
 // Direct fetch to Resend's REST API — no SDK dependency, same pattern as
 // stripe.server.ts / anthropic.server.ts.
@@ -114,7 +114,7 @@ async function sendEmail(params: {
 // wrote in — so answering them is just pressing Reply, and their address is
 // never used as the From (which would fail SPF and land us in spam).
 export async function sendContactEmail(params: { fromEmail: string; message: string }): Promise<boolean> {
-  const to = process.env.CONTACT_EMAIL?.trim() || BRAND_EMAIL;
+  const to = process.env.CONTACT_EMAIL?.trim() || SUPPORT_EMAIL;
   const { subject, html, text } = buildContactEmail(params);
   return sendEmail({ to, subject, html, text, replyTo: params.fromEmail });
 }

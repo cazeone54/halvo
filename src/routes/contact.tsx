@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BRAND_NAME, BRAND_EMAIL, BASE_URL } from "@/lib/site";
+import { BRAND_NAME, SUPPORT_EMAIL, BASE_URL } from "@/lib/site";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
@@ -52,10 +52,10 @@ function ContactPage() {
       } else {
         // Honest failure: the alternative is thanking someone for a message
         // that never arrived.
-        setError(`We couldn't send that just now. Please email ${BRAND_EMAIL} directly — it reaches the same place.`);
+        setError(`We couldn't send that just now. Please email ${SUPPORT_EMAIL} directly — it reaches the same place.`);
       }
     } catch {
-      setError(`We couldn't send that just now. Please email ${BRAND_EMAIL} directly — it reaches the same place.`);
+      setError(`We couldn't send that just now. Please email ${SUPPORT_EMAIL} directly — it reaches the same place.`);
     }
     setSending(false);
   };
@@ -164,8 +164,8 @@ function ContactPage() {
                 </Button>
                 <p className="text-xs text-muted-foreground">
                   We use your email only to reply. Prefer your own mail app?{" "}
-                  <a href={`mailto:${BRAND_EMAIL}`} className="underline underline-offset-2 hover:text-foreground">
-                    {BRAND_EMAIL}
+                  <a href={`mailto:${SUPPORT_EMAIL}`} className="underline underline-offset-2 hover:text-foreground">
+                    {SUPPORT_EMAIL}
                   </a>
                 </p>
               </form>
