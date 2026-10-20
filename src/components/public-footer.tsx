@@ -21,9 +21,7 @@ export function PublicFooter() {
           <Link to="/access">Recover a purchase</Link>
           {/* A form, not a mailto: a mailto does nothing at all on a phone
               with no mail app set up, and silently loses the question. */}
-          <Link to="/contact" className="font-medium text-foreground hover:text-primary">
-            Contact
-          </Link>
+          <Link to="/contact">Contact</Link>
           <Link to="/terms">Terms</Link>
           <Link to="/privacy">Privacy</Link>
           <Link to="/refund-policy">Refund policy</Link>
