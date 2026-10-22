@@ -43,6 +43,12 @@ async function report(): Promise<Response> {
     supabaseServiceKey: kindOf(process.env.SUPABASE_SERVICE_ROLE_KEY),
     stripeSecretKey: kindOf(process.env.STRIPE_SECRET_KEY),
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ? "set" : "missing",
+    // Sales on a seller's own Stripe account arrive through the Connect
+    // endpoint, which signs with its own secret. Without this one, every such
+    // sale fails verification: the buyer pays and never gets the file.
+    stripeConnectWebhookSecret: process.env.STRIPE_CONNECT_WEBHOOK_SECRET
+      ? "set"
+      : "MISSING — payments on seller accounts would not be fulfilled",
     resendKey: kindOf(process.env.RESEND_API_KEY),
     emailFrom: process.env.EMAIL_FROM_ADDRESS ?? "missing (would use Resend's sandbox sender)",
   };

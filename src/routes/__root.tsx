@@ -80,7 +80,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 // A visitor should never see a raw exception string — it's unpolished and can
 // leak internals (a Supabase/Stripe error message). Log the detail for us, show
 // the visitor a calm message plus real ways to recover.
-function RootError({ error, reset }: { error: Error; reset: () => void }) {
+function RootError({ error, reset }: { error: unknown; reset: () => void }) {
   useEffect(() => {
     console.error("Route error:", error);
   }, [error]);
