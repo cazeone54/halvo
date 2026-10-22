@@ -64,12 +64,30 @@ async function report(): Promise<Response> {
     checks.database = `FAILING: ${error instanceof Error ? error.message : "unknown"}`;
   }
 
-  // Same for Stripe: retrieving the platform balance touches no money and no
-  // connected account, and fails loudly on a wrong or expired key.
+  // Same for Stripe: retrieving the account the key belongs to touches no money
+  // and no connected account, fails loudly on a wrong or expired key, and
+  // answers the question that matters here — WHICH Stripe account is this?
+  //
+  // Halvo has two: the halvo.io platform and a seller account that sells on it.
+  // Their keys are indistinguishable by eye, and putting the seller's key here
+  // makes every seller look disconnected. So say plainly whose key is loaded.
   try {
     const { getStripeClient } = await import("@/lib/stripe.server");
-    await getStripeClient().balance.retrieve();
+    const stripe = getStripeClient();
+    const account = await stripe.accounts.retrieve();
+    const id = account.id ?? "";
+    const name = account.business_profile?.name ?? account.settings?.dashboard?.display_name ?? "(unnamed)";
     checks.stripe = "ok";
+    checks.stripeAccount = `${id.slice(0, 9)}…${id.slice(-4)} — ${name}`;
+
+    const expected = process.env.STRIPE_PLATFORM_ACCOUNT_ID?.trim();
+    if (!expected) {
+      checks.stripeAccountCheck = "STRIPE_PLATFORM_ACCOUNT_ID not set — a key from the wrong Stripe account would go unnoticed";
+    } else if (expected !== id) {
+      checks.stripeAccountCheck = "WRONG ACCOUNT — this key is not the platform these sellers are connected to";
+    } else {
+      checks.stripeAccountCheck = "matches STRIPE_PLATFORM_ACCOUNT_ID";
+    }
   } catch (error) {
     checks.stripe = `FAILING: ${error instanceof Error ? error.message : "unknown"}`;
   }

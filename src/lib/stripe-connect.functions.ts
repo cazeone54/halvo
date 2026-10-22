@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getStripeErrorMessage } from "@/lib/stripe.server";
 import { createSellerAccount } from "@/lib/stripe-seller-account.server";
 import { isSellerCountry } from "@/lib/seller-countries";
-import { isGoneForGood } from "@/lib/stripe-account-gone";
+import { safeToForget } from "@/lib/stripe-platform.server";
 import { BASE_URL } from "@/lib/site";
 
 export const startStripeConnectOnboarding = createServerFn({ method: "POST" })
@@ -35,7 +35,7 @@ export const startStripeConnectOnboarding = createServerFn({ method: "POST" })
       try {
         await stripe.accounts.retrieve(accountId);
       } catch (error) {
-        if (!isGoneForGood(error)) throw new Error(getStripeErrorMessage(error));
+        if (!(await safeToForget(error, stripe))) throw new Error(getStripeErrorMessage(error));
         accountId = null;
       }
     }
@@ -140,7 +140,7 @@ export const getStripeConnectStatus = createServerFn({ method: "GET" })
       // accounts, and a Stripe outage or timeout says nothing about the
       // account. Clearing on those once disconnected a live seller and hid
       // their products. Otherwise the stored connection is kept as it is.
-      if (!isGoneForGood(error)) {
+      if (!(await safeToForget(error, stripe))) {
         return {
           connected: true,
           chargesEnabled: false,
