@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { isPatchedNode } from "@/lib/node-runtime";
 
 // Is this deployment actually working, and is it running the configuration you
 // think it is? Written during the Railway credential rotation of 2026-10-22,
@@ -39,6 +40,12 @@ function looksPasted(value: string | undefined): string | undefined {
 async function report(): Promise<Response> {
   const checks: Record<string, unknown> = {
     uptimeSeconds: Math.round(process.uptime()),
+    // An outdated Node.js lets an unauthenticated request run code on this
+    // server, which exposes every key below. The exact version is only shown
+    // once it's safe: advertising a vulnerable one helps nobody but an attacker.
+    nodeRuntime: isPatchedNode(process.version)
+      ? `patched (${process.version})`
+      : "OUTDATED — this Node.js has a known remote-code-execution hole; redeploy on a patched release",
     supabaseUrl: process.env.SUPABASE_URL?.replace(/^https?:\/\//, "") ?? "missing",
     supabaseServiceKey: kindOf(process.env.SUPABASE_SERVICE_ROLE_KEY),
     stripeSecretKey: kindOf(process.env.STRIPE_SECRET_KEY),

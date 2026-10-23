@@ -12,9 +12,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The same file Railway builds from, so CI tests on exactly the Node.js
+      # production runs - including its security patch level.
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version-file: .node-version
           cache: npm
 
       - run: npm ci
