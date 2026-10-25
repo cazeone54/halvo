@@ -34,8 +34,8 @@ function PrivacyPage() {
 
       <h2>How we use it</h2>
       <p>
-        To operate {BRAND_NAME}: authenticating you, processing payments through Stripe, delivering downloads and
-        license keys, showing you your own sales and analytics, and emailing purchase confirmations and receipts. We
+        To operate {BRAND_NAME}: authenticating you, processing payments through Stripe, delivering downloads,
+        showing you your own sales and analytics, and emailing purchase confirmations and receipts. We
         don't sell your personal data.
       </p>
 

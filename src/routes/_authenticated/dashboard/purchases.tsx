@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { ShoppingBag, Download, KeyRound, ExternalLink } from "lucide-react";
+import { ShoppingBag, Download, ExternalLink } from "lucide-react";
 import { listMyPurchases } from "@/lib/purchases.functions";
 import { formatCents } from "@/lib/format";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,7 +21,7 @@ function PurchasesPage() {
       <div>
         <h1 className="text-xl font-semibold">Your purchases</h1>
         <p className="mt-0.5 text-sm text-muted-foreground">
-          Everything you've bought — re-download your files or grab a license key any time.
+          Everything you've bought — re-download your files any time.
         </p>
       </div>
 
@@ -48,11 +48,6 @@ function PurchasesPage() {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="truncate font-medium">{p.productName}</span>
-                    {p.hasLicenseKey ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                        <KeyRound className="h-3 w-3" /> License key
-                      </span>
-                    ) : null}
                     {p.refunded ? (
                       <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                         Refunded
@@ -88,7 +83,7 @@ function PurchasesPage() {
                 </div>
                 <Button asChild size="sm" className="shrink-0 self-start sm:self-auto">
                   <a href={`/success?id=${p.transactionId}`}>
-                    {p.hasLicenseKey ? <KeyRound className="h-4 w-4" /> : <Download className="h-4 w-4" />}
+                    <Download className="h-4 w-4" />
                     Open
                     <ExternalLink className="ml-0.5 h-3 w-3 opacity-70" />
                   </a>

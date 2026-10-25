@@ -94,7 +94,7 @@ export const AUDIENCES: Audience[] = [
     intro: `Ship the starter kit you keep rebuilding. ${BRAND_NAME} takes the payment and delivers the archive instantly, with payouts to your own Stripe.`,
     sells: ["Boilerplates and starter kits", "Component libraries and plugins", "Scripts, configs and CI templates", "Technical guides and courses"],
     painPoints: [
-      "Rolling your own checkout and licence delivery",
+      "Rolling your own checkout and file delivery",
       "Payment platforms that gate payouts behind reviews",
       "Spending a weekend on billing instead of the product",
     ],

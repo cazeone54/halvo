@@ -97,7 +97,7 @@ function TermsPage() {
 
       <h2>7. Buyers</h2>
       <p>
-        When you buy, you get access to the digital product and, where enabled, a licence key. Refunds are governed by
+        When you buy, you get access to the digital product. Refunds are governed by
         the seller's stated policy plus any rights you have under law. Chargebacks and disputes are handled through
         Stripe; abusive chargebacks may result in loss of access.
       </p>

@@ -106,7 +106,6 @@ export const createProduct = createServerFn({ method: "POST" })
         payWhatYouWant: z.boolean().optional(),
         category: z.string().trim().max(60).optional(),
         refundPolicy: z.string().trim().max(2000).optional(),
-        licenseKeyEnabled: z.boolean().optional(),
       })
       .parse(data),
   )
@@ -153,15 +152,6 @@ export const createProduct = createServerFn({ method: "POST" })
         .eq("owner_id", context.userId);
     }
 
-    // Same best-effort pattern for the license-key opt-in (migration 0016).
-    if (data.licenseKeyEnabled !== undefined) {
-      await context.supabase
-        .from("products")
-        .update({ license_key_enabled: data.licenseKeyEnabled })
-        .eq("id", product.id)
-        .eq("owner_id", context.userId);
-    }
-
     return product;
   });
 
@@ -179,7 +169,6 @@ export const updateProduct = createServerFn({ method: "POST" })
         payWhatYouWant: z.boolean().optional(),
         category: z.string().trim().max(60).optional(),
         refundPolicy: z.string().trim().max(2000).optional(),
-        licenseKeyEnabled: z.boolean().optional(),
       })
       .parse(data),
   )
@@ -223,14 +212,6 @@ export const updateProduct = createServerFn({ method: "POST" })
       await context.supabase
         .from("products")
         .update({ refund_policy: rest.refundPolicy || null })
-        .eq("id", productId)
-        .eq("owner_id", context.userId);
-    }
-
-    if (rest.licenseKeyEnabled !== undefined) {
-      await context.supabase
-        .from("products")
-        .update({ license_key_enabled: rest.licenseKeyEnabled })
         .eq("id", productId)
         .eq("owner_id", context.userId);
     }

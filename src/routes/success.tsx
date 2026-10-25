@@ -9,7 +9,6 @@ import { SaveAccessLink } from "@/components/save-access-link";
 import { useState, useEffect } from "react";
 import { BookOpen, CircleCheck, Download, Mail } from "lucide-react";
 import { listPurchasedFiles } from "@/lib/downloads.functions";
-import { getLicenseKeyForTransaction } from "@/lib/license.functions";
 import { submitReview } from "@/lib/reviews.functions";
 import { getBillingForTransaction } from "@/lib/recurring.functions";
 import { getSupportContactForTransaction } from "@/lib/support.functions";
@@ -18,7 +17,7 @@ import { StarInput } from "@/components/stars";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
-import { KeyRound, Copy, Check, ExternalLink } from "lucide-react";
+import { Check, ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/success")({
   // A missing or malformed id degrades to a friendly message instead of a
@@ -33,7 +32,6 @@ function SuccessPage() {
   const { id } = Route.useSearch();
   const transactionFn = useServerFn(getVerifiedTransaction);
   const downloadFn = useServerFn(listPurchasedFiles);
-  const licenseFn = useServerFn(getLicenseKeyForTransaction);
   const billingFn = useServerFn(getBillingForTransaction);
 
   const transactionQ = useQuery({
@@ -48,14 +46,6 @@ function SuccessPage() {
     queryFn: () => downloadFn({ data: { transactionId: id! } }),
     enabled: !!id,
   });
-  // Only products that opted into license keys return one; everyone else gets
-  // null and this block never renders. Safe/dormant until migration 0016.
-  const licenseQ = useQuery({
-    queryKey: ["license-key", id],
-    queryFn: () => licenseFn({ data: { transactionId: id! } }),
-    enabled: !!id,
-  });
-
   // Who to contact about a faulty or wrong file (the refund policy's exception).
   const supportFn = useServerFn(getSupportContactForTransaction);
   const supportQ = useQuery({
@@ -206,8 +196,6 @@ function SuccessPage() {
             </p>
           )}
 
-          {licenseQ.data?.licenseKey ? <LicenseKeyBlock licenseKey={licenseQ.data.licenseKey} /> : null}
-
           {billingQ.data ? (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/40 p-3 text-sm">
               <span className="min-w-0">
@@ -253,41 +241,6 @@ function SellerThankYou({ message, url }: { message: string | null; url: string 
         ) : null}
       </CardContent>
     </Card>
-  );
-}
-
-// The buyer's license key, with one-tap copy. Shown only for products that
-// enabled keys. The key is theirs forever — the same one is returned on every
-// return visit to this page (and via the recovery email link).
-function LicenseKeyBlock({ licenseKey }: { licenseKey: string }) {
-  const [copied, setCopied] = useState(false);
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(licenseKey);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // Clipboard blocked (insecure context / permissions) — the key is still
-      // visible and select-all, so the buyer can copy it by hand.
-    }
-  };
-
-  return (
-    <div className="rounded-lg border bg-muted/40 p-3">
-      <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-        <KeyRound className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> Your license key
-      </p>
-      <div className="mt-1.5 flex items-center gap-2">
-        <code className="flex-1 select-all overflow-x-auto rounded bg-background px-2 py-1.5 font-mono text-sm tracking-wide">
-          {licenseKey}
-        </code>
-        <Button variant="outline" size="icon" onClick={copy} aria-label="Copy license key" title="Copy">
-          {copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
-        </Button>
-      </div>
-      <p className="mt-1.5 text-xs text-muted-foreground">Keep this safe — you'll need it to activate the product.</p>
-    </div>
   );
 }
 

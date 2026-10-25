@@ -9,7 +9,7 @@ import { OfferBanner } from "@/components/offer-banner";
 import { installmentAmountCents } from "@/lib/recurring";
 import { formatCents } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { ShieldCheck, Mail, CircleCheck, Lock, Zap, CreditCard, KeyRound } from "lucide-react";
+import { ShieldCheck, Mail, CircleCheck, Lock, Zap, CreditCard } from "lucide-react";
 import { getProductPublicView, listMoreFromSeller } from "@/lib/product-public.functions";
 import { recordProductView } from "@/lib/product-view.functions";
 import { captureArrival } from "@/lib/arrival";
@@ -267,13 +267,6 @@ function ProductCheckoutPage() {
             </div>
           </div>
         </div>
-
-        {product.licenseKeyEnabled ? (
-          <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
-            <KeyRound className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
-            <span>Includes a unique license key, delivered instantly after purchase.</span>
-          </div>
-        ) : null}
 
         <OfferBanner
           saleEndsAt={product.saleEndsAt}

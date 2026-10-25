@@ -158,9 +158,6 @@ export const getProductPublicView = createServerFn({ method: "GET" })
       salesCount,
       reviewCount,
       reviewAverage,
-      // Lets the checkout page advertise "includes a license key" to buyers.
-      // Absent (undefined) until migration 0016 → coerced to false.
-      licenseKeyEnabled: product.license_key_enabled === true,
       // Absent until migration 0020 → a normal one-time product.
       billingType: product.billing_type === "membership" ? ("membership" as const) : ("one_time" as const),
       billingInterval: product.billing_interval === "year" ? ("year" as const) : ("month" as const),

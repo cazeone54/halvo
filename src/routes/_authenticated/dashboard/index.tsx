@@ -38,7 +38,6 @@ import {
   Users2,
   Upload,
   Layers,
-  KeyRound,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile, updateMyHandle } from "@/lib/profile.functions";
@@ -77,7 +76,6 @@ import {
 } from "@/lib/plans";
 import { StripeEmbeddedCheckoutView } from "@/components/stripe-embedded-checkout";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
-import { AdvancedOptions } from "@/components/advanced-options";
 import { ProductMediaEditor } from "@/components/product-media-editor";
 import { ProductOfferEditor } from "@/components/product-offer-editor";
 import { ProductBillingEditor } from "@/components/product-billing-editor";
@@ -90,7 +88,6 @@ import { FilePreviewOverlay } from "@/components/file-preview-overlay";
 import { PAGE_SIZES, isPageSize, paginate, type PageSize } from "@/lib/paginate";
 import { ProductsEmptyState } from "@/components/products-empty-state";
 import { EmptyState } from "@/components/empty-state";
-import { describeAdvancedOptions } from "@/lib/advanced-options";
 import { CopySnippet } from "@/components/copy-snippet";
 import { buildProductLink, buildButtonSnippet, buildIframeSnippet, buildOverlaySnippet } from "@/lib/share-snippets";
 import { Button } from "@/components/ui/button";
@@ -186,7 +183,6 @@ function DashboardHome() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
-  const [newLicenseEnabled, setNewLicenseEnabled] = useState(false);
   // The deliverable is chosen here rather than in a second step on the product
   // row — creating a product and attaching its file used to be two separate
   // journeys, and stopping between them left a permanently unsellable draft.
@@ -216,7 +212,6 @@ function DashboardHome() {
           name,
           description: description || undefined,
           priceCents: Math.round(Number(price) * 100),
-          licenseKeyEnabled: newLicenseEnabled,
         },
       });
 
@@ -257,7 +252,6 @@ function DashboardHome() {
       setName("");
       setDescription("");
       setPrice("");
-      setNewLicenseEnabled(false);
       setNewFile(null);
       setNewCoverFile(null);
       setShowNewProduct(false);
@@ -638,26 +632,6 @@ function DashboardHome() {
               </label>
             </div>
 
-            <AdvancedOptions
-              activeSummary={describeAdvancedOptions({ licenseEnabled: newLicenseEnabled })}
-            >
-              <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3">
-                <input
-                  type="checkbox"
-                  className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
-                  checked={newLicenseEnabled}
-                  onChange={(e) => setNewLicenseEnabled(e.target.checked)}
-                />
-                <span className="min-w-0">
-                  <span className="block text-sm font-medium">Deliver a unique license key</span>
-                  <span className="mt-0.5 block text-xs text-muted-foreground">
-                    For software, plugins, fonts or presets. Each buyer gets their own key on the download page, which
-                    your app can verify at halvo.io/api/public/license/validate. Refunds revoke it automatically.
-                  </span>
-                </span>
-              </label>
-            </AdvancedOptions>
-
             <Button onClick={() => createMut.mutate()} disabled={!name || !price || createMut.isPending}>
               {createMut.isPending ? "Publishing…" : newFile ? "Create & publish" : "Create as draft"}
             </Button>
@@ -767,15 +741,6 @@ function DashboardHome() {
                       </span>
                     ) : null}
                   </div>
-                  {sale.licenseKey ? (
-                    <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <KeyRound className="h-3 w-3 shrink-0 text-primary" aria-hidden="true" />
-                      License key:{" "}
-                      <code className="select-all break-all font-mono text-foreground" title="Select to copy — for buyer support">
-                        {sale.licenseKey}
-                      </code>
-                    </p>
-                  ) : null}
                 </div>
                 <div className="flex items-center gap-2">
                   {sale.disputed ? <Badge variant="destructive">Disputed</Badge> : null}
@@ -1113,8 +1078,6 @@ type ProductRowData = {
   imageUrl: string | null;
   // Present once migration 0015 is applied (listMyProducts uses select("*")).
   refund_policy?: string | null;
-  // Present once migration 0016 is applied.
-  license_key_enabled?: boolean | null;
   // Present once migration 0018 is applied.
   preview_video_url?: string | null;
   gallery_paths?: string[] | null;
@@ -1182,7 +1145,6 @@ function ProductRow({
     product.price_usd_cents ? (product.price_usd_cents / 100).toFixed(2) : "",
   );
   const [editCategory, setEditCategory] = useState(product.category ?? "");
-  const [editLicenseEnabled, setEditLicenseEnabled] = useState(!!product.license_key_enabled);
   const [previewingId, setPreviewingId] = useState<string | null>(null);
   const [preview, setPreview] = useState<{ fileName: string; fileUrl: string; preview: Preview } | null>(null);
 
@@ -1351,7 +1313,6 @@ function ProductRow({
           priceCents: Math.round(Number(editPrice) * 100),
           priceUsdCents: editPriceUsd.trim() ? Math.round(Number(editPriceUsd) * 100) : null,
           category: editCategory,
-          licenseKeyEnabled: editLicenseEnabled,
         },
       }),
     onSuccess: () => {
@@ -1527,26 +1488,6 @@ function ProductRow({
               salePriceCents={product.sale_price_cents ?? null}
               saleEndsAt={product.sale_ends_at ?? null}
             />
-            <AdvancedOptions
-              activeSummary={describeAdvancedOptions({ licenseEnabled: editLicenseEnabled })}
-              defaultOpen={!!product.license_key_enabled}
-            >
-              <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3">
-                <input
-                  type="checkbox"
-                  className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
-                  checked={editLicenseEnabled}
-                  onChange={(e) => setEditLicenseEnabled(e.target.checked)}
-                />
-                <span className="min-w-0">
-                  <span className="block text-sm font-medium">Deliver a unique license key</span>
-                  <span className="mt-0.5 block text-xs text-muted-foreground">
-                    Each buyer gets their own key on the download page; your app can verify it at
-                    halvo.io/api/public/license/validate. Refunds revoke it automatically.
-                  </span>
-                </span>
-              </label>
-            </AdvancedOptions>
             <Button size="sm" className="self-start" onClick={() => updateMut.mutate()} disabled={updateMut.isPending}>
               Save changes
             </Button>

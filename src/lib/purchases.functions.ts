@@ -11,11 +11,10 @@ export type MyPurchase = {
   createdAt: string;
   refunded: boolean;
   disputed: boolean;
-  hasLicenseKey: boolean;
 };
 
 // A signed-in buyer's own library: everything they've purchased, so they never
-// have to dig through email to re-download or find a license key. Reads with
+// have to dig through email to re-download. Reads with
 // the service role but is STRICTLY scoped to the caller's own identity — their
 // user id and the verified email on their JWT — so it can only ever return the
 // caller's own purchases. buyer_id catches purchases made while signed in;
@@ -48,22 +47,6 @@ export const listMyPurchases = createServerFn({ method: "GET" })
       for (const row of [...(byId.data ?? []), ...(byEmail.data ?? [])]) merged.set(row.id, row);
       const rows = [...merged.values()].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
 
-      // Which of these purchases carry a license key (feature is opt-in and the
-      // table may not be migrated yet) — best-effort so it never breaks the list.
-      const licensed = new Set<string>();
-      const ids = rows.map((r) => r.id);
-      if (ids.length > 0) {
-        try {
-          const { data: keys } = await supabaseAdmin
-            .from("license_keys")
-            .select("transaction_id")
-            .in("transaction_id", ids);
-          for (const k of keys ?? []) licensed.add(k.transaction_id);
-        } catch {
-          // license_keys not migrated — no badges, list still renders.
-        }
-      }
-
       return rows.map((r) => ({
         transactionId: r.id,
         productName: (r.products as unknown as { name: string } | null)?.name ?? "Product",
@@ -73,7 +56,6 @@ export const listMyPurchases = createServerFn({ method: "GET" })
         createdAt: r.created_at,
         refunded: r.refunded_at != null,
         disputed: r.disputed_at != null,
-        hasLicenseKey: licensed.has(r.id),
       }));
     } catch {
       return [];
