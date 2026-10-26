@@ -7,6 +7,7 @@ import { getMyLinks, updateMyLinks } from "@/lib/link-in-bio.functions";
 import { listMyProducts } from "@/lib/products.functions";
 import { MAX_BIO_LINKS, MAX_FEATURED, MAX_LINK_TITLE, SOCIAL_PLATFORMS, type SocialPlatform } from "@/lib/link-in-bio";
 import { BASE_URL } from "@/lib/site";
+import { isFreeProduct } from "@/lib/checkout-math";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,6 +42,7 @@ export function LinkInBioEditor({ handle }: { handle: string | null }) {
   const [social, setSocial] = useState<Record<string, string>>({});
   const [rows, setRows] = useState<Row[]>([]);
   const [featured, setFeatured] = useState<string[]>([]);
+  const [startHere, setStartHere] = useState("");
   const nextKey = useRef(0);
   const newKey = () => `row-${++nextKey.current}`;
 
@@ -52,6 +54,7 @@ export function LinkInBioEditor({ handle }: { handle: string | null }) {
     setSocial(linksQ.data.social);
     setRows(linksQ.data.links.map((l) => ({ key: newKey(), id: l.id, title: l.title, url: l.url })));
     setFeatured(linksQ.data.featured);
+    setStartHere(linksQ.data.startHere ?? "");
   }, [linksQ.data]);
 
   const saveMut = useMutation({
@@ -61,6 +64,7 @@ export function LinkInBioEditor({ handle }: { handle: string | null }) {
           social,
           links: rows.map(({ id, title, url }) => ({ id: id ?? null, title, url })),
           featured,
+          ...(linksQ.data?.startHereAvailable ? { startHereProductId: startHere || null } : {}),
         },
       }),
     onSuccess: (res) => {
@@ -77,6 +81,7 @@ export function LinkInBioEditor({ handle }: { handle: string | null }) {
   const available = linksQ.data?.available !== false;
   const clicks = linksQ.data?.clicks ?? {};
   const published = (productsQ.data ?? []).filter((p) => p.url_slug);
+  const freeProducts = published.filter((p) => isFreeProduct(p));
 
   const move = (i: number, by: -1 | 1) =>
     setRows((r) => {
@@ -229,6 +234,42 @@ export function LinkInBioEditor({ handle }: { handle: string | null }) {
               <Plus className="h-4 w-4" aria-hidden="true" /> Add a link
             </Button>
           </section>
+
+          {linksQ.data?.startHereAvailable ? (
+            <section className="flex flex-col gap-2" aria-labelledby={`${uid}-start`}>
+              <div>
+                <h3 id={`${uid}-start`} className="text-sm font-semibold">
+                  Start here
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  One free product at the very top of your page. Visitors type their email and get it straight away,
+                  which is how they join your list.
+                </p>
+              </div>
+              {freeProducts.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Publish a free product to use this spot.</p>
+              ) : (
+                <>
+                  <Label htmlFor={`${uid}-start-select`} className="sr-only">
+                    Start here product
+                  </Label>
+                  <select
+                    id={`${uid}-start-select`}
+                    value={startHere}
+                    onChange={(e) => setStartHere(e.target.value)}
+                    className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                  >
+                    <option value="">None</option>
+                    {freeProducts.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )}
+            </section>
+          ) : null}
 
           <section className="flex flex-col gap-3" aria-labelledby={`${uid}-featured`}>
             <div>

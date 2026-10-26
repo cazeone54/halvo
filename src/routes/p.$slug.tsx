@@ -13,6 +13,7 @@ import { ShieldCheck, Mail, CircleCheck, Lock, Zap, CreditCard } from "lucide-re
 import { getProductPublicView, listMoreFromSeller } from "@/lib/product-public.functions";
 import { recordProductView } from "@/lib/product-view.functions";
 import { captureArrival } from "@/lib/arrival";
+import { readCouponParam } from "@/lib/coupon-link";
 import { listProductReviews } from "@/lib/reviews.functions";
 import { Stars } from "@/components/stars";
 import { CheckoutWidget } from "@/components/checkout-widget";
@@ -32,8 +33,11 @@ export const Route = createFileRoute("/p/$slug")({
   // ?embed=1 means this page is rendered inside the overlay iframe on a
   // seller's own site (see public/embed.js). In that mode we don't want brand
   // links to hijack the iframe — they open Halvo in a new tab instead.
-  validateSearch: (search: Record<string, unknown>): { embed?: boolean } => ({
+  // ?coupon=CODE opens checkout with that discount already applied — the link a
+  // seller puts in an email, a DM or a Story (see lib/coupon-link).
+  validateSearch: (search: Record<string, unknown>): { embed?: boolean; coupon?: string } => ({
     embed: search.embed === "1" || search.embed === 1 || search.embed === true ? true : undefined,
+    coupon: readCouponParam(search),
   }),
   // Per-product SEO/social metadata — every checkout page used to inherit
   // the same generic "Halvo" title/description from the root layout, so a
@@ -126,7 +130,7 @@ export const Route = createFileRoute("/p/$slug")({
 
 function ProductCheckoutPage() {
   const product = Route.useLoaderData();
-  const { embed } = Route.useSearch();
+  const { embed, coupon } = Route.useSearch();
   const brandStyle = brandThemeStyle(product.accentColor);
   const reviewsFn = useServerFn(listProductReviews);
   const recordViewFn = useServerFn(recordProductView);
@@ -298,9 +302,11 @@ function ProductCheckoutPage() {
             </div>
           ) : (
             <CheckoutWidget
-              // Remount when the price changes (a launch price ending), so the
-              // widget's amount state starts from the new price.
-              key={`-`}
+              // Remount when the price or currency changes (a launch price
+              // ending, or the buyer switching euros/dollars), so the widget's
+              // amount state starts from the price actually shown.
+              key={`${product.priceCents}-${product.currency}`}
+              initialCoupon={coupon}
               product={{
                 id: product.id,
                 name: product.name,

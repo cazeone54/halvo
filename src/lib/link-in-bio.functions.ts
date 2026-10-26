@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { isFreeProduct } from "@/lib/checkout-math";
 import {
   MAX_BIO_LINKS,
   MAX_FEATURED,
@@ -43,6 +44,8 @@ export const getMyLinks = createServerFn({ method: "GET" })
           links: [] as BioLink[],
           featured: [] as string[],
           clicks: {} as ClickCounts,
+          startHere: null as string | null,
+          startHereAvailable: false,
         };
       }
       throw new Error(error.message);
@@ -70,12 +73,22 @@ export const getMyLinks = createServerFn({ method: "GET" })
       }),
     );
 
+    // "Start here" (migration 0029) is read on its own: before that migration
+    // the column is missing, and the links above must still load.
+    const { data: start, error: startError } = await context.supabase
+      .from("profiles")
+      .select("start_here_product_id")
+      .eq("id", context.userId)
+      .single();
+
     return {
       available: true as const,
       social,
       links,
       featured: (data.featured_product_ids ?? []).slice(0, MAX_FEATURED),
       clicks,
+      startHere: startError ? null : start?.start_here_product_id ?? null,
+      startHereAvailable: !startError,
     };
   });
 
@@ -95,6 +108,9 @@ export const updateMyLinks = createServerFn({ method: "POST" })
           )
           .max(MAX_BIO_LINKS),
         featured: z.array(z.string().uuid()).max(MAX_FEATURED),
+        // undefined = leave as is (an older page, or 0029 not applied);
+        // null = clear it.
+        startHereProductId: z.string().uuid().nullable().optional(),
       })
       .parse(data),
   )
@@ -126,6 +142,29 @@ export const updateMyLinks = createServerFn({ method: "POST" })
     if (error) {
       if (linksNotMigrated(error)) throw new Error("Links aren't switched on yet. Please try again a little later.");
       throw new Error(error.message);
+    }
+
+    // The Start here product: the seller's own, published and free — it's the
+    // thing a visitor gets for their email, so it can never cost anything.
+    if (data.startHereProductId !== undefined) {
+      if (data.startHereProductId) {
+        const { data: p } = await context.supabase
+          .from("products")
+          .select("id, url_slug, price_cents, pay_what_you_want")
+          .eq("id", data.startHereProductId)
+          .eq("owner_id", context.userId)
+          .maybeSingle();
+        if (!p || !p.url_slug) throw new Error("Start here: pick one of your published products.");
+        if (!isFreeProduct(p)) throw new Error("Start here: pick a free product. It's what visitors get for their email.");
+      }
+      const { error: startError } = await context.supabase
+        .from("profiles")
+        .update({ start_here_product_id: data.startHereProductId })
+        .eq("id", context.userId);
+      if (startError) {
+        if (linksNotMigrated(startError)) throw new Error("Your links are saved. Start here isn't switched on yet.");
+        throw new Error(startError.message);
+      }
     }
     return { ok: true, links: links.value };
   });

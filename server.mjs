@@ -109,6 +109,31 @@ async function staticFile(request) {
   return new Response(body, { headers });
 }
 
+// Follow-up emails after free downloads: once an hour, ask the app whether any
+// are due. It runs inside this process so no separate scheduler has to be set
+// up, and goes straight to the app handler rather than over the network. The
+// sender claims every email in the database before sending, so a second
+// instance (or an overlap during a deploy) can't send anything twice.
+const CRON_SECRET = process.env.CRON_SECRET;
+if (CRON_SECRET) {
+  const runSequences = async () => {
+    try {
+      const response = await server.fetch(
+        new Request("http://localhost/api/cron/email-sequences", {
+          method: "POST",
+          headers: { authorization: `Bearer ${CRON_SECRET}` },
+        }),
+      );
+      const result = await response.json().catch(() => null);
+      if (!response.ok || result?.sent) console.log("Follow-up emails:", response.status, JSON.stringify(result));
+    } catch (error) {
+      console.error("Follow-up email run failed:", error);
+    }
+  };
+  setTimeout(runSequences, 2 * 60 * 1000).unref();
+  setInterval(runSequences, 60 * 60 * 1000).unref();
+}
+
 serve({
   port: Number(process.env.PORT) || 3000,
   async fetch(request) {

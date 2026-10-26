@@ -21,7 +21,7 @@ export const getSellerStorefront = createServerFn({ method: "GET" })
     if (error || !profile || profile.deactivated_at) throw new Error("Storefront not found");
 
     const { sellerCanTakePayments, isReachableByLink } = await import("@/lib/seller-visibility.server");
-    const [{ data: products }, canPay, linkData] = await Promise.all([
+    const [{ data: products }, canPay, linkData, funnelData] = await Promise.all([
       supabaseAdmin
         .from("products")
         .select("id, name, description, price_cents, price_usd_cents, pay_what_you_want, url_slug, category, image_url, sale_price_cents, sale_ends_at, billing_type, billing_interval")
@@ -37,6 +37,18 @@ export const getSellerStorefront = createServerFn({ method: "GET" })
         .eq("id", profile.id)
         .single()
         .then(({ data: d, error: e }) => (e ? null : d), () => null),
+      // Start here + whether follow-up emails are on (migration 0029), the
+      // same way: missing means "off", never a broken page.
+      Promise.all([
+        supabaseAdmin.from("profiles").select("start_here_product_id").eq("id", profile.id).single(),
+        supabaseAdmin.from("email_sequences").select("enabled").eq("seller_id", profile.id).maybeSingle(),
+      ]).then(
+        ([start, seq]) => ({
+          startHereId: start.error ? null : start.data?.start_here_product_id ?? null,
+          followUps: !seq.error && !!seq.data?.enabled,
+        }),
+        () => ({ startHereId: null, followUps: false }),
+      ),
     ]);
 
     // Until the seller connects Stripe, only their free products are shown:
@@ -87,8 +99,14 @@ export const getSellerStorefront = createServerFn({ method: "GET" })
     // product that's hidden (unpublished, or the seller can't take payments)
     // can never be pinned onto the page.
     const byId = new Map(shown.map((p) => [p.id, p]));
+    // Start here must still be free and visible; if the seller later put a
+    // price on it, the spot simply disappears rather than asking for an email
+    // in exchange for something that now costs money.
+    const startCandidate = funnelData.startHereId ? byId.get(funnelData.startHereId) : undefined;
+    const startHere = startCandidate && startCandidate.price.label === "Free" ? startCandidate : null;
     const featured = (linkData?.featured_product_ids ?? [])
       .slice(0, MAX_FEATURED)
+      .filter((id) => id !== startHere?.id)
       .map((id) => byId.get(id))
       .filter((p): p is (typeof shown)[number] => !!p);
 
@@ -100,6 +118,8 @@ export const getSellerStorefront = createServerFn({ method: "GET" })
       // counts the click and looks the address up server-side.
       links: bioLinksForDisplay(linkData?.bio_links).map(({ id, title }) => ({ id, title })),
       featured,
+      startHere,
+      followUps: funnelData.followUps,
       products: shown,
     };
   });

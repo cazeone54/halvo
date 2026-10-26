@@ -1,5 +1,14 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useEffect, useId, useState } from "react";
 import { Facebook, Globe, Instagram, Linkedin, Music2, Package, Twitter, Youtube, type LucideIcon } from "lucide-react";
+import { Stars } from "@/components/stars";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { claimFreeProduct } from "@/lib/free-claim.functions";
+import { recordShopView } from "@/lib/funnel.functions";
+import { captureArrival } from "@/lib/arrival";
+import { formatCountdown } from "@/lib/offer";
 import { UserAvatar } from "@/components/user-avatar";
 import { ProductCard, ProductGrid } from "@/components/product-card";
 import { getSellerStorefront } from "@/lib/storefront.functions";
@@ -65,11 +74,126 @@ const SOCIAL_ICONS: Record<SocialPlatform, LucideIcon> = {
   website: Globe,
 };
 
+// "Launch price · ends in 2d 4h" — only for a launch price that is really
+// running, from its real end date (the same one checkout enforces). Rendered
+// after mount, so the server and the browser never disagree about the time.
+function EndsIn({ endsAt }: { endsAt: string }) {
+  const [left, setLeft] = useState<number | null>(null);
+  useEffect(() => {
+    const tick = () => setLeft(Date.parse(endsAt) - Date.now());
+    tick();
+    const id = setInterval(tick, 30_000);
+    return () => clearInterval(id);
+  }, [endsAt]);
+  if (left == null || left <= 0) return null;
+  return <span className="text-xs font-medium text-primary">Launch price · ends in {formatCountdown(left)}</span>;
+}
+
+// The top of the funnel: one free product, and an email box right here rather
+// than a click away. What the visitor is signing up for is said plainly next
+// to the button — including the follow-up emails, when the seller has them on.
+function StartHereCard({
+  product,
+  sellerName,
+  followUps,
+}: {
+  product: {
+    id: string;
+    name: string;
+    description: string | null;
+    imageUrl: string | null;
+    url_slug: string | null;
+  };
+  sellerName: string;
+  followUps: boolean;
+}) {
+  const uid = useId();
+  const navigate = useNavigate();
+  const claimFn = useServerFn(claimFreeProduct);
+  const [email, setEmail] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSending(true);
+    setError(null);
+    try {
+      const { transactionId } = await claimFn({ data: { productId: product.id, buyerEmail: email, ...captureArrival() } });
+      navigate({ to: "/success", search: { id: transactionId } });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't send it just now. Please try again.");
+      setSending(false);
+    }
+  };
+
+  return (
+    <section aria-labelledby={`${uid}-title`} className="w-full overflow-hidden rounded-2xl border-2 border-primary/40 bg-card text-left shadow-sm">
+      {product.imageUrl ? (
+        <div className="aspect-video w-full bg-muted">
+          <img src={product.imageUrl} alt="" className="h-full w-full object-cover" />
+        </div>
+      ) : null}
+      <div className="flex flex-col gap-3 p-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary">Start here · Free</p>
+          <h2 id={`${uid}-title`} className="mt-0.5 font-[family-name:var(--font-display)] text-lg font-semibold leading-snug">
+            {product.name}
+          </h2>
+          {product.description ? (
+            <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">{product.description}</p>
+          ) : null}
+        </div>
+        <form onSubmit={submit} className="flex flex-col gap-2 sm:flex-row">
+          <label htmlFor={`${uid}-email`} className="sr-only">
+            Your email
+          </label>
+          <Input
+            id={`${uid}-email`}
+            type="email"
+            autoComplete="email"
+            required
+            placeholder="your@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="min-w-0 flex-1"
+          />
+          <Button type="submit" disabled={sending} className="shrink-0">
+            {sending ? "Sending…" : "Send it to me"}
+          </Button>
+        </form>
+        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        <p className="text-xs text-muted-foreground">
+          {followUps
+            ? `You'll get the download straight away, plus a couple of short emails from ${sellerName}. Unsubscribe any time.`
+            : "You'll get the download straight away, and the link by email."}
+        </p>
+      </div>
+    </section>
+  );
+}
+
 function StorefrontPage() {
-  const { profile, products, currency, social, links, featured } = Route.useLoaderData();
+  const { profile, products, currency, social, links, featured, startHere, followUps } = Route.useLoaderData();
   const brandStyle = brandThemeStyle(profile.accent_color);
   const paged = usePagedList(products, "halvo:storefront:per-page", profile.handle ?? "");
   const handle = profile.handle ?? "";
+  const sellerName = profile.display_name ?? handle;
+  const recordViewFn = useServerFn(recordShopView);
+
+  // One visit per page per browser session, client-side only (bots that never
+  // run scripts don't count), with the same arrival rules as product views.
+  useEffect(() => {
+    if (!handle) return;
+    const key = `halvo-shop-viewed-${handle}`;
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+    } catch {
+      // storage blocked — count it anyway
+    }
+    void recordViewFn({ data: { handle, ...captureArrival() } }).catch(() => {});
+  }, [handle, recordViewFn]);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -120,6 +244,8 @@ function StorefrontPage() {
               </nav>
             ) : null}
 
+            {startHere ? <StartHereCard product={startHere} sellerName={sellerName} followUps={followUps} /> : null}
+
             {featured.length > 0 || links.length > 0 ? (
               <div className="flex w-full flex-col gap-3 pt-1">
                 {featured.map((p) => (
@@ -140,12 +266,20 @@ function StorefrontPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="line-clamp-2 text-sm font-semibold leading-snug group-hover:text-primary">{p.name}</p>
+                      {/* Real reviews only, and only when there are some. */}
+                      {p.ratingCount > 0 ? (
+                        <span className="mt-0.5 flex items-center gap-1">
+                          <Stars value={p.ratingRounded} />
+                          <span className="text-xs text-muted-foreground">({p.ratingCount})</span>
+                        </span>
+                      ) : null}
                       <p className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 text-sm">
                         <span className="font-semibold tabular-nums text-primary">{p.price.label}</span>
                         {p.price.regularLabel ? (
                           <s className="text-xs text-muted-foreground">{p.price.regularLabel}</s>
                         ) : null}
                       </p>
+                      {p.price.regularLabel && p.sale_ends_at ? <EndsIn endsAt={p.sale_ends_at} /> : null}
                     </div>
                     <span className="shrink-0 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
                       {p.price.label === "Free" ? "Get" : "Buy"}

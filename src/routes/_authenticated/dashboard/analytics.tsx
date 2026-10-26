@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { BarChart3, Wallet, ShoppingBag, Eye, Percent } from "lucide-react";
 import { getMyAnalytics } from "@/lib/analytics.functions";
+import { getMyFunnel } from "@/lib/funnel.functions";
 import { formatTotals, totalsWeight } from "@/lib/currency";
 import { formatConversionRate } from "@/lib/conversion";
 import { RevenueChart } from "@/components/revenue-chart";
@@ -34,6 +35,58 @@ function BarRow({ label, value, fraction, sublabel }: { label: string; value: st
         />
       </div>
     </div>
+  );
+}
+
+// Visits to the seller's page, then each step after it, for the last 30 days.
+// "—" means that step isn't being counted yet (database update not applied),
+// which is different from a real zero.
+function FunnelCard() {
+  const funnelFn = useServerFn(getMyFunnel);
+  const funnelQ = useQuery({ queryKey: ["my-funnel"], queryFn: () => funnelFn() });
+  const f = funnelQ.data;
+  if (!f) return null;
+
+  const steps: Array<{ label: string; value: number | null; ofVisits?: boolean }> = [
+    { label: "Visits to your page", value: f.visits },
+    { label: "Taps on your links", value: f.taps },
+    { label: "Product page views", value: f.productViews },
+    { label: "Free downloads", value: f.freeDownloads, ofVisits: true },
+    { label: "Sales", value: f.sales, ofVisits: true },
+  ];
+  const max = Math.max(1, ...steps.map((s) => s.value ?? 0));
+  const visits = f.visits ?? 0;
+  const empty = steps.every((s) => !s.value);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Your funnel, last 30 days</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        {empty ? (
+          <p className="text-sm text-muted-foreground">
+            This fills in as people visit your page. Put your page link in your Instagram or TikTok bio to start.
+          </p>
+        ) : (
+          steps.map((s) => (
+            <BarRow
+              key={s.label}
+              label={s.label}
+              value={s.value == null ? "—" : s.value.toLocaleString()}
+              fraction={(s.value ?? 0) / max}
+              sublabel={s.ofVisits && s.value != null && visits > 0 ? `· ${((s.value / visits) * 100).toFixed(1)}% of visits` : undefined}
+            />
+          ))
+        )}
+        {f.topSource ? (
+          <p className="text-xs text-muted-foreground">
+            Most visits come from <span className="font-medium text-foreground">{f.topSource.name}</span> (
+            {Math.round(f.topSource.share * 100)}%).
+          </p>
+        ) : null}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -123,6 +176,8 @@ function AnalyticsPage() {
           </CardContent>
         </Card>
       </div>
+
+      <FunnelCard />
 
       <Card>
         <CardHeader>

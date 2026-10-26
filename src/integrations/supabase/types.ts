@@ -32,6 +32,10 @@ export type Database = {
           social_links: Json;
           bio_links: Json;
           featured_product_ids: string[];
+          // Shop funnel (migration 0029).
+          start_here_product_id: string | null;
+          offer_product_id: string | null;
+          offer_coupon_code: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -52,6 +56,9 @@ export type Database = {
           social_links?: Json;
           bio_links?: Json;
           featured_product_ids?: string[];
+          start_here_product_id?: string | null;
+          offer_product_id?: string | null;
+          offer_coupon_code?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -72,9 +79,66 @@ export type Database = {
           social_links?: Json;
           bio_links?: Json;
           featured_product_ids?: string[];
+          start_here_product_id?: string | null;
+          offer_product_id?: string | null;
+          offer_coupon_code?: string | null;
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
+      };
+      // Follow-up emails after a free download (migration 0029).
+      email_sequences: {
+        Row: {
+          seller_id: string;
+          enabled: boolean;
+          enabled_at: string | null;
+          step2_subject: string;
+          step2_body: string;
+          step3_subject: string;
+          step3_body: string;
+          step3_product_id: string | null;
+          step3_coupon_code: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          seller_id: string;
+          enabled?: boolean;
+          enabled_at?: string | null;
+          step2_subject?: string;
+          step2_body?: string;
+          step3_subject?: string;
+          step3_body?: string;
+          step3_product_id?: string | null;
+          step3_coupon_code?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          seller_id?: string;
+          enabled?: boolean;
+          enabled_at?: string | null;
+          step2_subject?: string;
+          step2_body?: string;
+          step3_subject?: string;
+          step3_body?: string;
+          step3_product_id?: string | null;
+          step3_coupon_code?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      // Which follow-up went to which free download; unique (transaction_id, step).
+      sequence_sends: {
+        Row: { id: number; seller_id: string; transaction_id: string; step: number; sent_at: string };
+        Insert: { id?: number; seller_id: string; transaction_id: string; step: number; sent_at?: string };
+        Update: { id?: number; seller_id?: string; transaction_id?: string; step?: number; sent_at?: string };
+        Relationships: [];
+      };
+      // One row per visit to a seller's page (migration 0029). Server-written.
+      shop_views: {
+        Row: { id: number; seller_id: string; source: string | null; created_at: string };
+        Insert: { id?: number; seller_id: string; source?: string | null; created_at?: string };
+        Update: { id?: number; seller_id?: string; source?: string | null; created_at?: string };
         Relationships: [];
       };
       // One row per click on a seller's link-in-bio link (migration 0028).

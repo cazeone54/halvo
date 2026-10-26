@@ -217,8 +217,51 @@ function SuccessPage() {
         />
       ) : null}
 
+      {transactionQ.data?.offer ? <AfterPurchaseOffer offer={transactionQ.data.offer} /> : null}
+
       {files.length > 0 ? <ReviewPrompt transactionId={id} /> : null}
     </div>
+  );
+}
+
+// The one next product the seller chose, offered while the buyer is still
+// here. A link to its page (with the seller's discount code applied), never a
+// charge: the buyer sees the full product and pays like any other purchase.
+function AfterPurchaseOffer({
+  offer,
+}: {
+  offer: { name: string; slug: string; imageUrl: string | null; priceLabel: string; discountedLabel: string | null; coupon: string | null };
+}) {
+  return (
+    <Card className="mt-4 overflow-hidden">
+      <CardContent className="flex flex-col gap-3 p-0 sm:flex-row sm:items-stretch">
+        {offer.imageUrl ? (
+          <div className="aspect-video w-full shrink-0 bg-muted sm:w-48">
+            <img src={offer.imageUrl} alt="" className="h-full w-full object-cover" />
+          </div>
+        ) : null}
+        <div className="flex flex-1 flex-col gap-2 p-5 sm:pl-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary">Before you go</p>
+          <p className="font-medium leading-snug">{offer.name}</p>
+          <p className="flex flex-wrap items-baseline gap-x-2 text-sm">
+            {offer.discountedLabel ? (
+              <>
+                <span className="font-semibold text-primary">{offer.discountedLabel}</span>
+                <s className="text-muted-foreground">{offer.priceLabel}</s>
+                <span className="text-xs text-muted-foreground">with code {offer.coupon}</span>
+              </>
+            ) : (
+              <span className="font-semibold text-primary">{offer.priceLabel}</span>
+            )}
+          </p>
+          <Button asChild size="sm" className="self-start">
+            <Link to="/p/$slug" params={{ slug: offer.slug }} search={offer.coupon ? { coupon: offer.coupon } : {}}>
+              Take a look
+            </Link>
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

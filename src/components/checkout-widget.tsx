@@ -1,4 +1,4 @@
-import { useState, useEffect, useId } from "react";
+import { useState, useEffect, useId, useRef } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -102,7 +102,17 @@ function FreeClaimForm({ productId }: { productId: string }) {
 // embedded: the checkout runs inside another site's iframe (?embed=1), where
 // sending the buyer off to a payment app would strand them, so only methods
 // that complete on the page are offered.
-export function CheckoutWidget({ product, embedded = false }: { product: Product; embedded?: boolean }) {
+// initialCoupon: a code from the link the buyer arrived on (?coupon=CODE),
+// applied straight away so the discounted price is the first thing they see.
+export function CheckoutWidget({
+  product,
+  embedded = false,
+  initialCoupon,
+}: {
+  product: Product;
+  embedded?: boolean;
+  initialCoupon?: string;
+}) {
   const uid = useId();
   const currency = product.currency ?? DEFAULT_CURRENCY;
   const money = (cents: number) => formatCents(cents, currency);
@@ -178,6 +188,23 @@ export function CheckoutWidget({ product, embedded = false }: { product: Product
     // Recreate the intent whenever amount, coupon or the bump selection changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.id, amountCents, appliedCoupon?.code, free, bumpTaken, plan, embedded, currency]);
+
+  // A coupon from the link: checked once, the same way typing it would be. An
+  // expired or unknown code leaves the normal price and says why, rather than
+  // failing the checkout — the link may simply be old.
+  const linkCouponTried = useRef(false);
+  useEffect(() => {
+    if (free || isMembership || !initialCoupon || linkCouponTried.current) return;
+    linkCouponTried.current = true;
+    setCouponCode(initialCoupon);
+    setShowCoupon(true);
+    setCouponLoading(true);
+    previewCouponFn({ data: { code: initialCoupon, productId: product.id, amountCents, currency } })
+      .then((res) => setAppliedCoupon({ code: initialCoupon, discountedAmountCents: res.discountedAmountCents }))
+      .catch(() => setCouponError("This discount code has expired or isn't valid any more."))
+      .finally(() => setCouponLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [free, isMembership, initialCoupon]);
 
   // Warm Stripe.js immediately, in parallel with creating the PaymentIntent, so
   // the payment form mounts the instant the client secret arrives instead of

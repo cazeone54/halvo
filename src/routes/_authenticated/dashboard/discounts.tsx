@@ -7,7 +7,10 @@ import { useState, useId } from "react";
 import { toast } from "sonner";
 import { Tag, Ticket } from "lucide-react";
 import { listMyCoupons, createCoupon, setCouponActive, deleteCoupon } from "@/lib/coupons.functions";
+import { listMyProducts } from "@/lib/products.functions";
 import { getMyPlan } from "@/lib/user-plan.functions";
+import { couponLink } from "@/lib/coupon-link";
+import { BASE_URL } from "@/lib/site";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,17 +32,48 @@ function DiscountsPage() {
   const setActiveFn = useServerFn(setCouponActive);
   const deleteFn = useServerFn(deleteCoupon);
 
+  const productsFn = useServerFn(listMyProducts);
   const planQ = useQuery({ queryKey: ["my-plan"], queryFn: () => planFn() });
   const couponsQ = useQuery({ queryKey: ["my-coupons"], queryFn: () => couponsFn() });
+  const productsQ = useQuery({ queryKey: ["my-products"], queryFn: () => productsFn() });
+  const published = (productsQ.data ?? []).filter((p) => p.url_slug);
 
   const [code, setCode] = useState("");
   const [percentOff, setPercentOff] = useState("");
+  // Optional last day the code works. Stored as the end of that day in the
+  // seller's own time zone, so "ends Friday" means all of Friday.
+  const [endsOn, setEndsOn] = useState("");
+  const [linkProductId, setLinkProductId] = useState("");
+  const linkProduct = published.find((p) => p.id === linkProductId) ?? published[0];
+
+  const copyLink = async (couponCode: string, productId: string | null) => {
+    const product = (productId && published.find((p) => p.id === productId)) || linkProduct;
+    if (!product?.url_slug) {
+      toast.error("Publish a product first. A coupon link opens a product.");
+      return;
+    }
+    const url = couponLink(BASE_URL, product.url_slug, couponCode);
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success(`Link copied: ${url.replace(/^https?:\/\//, "")}`);
+    } catch {
+      toast.error(`Couldn't copy. The link is ${url}`);
+    }
+  };
+
   const createMut = useMutation({
     mutationFn: () =>
-      createFn({ data: { code, percentOff: Math.round(Number(percentOff)) } }),
+      createFn({
+        data: {
+          code,
+          percentOff: Math.round(Number(percentOff)),
+          ...(endsOn ? { expiresAt: new Date(`${endsOn}T23:59:59`).toISOString() } : {}),
+        },
+      }),
     onSuccess: () => {
       setCode("");
       setPercentOff("");
+      setEndsOn("");
       toast.success("Coupon created.");
       qc.invalidateQueries({ queryKey: ["my-coupons"] });
     },
@@ -104,6 +138,15 @@ function DiscountsPage() {
               onChange={(e) => setPercentOff(e.target.value)}
             />
           </div>
+          <div className="sm:w-44">
+            <Label htmlFor={`${uid}-f3`}>Last day (optional)</Label>
+            <Input id={`${uid}-f3`}
+              type="date"
+              value={endsOn}
+              min={new Date().toISOString().slice(0, 10)}
+              onChange={(e) => setEndsOn(e.target.value)}
+            />
+          </div>
           <Button onClick={() => createMut.mutate()} disabled={!code || !percentOff || createMut.isPending}>
             Create
           </Button>
@@ -112,6 +155,27 @@ function DiscountsPage() {
           <p className="px-6 pb-4 text-sm text-destructive">{(createMut.error as Error).message}</p>
         ) : null}
       </Card>
+
+      {(couponsQ.data ?? []).length > 0 && published.length > 0 ? (
+        <div className="flex flex-col gap-1 rounded-lg border bg-muted/40 p-3 text-sm sm:flex-row sm:items-center sm:gap-3">
+          <Label htmlFor={`${uid}-link-product`} className="shrink-0">
+            Coupon links open
+          </Label>
+          <select
+            id={`${uid}-link-product`}
+            value={linkProduct?.id ?? ""}
+            onChange={(e) => setLinkProductId(e.target.value)}
+            className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm"
+          >
+            {published.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+          <span className="text-xs text-muted-foreground">with the discount already applied.</span>
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-2">
         {(couponsQ.data ?? []).map((coupon) => (
@@ -127,6 +191,11 @@ function DiscountsPage() {
                     {coupon.percent_off ? `${coupon.percent_off}% off` : `${formatCents(coupon.amount_off_cents!)} off`}
                     {" · "}
                     {coupon.redemptions} used
+                    {coupon.expires_at
+                      ? new Date(coupon.expires_at) <= new Date()
+                        ? " · ended"
+                        : ` · ends ${new Date(coupon.expires_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`
+                      : ""}
                   </p>
                 </div>
               </div>
@@ -134,6 +203,11 @@ function DiscountsPage() {
                 <Badge variant={coupon.active ? "default" : "secondary"}>
                   {coupon.active ? "Active" : "Inactive"}
                 </Badge>
+                {coupon.active ? (
+                  <Button variant="outline" size="sm" onClick={() => copyLink(coupon.code, coupon.product_id)}>
+                    Copy link
+                  </Button>
+                ) : null}
                 <Button
                   variant="outline"
                   size="sm"

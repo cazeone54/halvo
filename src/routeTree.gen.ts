@@ -47,6 +47,7 @@ import { Route as AuthenticatedDashboardDiscountsRouteImport } from './routes/_a
 import { Route as AuthenticatedDashboardPurchasesRouteImport } from './routes/_authenticated/dashboard/purchases'
 import { Route as AuthenticatedDashboardReferralsRouteImport } from './routes/_authenticated/dashboard/referrals'
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard/settings'
+import { Route as ApiCronEmailSequencesRouteImport } from './routes/api/cron/email-sequences'
 import { Route as ApiCronStorageSweepRouteImport } from './routes/api/cron/storage-sweep'
 import { Route as ApiPublicUnsubscribeRouteImport } from './routes/api/public/unsubscribe'
 import { Route as DTransactionIdFileIdRouteImport } from './routes/d.$transactionId.$fileId'
@@ -255,6 +256,11 @@ const AuthenticatedDashboardSettingsRoute =
     path: '/settings',
     getParentRoute: () => AuthenticatedDashboardRouteRoute,
   } as any)
+const ApiCronEmailSequencesRoute = ApiCronEmailSequencesRouteImport.update({
+  id: '/api/cron/email-sequences',
+  path: '/api/cron/email-sequences',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCronStorageSweepRoute = ApiCronStorageSweepRouteImport.update({
   id: '/api/cron/storage-sweep',
   path: '/api/cron/storage-sweep',
@@ -347,6 +353,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/purchases': typeof AuthenticatedDashboardPurchasesRoute
   '/dashboard/referrals': typeof AuthenticatedDashboardReferralsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
+  '/api/cron/email-sequences': typeof ApiCronEmailSequencesRoute
   '/api/cron/storage-sweep': typeof ApiCronStorageSweepRoute
   '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
   '/d/$transactionId/$fileId': typeof DTransactionIdFileIdRoute
@@ -395,6 +402,7 @@ export interface FileRoutesByTo {
   '/dashboard/purchases': typeof AuthenticatedDashboardPurchasesRoute
   '/dashboard/referrals': typeof AuthenticatedDashboardReferralsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
+  '/api/cron/email-sequences': typeof ApiCronEmailSequencesRoute
   '/api/cron/storage-sweep': typeof ApiCronStorageSweepRoute
   '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
   '/d/$transactionId/$fileId': typeof DTransactionIdFileIdRoute
@@ -446,6 +454,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/purchases': typeof AuthenticatedDashboardPurchasesRoute
   '/_authenticated/dashboard/referrals': typeof AuthenticatedDashboardReferralsRoute
   '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
+  '/api/cron/email-sequences': typeof ApiCronEmailSequencesRoute
   '/api/cron/storage-sweep': typeof ApiCronStorageSweepRoute
   '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
   '/d/$transactionId/$fileId': typeof DTransactionIdFileIdRoute
@@ -497,6 +506,7 @@ export interface FileRouteTypes {
     | '/dashboard/purchases'
     | '/dashboard/referrals'
     | '/dashboard/settings'
+    | '/api/cron/email-sequences'
     | '/api/cron/storage-sweep'
     | '/api/public/unsubscribe'
     | '/d/$transactionId/$fileId'
@@ -545,6 +555,7 @@ export interface FileRouteTypes {
     | '/dashboard/purchases'
     | '/dashboard/referrals'
     | '/dashboard/settings'
+    | '/api/cron/email-sequences'
     | '/api/cron/storage-sweep'
     | '/api/public/unsubscribe'
     | '/d/$transactionId/$fileId'
@@ -595,6 +606,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/purchases'
     | '/_authenticated/dashboard/referrals'
     | '/_authenticated/dashboard/settings'
+    | '/api/cron/email-sequences'
     | '/api/cron/storage-sweep'
     | '/api/public/unsubscribe'
     | '/d/$transactionId/$fileId'
@@ -639,6 +651,7 @@ export interface RootRouteChildren {
   UHandleRoute: typeof UHandleRoute
   BlogIndexRoute: typeof BlogIndexRoute
   GuidesIndexRoute: typeof GuidesIndexRoute
+  ApiCronEmailSequencesRoute: typeof ApiCronEmailSequencesRoute
   ApiCronStorageSweepRoute: typeof ApiCronStorageSweepRoute
   ApiPublicUnsubscribeRoute: typeof ApiPublicUnsubscribeRoute
   DTransactionIdFileIdRoute: typeof DTransactionIdFileIdRoute
@@ -917,6 +930,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardSettingsRouteImport
       parentRoute: typeof AuthenticatedDashboardRouteRoute
     }
+    '/api/cron/email-sequences': {
+      id: '/api/cron/email-sequences'
+      path: '/api/cron/email-sequences'
+      fullPath: '/api/cron/email-sequences'
+      preLoaderRoute: typeof ApiCronEmailSequencesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/cron/storage-sweep': {
       id: '/api/cron/storage-sweep'
       path: '/api/cron/storage-sweep'
@@ -1065,6 +1085,7 @@ const rootRouteChildren: RootRouteChildren = {
   UHandleRoute: UHandleRoute,
   BlogIndexRoute: BlogIndexRoute,
   GuidesIndexRoute: GuidesIndexRoute,
+  ApiCronEmailSequencesRoute: ApiCronEmailSequencesRoute,
   ApiCronStorageSweepRoute: ApiCronStorageSweepRoute,
   ApiPublicUnsubscribeRoute: ApiPublicUnsubscribeRoute,
   DTransactionIdFileIdRoute: DTransactionIdFileIdRoute,

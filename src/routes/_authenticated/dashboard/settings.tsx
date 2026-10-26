@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrandColorPicker } from "@/components/brand-color-picker";
 import { AccountClosureCard } from "@/components/account-closure-card";
 import { LinkInBioEditor } from "@/components/link-in-bio-editor";
+import { FunnelSettings } from "@/components/funnel-settings";
 import { STANDARD_REFUND_POLICY } from "@/lib/refund-terms";
 
 export const Route = createFileRoute("/_authenticated/dashboard/settings")({
@@ -187,6 +188,8 @@ function SettingsPage() {
       </Card>
 
       <LinkInBioEditor handle={profileQ.data?.handle ?? null} />
+
+      <FunnelSettings />
 
       <AccountClosureCard />
     </div>

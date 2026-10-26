@@ -24,6 +24,8 @@ import {
 } from "@/lib/checkout-math";
 import { amountIn, asCurrency, couponIn, DEFAULT_CURRENCY, pricedIn } from "@/lib/currency";
 import { DIRECT_CHARGES } from "@/lib/plans";
+import { formatCents, listingPrice } from "@/lib/format";
+import { productImageUrl } from "@/lib/public-image-url";
 
 // Shown to a *buyer*, so it never leaks the seller's setup state (missing file,
 // unfinished Stripe onboarding). They only need to know it can't be bought yet.
@@ -422,7 +424,7 @@ export const getVerifiedTransaction = createServerFn({ method: "GET" })
 
     const { data: transaction, error } = await supabaseAdmin
       .from("transactions")
-      .select("id, status, refunded_at, amount_paid_cents, currency, product_id, seller_id, products(name, owner_id)")
+      .select("id, status, refunded_at, amount_paid_cents, currency, product_id, seller_id, buyer_email, products(name, owner_id)")
       .eq("id", data.transactionId)
       .single();
     if (error || !transaction || transaction.status !== "success" || transaction.refunded_at) {
@@ -454,6 +456,15 @@ export const getVerifiedTransaction = createServerFn({ method: "GET" })
       }
     }
 
+    const offer = sellerId
+      ? await loadAfterPurchaseOffer(supabaseAdmin, {
+          sellerId,
+          boughtProductId: transaction.product_id,
+          buyerEmail: transaction.buyer_email,
+          currency: asCurrency(transaction.currency),
+        })
+      : null;
+
     return {
       transactionId: transaction.id,
       productName: product?.name ?? "Your purchase",
@@ -461,5 +472,71 @@ export const getVerifiedTransaction = createServerFn({ method: "GET" })
       currency: asCurrency(transaction.currency),
       thankYouMessage,
       thankYouRedirectUrl,
+      offer,
     };
   });
+
+// The one product a seller offers on the download page (migration 0029), with
+// their discount code applied when it's still valid. Shown only when it is a
+// paid product the buyer can actually buy and doesn't already own. Every
+// failure — including the migration not being applied — means no offer, never
+// a broken download page.
+async function loadAfterPurchaseOffer(
+  admin: import("@supabase/supabase-js").SupabaseClient<import("@/integrations/supabase/types").Database>,
+  args: { sellerId: string; boughtProductId: string; buyerEmail: string | null; currency: import("@/lib/currency").Currency },
+) {
+  try {
+    const { data: seller, error } = await admin
+      .from("profiles")
+      .select("offer_product_id, offer_coupon_code, deactivated_at")
+      .eq("id", args.sellerId)
+      .single();
+    if (error || !seller?.offer_product_id || seller.deactivated_at || seller.offer_product_id === args.boughtProductId) {
+      return null;
+    }
+    const { data: p } = await admin
+      .from("products")
+      .select("id, name, url_slug, owner_id, image_url, price_cents, price_usd_cents, pay_what_you_want, sale_price_cents, sale_ends_at, billing_type, billing_interval")
+      .eq("id", seller.offer_product_id)
+      .maybeSingle();
+    if (!p || p.owner_id !== args.sellerId || !p.url_slug || isFreeProduct(p) || p.billing_type === "membership") return null;
+
+    const { sellerCanTakePayments } = await import("@/lib/seller-visibility.server");
+    if ((await sellerCanTakePayments(admin, args.sellerId)) === false) return null;
+
+    if (args.buyerEmail) {
+      const { count } = await admin
+        .from("transactions")
+        .select("id", { count: "exact", head: true })
+        .eq("product_id", p.id)
+        .eq("buyer_email", args.buyerEmail.toLowerCase())
+        .eq("status", "success")
+        .gt("amount_paid_cents", 0);
+      if ((count ?? 0) > 0) return null;
+    }
+
+    const now = new Date();
+    const price = listingPrice(p, now, args.currency);
+    let code: string | null = null;
+    let discountedLabel: string | null = null;
+    if (seller.offer_coupon_code && !p.pay_what_you_want) {
+      const valid = await findValidCoupon(admin, seller.offer_coupon_code, p.id);
+      if (valid) {
+        const priced = pricedIn(p, args.currency);
+        const base = activeSalePriceCents(priced, now) ?? priced.price_cents;
+        discountedLabel = formatCents(applyCouponDiscount(base, couponIn(valid, args.currency)), args.currency);
+        code = seller.offer_coupon_code;
+      }
+    }
+    return {
+      name: p.name,
+      slug: p.url_slug,
+      imageUrl: productImageUrl(p.id, p.image_url),
+      priceLabel: price.label,
+      discountedLabel,
+      coupon: code,
+    };
+  } catch {
+    return null;
+  }
+}
