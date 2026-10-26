@@ -4,5 +4,6 @@ Disallow: /dashboard
 Disallow: /login
 Disallow: /success
 Disallow: /api/
+Disallow: /go/
 
 Sitemap: https://halvo.io/sitemap.xml

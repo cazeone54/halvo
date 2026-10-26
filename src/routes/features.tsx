@@ -80,7 +80,7 @@ const GET_PAID: Feature[] = [
 const GROW: Feature[] = [
   { icon: Percent, title: "Discount codes", body: "Run percent-off coupons, activate and deactivate them any time." },
   { icon: Users2, title: "Affiliate program", body: "Let others earn a commission on every sale they refer — funded from the sale, tracked automatically." },
-  { icon: Store, title: "Your own storefront", body: "A clean public page at halvo.io/u/you that lists everything you sell." },
+  { icon: Store, title: "Your link in bio", body: "One page at halvo.io/you: your social profiles, your links, pinned products and everything you sell." },
   { icon: BarChart3, title: "Real analytics", body: "Revenue, sales, page views, conversion rate and where your buyers came from." },
   { icon: Star, title: "Verified reviews", body: "Only real, completed purchases can leave a rating — social proof you can trust." },
   { icon: Package, title: "Discover marketplace", body: "Get found by buyers browsing Halvo, on top of the traffic you bring yourself." },

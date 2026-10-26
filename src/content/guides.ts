@@ -37,7 +37,7 @@ export const GUIDES: Guide[] = [
       { type: "h2", text: "1. Pick your storefront handle" },
       {
         type: "p",
-        text: "Your handle is your public store address. If you pick “ana”, your storefront lives at halvo.io/u/ana and lists everything you sell. You can set it from the top of your dashboard.",
+        text: "Your handle is your public store address. If you pick “ana”, your storefront lives at halvo.io/ana and lists everything you sell. It doubles as a link-in-bio page: add your social profiles and links in Settings. You can set it from the top of your dashboard.",
       },
       { type: "h2", text: "2. Create the product" },
       {
@@ -149,7 +149,7 @@ export const GUIDES: Guide[] = [
       },
       {
         type: "note",
-        text: "Your storefront (halvo.io/u/your-handle) lists everything you sell in one place — useful when you have more than one product.",
+        text: "Your storefront (halvo.io/your-handle) lists everything you sell in one place, with your links and pinned products on top. It's built to be the one link in your Instagram or TikTok bio.",
       },
     ],
   },

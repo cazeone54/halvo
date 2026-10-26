@@ -374,7 +374,7 @@ function DashboardHome() {
     a.click();
     URL.revokeObjectURL(url);
   };
-  const storefrontUrl = profile?.handle ? `${BASE_URL}/u/${profile.handle}` : null;
+  const storefrontUrl = profile?.handle ? `${BASE_URL}/${profile.handle}` : null;
 
   return (
     <div className="flex flex-col gap-8">

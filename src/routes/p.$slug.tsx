@@ -85,7 +85,7 @@ export const Route = createFileRoute("/p/$slug")({
     if (loaderData.sellerHandle) {
       crumbs.push({
         name: loaderData.sellerName ?? loaderData.sellerHandle,
-        item: `${BASE_URL}/u/${loaderData.sellerHandle}`,
+        item: `${BASE_URL}/${loaderData.sellerHandle}`,
       });
     }
     crumbs.push({ name: loaderData.name, item: url });
@@ -213,7 +213,7 @@ function ProductCheckoutPage() {
                         iframe, where it would hijack the host page. */}
                     {product.sellerHandle && !embed ? (
                       <Link
-                        to="/u/$handle"
+                        to="/$handle"
                         params={{ handle: product.sellerHandle }}
                         className="font-medium text-foreground underline-offset-2 hover:underline"
                       >
@@ -285,7 +285,7 @@ function ProductCheckoutPage() {
                   <>
                     {" "}
                     <Link
-                      to="/u/$handle"
+                      to="/$handle"
                       params={{ handle: product.sellerHandle }}
                       className="text-primary underline underline-offset-2"
                     >
@@ -383,7 +383,7 @@ function ProductCheckoutPage() {
               </p>
               {product.sellerHandle ? (
                 <Link
-                  to="/u/$handle"
+                  to="/$handle"
                   params={{ handle: product.sellerHandle }}
                   className="shrink-0 text-xs text-primary underline underline-offset-4"
                 >

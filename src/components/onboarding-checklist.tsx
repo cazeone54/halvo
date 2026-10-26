@@ -87,7 +87,7 @@ export function OnboardingChecklist({
 
   const copyLink = async () => {
     if (!savedHandle) return;
-    await navigator.clipboard.writeText(`${BASE_URL}/u/${savedHandle}`);
+    await navigator.clipboard.writeText(`${BASE_URL}/${savedHandle}`);
   };
 
   const steps = [
@@ -221,7 +221,7 @@ export function OnboardingChecklist({
                   ) : (
                     <p className="text-xs text-muted-foreground">
                       {handleDraft
-                        ? `Your store: ${BASE_URL.replace(/^https?:\/\//, "")}/u/${handleDraft}`
+                        ? `Your store: ${BASE_URL.replace(/^https?:\/\//, "")}/${handleDraft}`
                         : "3–32 characters: lowercase letters, numbers, - or _."}
                     </p>
                   )}

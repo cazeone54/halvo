@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as HandleRouteImport } from './routes/$handle'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AccessRouteImport } from './routes/access'
 import { Route as BillingRouteImport } from './routes/billing'
@@ -49,6 +50,7 @@ import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_au
 import { Route as ApiCronStorageSweepRouteImport } from './routes/api/cron/storage-sweep'
 import { Route as ApiPublicUnsubscribeRouteImport } from './routes/api/public/unsubscribe'
 import { Route as DTransactionIdFileIdRouteImport } from './routes/d.$transactionId.$fileId'
+import { Route as GoHandleLinkIdRouteImport } from './routes/go.$handle.$linkId'
 import { Route as ImgAvatarUserIdRouteImport } from './routes/img.avatar.$userId'
 import { Route as ImgProductProductIdRouteImport } from './routes/img.product.$productId'
 import { Route as AuthenticatedDashboardStripeRefreshRouteImport } from './routes/_authenticated/dashboard/stripe.refresh'
@@ -59,6 +61,11 @@ import { Route as ImgGalleryProductIdIndexRouteImport } from './routes/img.galle
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HandleRoute = HandleRouteImport.update({
+  id: '/$handle',
+  path: '/$handle',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -263,6 +270,11 @@ const DTransactionIdFileIdRoute = DTransactionIdFileIdRouteImport.update({
   path: '/d/$transactionId/$fileId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GoHandleLinkIdRoute = GoHandleLinkIdRouteImport.update({
+  id: '/go/$handle/$linkId',
+  path: '/go/$handle/$linkId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ImgAvatarUserIdRoute = ImgAvatarUserIdRouteImport.update({
   id: '/img/avatar/$userId',
   path: '/img/avatar/$userId',
@@ -300,6 +312,7 @@ const ImgGalleryProductIdIndexRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$handle': typeof HandleRoute
   '/access': typeof AccessRoute
   '/billing': typeof BillingRoute
   '/contact': typeof ContactRoute
@@ -337,6 +350,7 @@ export interface FileRoutesByFullPath {
   '/api/cron/storage-sweep': typeof ApiCronStorageSweepRoute
   '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
   '/d/$transactionId/$fileId': typeof DTransactionIdFileIdRoute
+  '/go/$handle/$linkId': typeof GoHandleLinkIdRoute
   '/img/avatar/$userId': typeof ImgAvatarUserIdRoute
   '/img/product/$productId': typeof ImgProductProductIdRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
@@ -347,6 +361,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$handle': typeof HandleRoute
   '/access': typeof AccessRoute
   '/billing': typeof BillingRoute
   '/contact': typeof ContactRoute
@@ -383,6 +398,7 @@ export interface FileRoutesByTo {
   '/api/cron/storage-sweep': typeof ApiCronStorageSweepRoute
   '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
   '/d/$transactionId/$fileId': typeof DTransactionIdFileIdRoute
+  '/go/$handle/$linkId': typeof GoHandleLinkIdRoute
   '/img/avatar/$userId': typeof ImgAvatarUserIdRoute
   '/img/product/$productId': typeof ImgProductProductIdRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
@@ -395,6 +411,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/$handle': typeof HandleRoute
   '/access': typeof AccessRoute
   '/billing': typeof BillingRoute
   '/contact': typeof ContactRoute
@@ -432,6 +449,7 @@ export interface FileRoutesById {
   '/api/cron/storage-sweep': typeof ApiCronStorageSweepRoute
   '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
   '/d/$transactionId/$fileId': typeof DTransactionIdFileIdRoute
+  '/go/$handle/$linkId': typeof GoHandleLinkIdRoute
   '/img/avatar/$userId': typeof ImgAvatarUserIdRoute
   '/img/product/$productId': typeof ImgProductProductIdRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
@@ -444,6 +462,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/$handle'
     | '/access'
     | '/billing'
     | '/contact'
@@ -481,6 +500,7 @@ export interface FileRouteTypes {
     | '/api/cron/storage-sweep'
     | '/api/public/unsubscribe'
     | '/d/$transactionId/$fileId'
+    | '/go/$handle/$linkId'
     | '/img/avatar/$userId'
     | '/img/product/$productId'
     | '/dashboard/'
@@ -491,6 +511,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/$handle'
     | '/access'
     | '/billing'
     | '/contact'
@@ -527,6 +548,7 @@ export interface FileRouteTypes {
     | '/api/cron/storage-sweep'
     | '/api/public/unsubscribe'
     | '/d/$transactionId/$fileId'
+    | '/go/$handle/$linkId'
     | '/img/avatar/$userId'
     | '/img/product/$productId'
     | '/dashboard'
@@ -538,6 +560,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/$handle'
     | '/access'
     | '/billing'
     | '/contact'
@@ -575,6 +598,7 @@ export interface FileRouteTypes {
     | '/api/cron/storage-sweep'
     | '/api/public/unsubscribe'
     | '/d/$transactionId/$fileId'
+    | '/go/$handle/$linkId'
     | '/img/avatar/$userId'
     | '/img/product/$productId'
     | '/_authenticated/dashboard/'
@@ -587,6 +611,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  HandleRoute: typeof HandleRoute
   AccessRoute: typeof AccessRoute
   BillingRoute: typeof BillingRoute
   ContactRoute: typeof ContactRoute
@@ -617,6 +642,7 @@ export interface RootRouteChildren {
   ApiCronStorageSweepRoute: typeof ApiCronStorageSweepRoute
   ApiPublicUnsubscribeRoute: typeof ApiPublicUnsubscribeRoute
   DTransactionIdFileIdRoute: typeof DTransactionIdFileIdRoute
+  GoHandleLinkIdRoute: typeof GoHandleLinkIdRoute
   ImgAvatarUserIdRoute: typeof ImgAvatarUserIdRoute
   ImgProductProductIdRoute: typeof ImgProductProductIdRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
@@ -630,6 +656,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$handle': {
+      id: '/$handle'
+      path: '/$handle'
+      fullPath: '/$handle'
+      preLoaderRoute: typeof HandleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -905,6 +938,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DTransactionIdFileIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/go/$handle/$linkId': {
+      id: '/go/$handle/$linkId'
+      path: '/go/$handle/$linkId'
+      fullPath: '/go/$handle/$linkId'
+      preLoaderRoute: typeof GoHandleLinkIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/img/avatar/$userId': {
       id: '/img/avatar/$userId'
       path: '/img/avatar/$userId'
@@ -997,6 +1037,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  HandleRoute: HandleRoute,
   AccessRoute: AccessRoute,
   BillingRoute: BillingRoute,
   ContactRoute: ContactRoute,
@@ -1027,6 +1068,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCronStorageSweepRoute: ApiCronStorageSweepRoute,
   ApiPublicUnsubscribeRoute: ApiPublicUnsubscribeRoute,
   DTransactionIdFileIdRoute: DTransactionIdFileIdRoute,
+  GoHandleLinkIdRoute: GoHandleLinkIdRoute,
   ImgAvatarUserIdRoute: ImgAvatarUserIdRoute,
   ImgProductProductIdRoute: ImgProductProductIdRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,

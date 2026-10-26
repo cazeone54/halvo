@@ -27,6 +27,11 @@ export type Database = {
           deactivated_at: string | null;
           // Present once migration 0024 is applied.
           stripe_charges_enabled: boolean;
+          // Link-in-bio (migration 0028). Read through link-in-bio.ts's
+          // *ForDisplay helpers, which validate whatever is stored.
+          social_links: Json;
+          bio_links: Json;
+          featured_product_ids: string[];
           created_at: string;
           updated_at: string;
         };
@@ -44,6 +49,9 @@ export type Database = {
           accent_color?: string | null;
           deactivated_at?: string | null;
           stripe_charges_enabled?: boolean;
+          social_links?: Json;
+          bio_links?: Json;
+          featured_product_ids?: string[];
           created_at?: string;
           updated_at?: string;
         };
@@ -61,10 +69,44 @@ export type Database = {
           accent_color?: string | null;
           deactivated_at?: string | null;
           stripe_charges_enabled?: boolean;
+          social_links?: Json;
+          bio_links?: Json;
+          featured_product_ids?: string[];
           created_at?: string;
           updated_at?: string;
         };
         Relationships: [];
+      };
+      // One row per click on a seller's link-in-bio link (migration 0028).
+      // Written only by the service role from /go/; sellers read their own.
+      link_clicks: {
+        Row: {
+          id: number;
+          profile_id: string;
+          link_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: number;
+          profile_id: string;
+          link_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: number;
+          profile_id?: string;
+          link_id?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "link_clicks_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       products: {
         Row: {

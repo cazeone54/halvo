@@ -51,7 +51,7 @@ export const Route = createFileRoute("/sitemap.xml")({
           ...(products ?? []).filter((p) => isListedPublicly(p, visibility)).map((p) => `/p/${p.url_slug}`),
           ...(profiles ?? [])
             .filter((p) => isListedPublicly({ owner_id: p.id }, visibility))
-            .map((p) => `/u/${p.handle}`),
+            .map((p) => `/${p.handle}`),
         ];
 
         const urls = paths.map((path) => `  <url><loc>${BASE_URL}${path}</loc></url>`).join("\n");

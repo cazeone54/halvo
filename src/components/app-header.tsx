@@ -41,7 +41,7 @@ export function AppHeader() {
   const profileFn = useServerFn(getMyProfile);
   const profileQ = useQuery({ queryKey: ["my-profile"], queryFn: () => profileFn() });
   const profile = profileQ.data;
-  const storefrontUrl = profile?.handle ? `${BASE_URL}/u/${profile.handle}` : null;
+  const storefrontUrl = profile?.handle ? `${BASE_URL}/${profile.handle}` : null;
   const displayName = profile?.display_name || profile?.handle || "Your account";
 
   const signOut = async () => {

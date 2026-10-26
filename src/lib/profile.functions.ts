@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { avatarImageUrl } from "@/lib/public-image-url";
 import { normalizeHex } from "@/lib/brand-color";
 import { isStoredAvatarPath } from "@/lib/avatar";
+import { isReservedHandle } from "@/lib/link-in-bio";
 
 export const getMyProfile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -28,6 +29,8 @@ export const updateMyHandle = createServerFn({ method: "POST" })
     if (!HANDLE_RE.test(data.handle)) {
       throw new Error("Handle must be 3-32 characters: lowercase letters, numbers, - or _.");
     }
+    // Shops live at halvo.io/<handle>, alongside the site's own pages.
+    if (isReservedHandle(data.handle)) throw new Error("That handle is taken. Try another.");
     const { error } = await context.supabase
       .from("profiles")
       .update({ handle: data.handle })

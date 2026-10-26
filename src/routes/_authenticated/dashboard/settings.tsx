@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrandColorPicker } from "@/components/brand-color-picker";
 import { AccountClosureCard } from "@/components/account-closure-card";
+import { LinkInBioEditor } from "@/components/link-in-bio-editor";
 import { STANDARD_REFUND_POLICY } from "@/lib/refund-terms";
 
 export const Route = createFileRoute("/_authenticated/dashboard/settings")({
@@ -184,6 +185,8 @@ function SettingsPage() {
           {saveMut.error ? <p className="text-sm text-destructive">{(saveMut.error as Error).message}</p> : null}
         </CardContent>
       </Card>
+
+      <LinkInBioEditor handle={profileQ.data?.handle ?? null} />
 
       <AccountClosureCard />
     </div>
