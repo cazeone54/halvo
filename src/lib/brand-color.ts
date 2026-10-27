@@ -22,7 +22,10 @@ export const BRAND_PRESETS: ReadonlyArray<{ name: string; hex: string }> = [
 // --background / --card in styles.css). Light: text is worst on the darker of
 // the light surfaces; dark: worst on the lighter of the dark surfaces.
 const LIGHT_SURFACE = "#f4f5f8";
-const DARK_SURFACE = "#12162b";
+// The dark theme's lightest surface, --muted (~#292a2d), since the 2026-10-27
+// switch from near-black navy to dark grey. Checking against the lightest one
+// keeps a seller's colour readable on cards and muted panels alike.
+const DARK_SURFACE = "#292a2d";
 const WHITE = "#ffffff";
 const BLACK = "#000000";
 export const MIN_TEXT_CONTRAST = 4.5;

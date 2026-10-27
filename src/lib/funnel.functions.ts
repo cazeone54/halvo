@@ -200,18 +200,21 @@ export const recordShopView = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-// The funnel for the last 30 days: visits → link taps → product views → free
-// downloads → sales. Sources are only named once there are enough visits for
-// the split to mean something (see the note in analytics.functions.ts).
+// The funnel for the chosen period: visits → link taps → product views → free
+// downloads → sales. Where visits come from is the "Where visits come from"
+// circle on the same page (analytics.functions.ts).
 export const getMyFunnel = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const since = new Date(Date.now() - 30 * DAY).toISOString();
+  .validator((data) => z.object({ period: z.number().optional() }).optional().parse(data))
+  .handler(async ({ data, context }) => {
+    // Same periods as the rest of Analytics; 0 = all time.
+    const days = [7, 30, 90, 0].includes(data?.period ?? 30) ? data?.period ?? 30 : 30;
+    const since = days === 0 ? new Date(0).toISOString() : new Date(Date.now() - days * DAY).toISOString();
     const count = async (q: PromiseLike<{ count: number | null; error: { code?: string; message: string } | null }>) => {
       const { count: n, error } = await q;
       return error ? null : n ?? 0;
     };
-    const [visits, taps, productViews, freeDownloads, sales, sources] = await Promise.all([
+    const [visits, taps, productViews, freeDownloads, sales] = await Promise.all([
       count(context.supabase.from("shop_views").select("id", { count: "exact", head: true }).eq("seller_id", context.userId).gte("created_at", since)),
       count(context.supabase.from("link_clicks").select("id", { count: "exact", head: true }).eq("profile_id", context.userId).gte("created_at", since)),
       // RLS on product_views already limits this to the seller's own products.
@@ -232,18 +235,9 @@ export const getMyFunnel = createServerFn({ method: "GET" })
           .eq("seller_id", context.userId)
           .eq("status", "success")
           .gt("amount_paid_cents", 0)
+          .is("refunded_at", null)
           .gte("created_at", since),
       ),
-      context.supabase.from("shop_views").select("source").eq("seller_id", context.userId).gte("created_at", since).limit(5000),
     ]);
-
-    let topSource: { name: string; share: number } | null = null;
-    const rows = sources.error ? [] : sources.data ?? [];
-    if (rows.length >= 30) {
-      const tally = new Map<string, number>();
-      for (const r of rows) tally.set(r.source ?? "Unknown", (tally.get(r.source ?? "Unknown") ?? 0) + 1);
-      const [name, n] = [...tally.entries()].sort((a, b) => b[1] - a[1])[0];
-      topSource = { name, share: n / rows.length };
-    }
-    return { visits, taps, productViews, freeDownloads, sales, topSource };
+    return { visits, taps, productViews, freeDownloads, sales };
   });

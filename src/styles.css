@@ -37,6 +37,13 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-donut-1: var(--donut-1);
+  --color-donut-2: var(--donut-2);
+  --color-donut-3: var(--donut-3);
+  --color-donut-4: var(--donut-4);
+  --color-donut-other: var(--donut-other);
+  --color-trend-up: var(--trend-up);
+  --color-trend-down: var(--trend-down);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -77,6 +84,19 @@
   --chart-3: oklch(0.7 0.17 40);
   --chart-4: oklch(0.65 0.16 130);
   --chart-5: oklch(0.65 0.18 320);
+  /* Circle-chart slices. Not the --chart-* set: its green and orange can't be
+     told apart with red-green colour blindness (measured), so these four were
+     run through a colour-blindness check, in this order, in both themes —
+     including slice 4 sitting next to slice 1 where the ring closes. Every
+     slice also has a written label, so colour is never the only clue. */
+  --donut-1: #2a78d6;
+  --donut-2: #eb6834;
+  --donut-3: #1baf7a;
+  --donut-4: #eda100;
+  --donut-other: oklch(0.66 0.008 264);
+  /* ▲/▼ change text: 5.2:1 and 5.4:1 on cards, always with the arrow. */
+  --trend-up: oklch(0.52 0.13 150);
+  --trend-down: oklch(0.55 0.2 25);
   --sidebar: oklch(0.98 0.005 264);
   --sidebar-foreground: oklch(0.2 0.03 264);
   --sidebar-primary: oklch(0.55 0.14 195);
@@ -87,40 +107,60 @@
   --sidebar-ring: oklch(0.55 0.14 195);
 }
 
+/* Dark theme: dark grey, not black. Follows the common dark-UI guidance
+   (Material's #121212 base): pure black makes white text glare and leaves no
+   room to show depth, so the page sits at ~#131415 and raised surfaces get
+   LIGHTER, not darker (card ~#1f2022, muted ~#292a2d). A faint cool tint
+   (hue 264, chroma ≤0.006) keeps it from looking flat next to the teal.
+   Text is off-white (~#e7e8ea) rather than pure white, and the teal is a touch
+   lighter and calmer, because saturated colour vibrates on dark grounds.
+   Every text/surface pair was measured: body text ≥13:1, muted text ≥5.8:1,
+   teal prices/links ≥7.4:1, error red 4.9:1 on cards. Buttons on teal and red
+   use dark text (8.7:1 / 5.7:1), as Material does for dark themes — white on
+   that red only reached 3.2:1. brand-color.ts checks sellers' colours against
+   the --muted value (the lightest dark surface), so change DARK_SURFACE there
+   if --muted changes here. */
 .dark {
-  --background: oklch(0.07 0.02 264);
-  --foreground: oklch(0.97 0.005 264);
-  --hero-glow: color-mix(in oklab, var(--primary) 18%, var(--background));
-  --card: oklch(0.125 0.03 264);
-  --card-foreground: oklch(0.97 0.005 264);
-  --popover: oklch(0.125 0.03 264);
-  --popover-foreground: oklch(0.97 0.005 264);
-  --primary: oklch(0.68 0.14 195);
-  --primary-foreground: oklch(0.1 0.02 264);
-  --secondary: oklch(0.18 0.05 264);
-  --secondary-foreground: oklch(0.97 0.005 264);
-  --muted: oklch(0.16 0.035 264);
-  --muted-foreground: oklch(0.65 0.015 264);
-  --accent: oklch(0.2 0.05 195);
-  --accent-foreground: oklch(0.97 0.005 264);
-  --destructive: oklch(0.55 0.18 25);
-  --destructive-foreground: oklch(0.98 0.005 264);
-  --border: oklch(1 0 0 / 8%);
-  --input: oklch(1 0 0 / 10%);
-  --ring: oklch(0.68 0.14 195);
-  --chart-1: oklch(0.68 0.14 195);
-  --chart-2: oklch(0.65 0.2 275);
-  --chart-3: oklch(0.75 0.17 40);
-  --chart-4: oklch(0.72 0.16 130);
-  --chart-5: oklch(0.7 0.18 320);
-  --sidebar: oklch(0.11 0.025 264);
-  --sidebar-foreground: oklch(0.97 0.005 264);
-  --sidebar-primary: oklch(0.68 0.14 195);
-  --sidebar-primary-foreground: oklch(0.1 0.02 264);
-  --sidebar-accent: oklch(0.16 0.045 195);
-  --sidebar-accent-foreground: oklch(0.97 0.005 264);
-  --sidebar-border: oklch(1 0 0 / 5%);
-  --sidebar-ring: oklch(0.68 0.14 195);
+  --background: oklch(0.19 0.003 264);
+  --foreground: oklch(0.93 0.003 264);
+  --hero-glow: color-mix(in oklab, var(--primary) 14%, var(--background));
+  --card: oklch(0.245 0.004 264);
+  --card-foreground: oklch(0.93 0.003 264);
+  --popover: oklch(0.245 0.004 264);
+  --popover-foreground: oklch(0.93 0.003 264);
+  --primary: oklch(0.74 0.12 195);
+  --primary-foreground: oklch(0.17 0.02 264);
+  --secondary: oklch(0.285 0.006 264);
+  --secondary-foreground: oklch(0.93 0.003 264);
+  --muted: oklch(0.285 0.005 264);
+  --muted-foreground: oklch(0.72 0.008 264);
+  --accent: oklch(0.3 0.035 195);
+  --accent-foreground: oklch(0.93 0.003 264);
+  --destructive: oklch(0.66 0.17 25);
+  --destructive-foreground: oklch(0.17 0.02 264);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.74 0.12 195);
+  --chart-1: oklch(0.74 0.12 195);
+  --chart-2: oklch(0.68 0.17 275);
+  --chart-3: oklch(0.76 0.15 40);
+  --chart-4: oklch(0.74 0.14 130);
+  --chart-5: oklch(0.72 0.16 320);
+  --donut-1: #3987e5;
+  --donut-2: #d95926;
+  --donut-3: #199e70;
+  --donut-4: #c98500;
+  --donut-other: oklch(0.56 0.008 264);
+  --trend-up: oklch(0.78 0.15 150);
+  --trend-down: oklch(0.72 0.15 25);
+  --sidebar: oklch(0.21 0.004 264);
+  --sidebar-foreground: oklch(0.93 0.003 264);
+  --sidebar-primary: oklch(0.74 0.12 195);
+  --sidebar-primary-foreground: oklch(0.17 0.02 264);
+  --sidebar-accent: oklch(0.28 0.03 195);
+  --sidebar-accent-foreground: oklch(0.93 0.003 264);
+  --sidebar-border: oklch(1 0 0 / 7%);
+  --sidebar-ring: oklch(0.74 0.12 195);
 }
 
 /* A seller's brand color on their storefront and product pages. The --brand-*

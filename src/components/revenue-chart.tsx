@@ -1,5 +1,6 @@
 import { formatCents } from "@/lib/format";
 import { CURRENCY_META, DEFAULT_CURRENCY, type Currency } from "@/lib/currency";
+import { revenueBuckets, type Period } from "@/lib/analytics-math";
 
 // A single-series revenue-over-time bar chart. One series, so no legend — the
 // card title names it. Bars carry the only colour (brand teal); every label is
@@ -8,36 +9,38 @@ import { CURRENCY_META, DEFAULT_CURRENCY, type Currency } from "@/lib/currency";
 // construction rather than by an eyeballed flip.
 // One currency per chart: a seller paid in both euros and dollars gets one each
 // (labelled), since the two can't honestly share an axis.
+// A bar per day for 7 and 30 days, per week for 90, per month for all time.
 export function RevenueChart({
   data,
+  period = 30,
   currency = DEFAULT_CURRENCY,
   labelled = false,
 }: {
   data: Array<{ day: string; revenueCents: number }>;
+  period?: Period;
   currency?: Currency;
   labelled?: boolean;
 }) {
   const money = (cents: number) => formatCents(cents, currency);
-  const DAYS = 30;
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
-
-  const byDay = new Map(data.map((d) => [d.day, d.revenueCents]));
-  const series = Array.from({ length: DAYS }, (_, i) => {
-    const d = new Date(today);
-    d.setUTCDate(d.getUTCDate() - (DAYS - 1 - i));
-    const key = d.toISOString().slice(0, 10);
-    return { key, date: d, cents: byDay.get(key) ?? 0 };
-  });
+  const series = revenueBuckets(data, period, new Date());
 
   const peak = Math.max(...series.map((s) => s.cents), 0);
   if (peak === 0) {
-    return <p className="text-sm text-muted-foreground">No sales in the last 30 days.</p>;
+    return <p className="text-sm text-muted-foreground">No sales in this period.</p>;
   }
 
   // Round the axis top up to a clean number so the gridline label reads nicely.
   const niceMax = niceCeil(peak);
-  const fmtDay = (d: Date) => d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const unit = series[0].unit;
+  // Buckets are UTC dates, so they're shown in UTC too: a sale on the 27th
+  // never shows up under "Oct 26" for a seller west of London.
+  const fmt = (d: Date) =>
+    d.toLocaleDateString(
+      undefined,
+      unit === "month" ? { month: "short", year: "numeric", timeZone: "UTC" } : { month: "short", day: "numeric", timeZone: "UTC" },
+    );
+  const fmtBucket = (d: Date) => (unit === "week" ? `Week of ${fmt(d)}` : fmt(d));
+  const lastLabel = unit === "day" ? "Today" : unit === "week" ? "This week" : "This month";
 
   return (
     <figure className="m-0">
@@ -71,7 +74,7 @@ export function RevenueChart({
                 {/* hover tooltip */}
                 <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded-md border bg-popover px-2 py-1 text-xs shadow-md group-hover:block">
                   <span className="font-medium">{money(s.cents)}</span>
-                  <span className="ml-1 text-muted-foreground">{fmtDay(s.date)}</span>
+                  <span className="ml-1 text-muted-foreground">{fmtBucket(s.start)}</span>
                 </div>
               </div>
             ))}
@@ -81,8 +84,8 @@ export function RevenueChart({
 
       {/* x-axis endpoints */}
       <figcaption className="mt-2 flex justify-between pl-14 text-[10px] text-muted-foreground">
-        <span>{fmtDay(series[0].date)}</span>
-        <span>Today</span>
+        <span>{fmtBucket(series[0].start)}</span>
+        <span>{lastLabel}</span>
       </figcaption>
     </figure>
   );
