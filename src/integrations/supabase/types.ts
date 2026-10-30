@@ -36,6 +36,10 @@ export type Database = {
           start_here_product_id: string | null;
           offer_product_id: string | null;
           offer_coupon_code: string | null;
+          // Shop look (migration 0030).
+          banner_path: string | null;
+          announcement_text: string | null;
+          announcement_url: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -59,6 +63,9 @@ export type Database = {
           start_here_product_id?: string | null;
           offer_product_id?: string | null;
           offer_coupon_code?: string | null;
+          banner_path?: string | null;
+          announcement_text?: string | null;
+          announcement_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -82,6 +89,9 @@ export type Database = {
           start_here_product_id?: string | null;
           offer_product_id?: string | null;
           offer_coupon_code?: string | null;
+          banner_path?: string | null;
+          announcement_text?: string | null;
+          announcement_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };

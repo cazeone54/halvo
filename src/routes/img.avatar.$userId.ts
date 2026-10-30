@@ -10,7 +10,7 @@ export const Route = createFileRoute("/img/avatar/$userId")({
 
         const { data: profile } = await supabaseAdmin
           .from("profiles")
-          .select("avatar_url")
+          .select("id, avatar_url")
           .eq("id", params.userId)
           .single();
         if (!profile?.avatar_url) return new Response("Not found", { status: 404 });
@@ -18,7 +18,7 @@ export const Route = createFileRoute("/img/avatar/$userId")({
         // A provider photo copied in at sign-up (Google's lh3 link) — redirect
         // to it, but only for allow-listed hosts; anything else would make this
         // an open redirect. See @/lib/avatar.
-        const { trustedExternalAvatar, isStoredAvatarPath } = await import("@/lib/avatar");
+        const { trustedExternalAvatar, isOwnStoredImage } = await import("@/lib/avatar");
         const external = trustedExternalAvatar(profile.avatar_url);
         if (external) {
           return new Response(null, {
@@ -27,8 +27,11 @@ export const Route = createFileRoute("/img/avatar/$userId")({
           });
         }
         // A URL from anywhere else isn't a storage path either; asking storage
-        // to sign it was what produced broken images before.
-        if (!isStoredAvatarPath(profile.avatar_url)) return new Response("Not found", { status: 404 });
+        // to sign it was what produced broken images before. And only a file
+        // from this user's own avatar folder is ever signed here.
+        if (!isOwnStoredImage(profile.avatar_url, profile.id, "avatar")) {
+          return new Response("Not found", { status: 404 });
+        }
 
         // Cached the same way as product images — an avatar shouldn't be a
         // fresh sign operation on every storefront view.

@@ -1,7 +1,7 @@
 import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { brandThemeStyle } from "@/lib/brand-color";
 import { buildMediaItems } from "@/lib/product-media";
 import { ProductMedia } from "@/components/product-media";
@@ -21,6 +21,7 @@ import { Logo, LogoMark } from "@/components/logo";
 import { BRAND_NAME, BASE_URL, BRAND_EMAIL } from "@/lib/site";
 import { CURRENCY_META } from "@/lib/currency";
 import { CurrencySwitch } from "@/components/currency-switch";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/p/$slug")({
   loader: async ({ params }) => {
@@ -168,12 +169,20 @@ function ProductCheckoutPage() {
 
   const isFree = !product.payWhatYouWant && product.priceCents === 0;
   const priceLabel = product.price.label;
+  // Two columns on a computer: the product on the left, checkout beside it, so
+  // the price and the way to pay are both on screen without scrolling. Not in
+  // the embed overlay, which is sized like a phone.
+  const wide = !embed;
+  const canBuy = !product.soldOut;
+  const buyLabel = isFree ? "Get it free" : "Buy now";
+  const showBuyBar = useBuyBar(canBuy);
+  const goToCheckout = () => document.getElementById("checkout")?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   return (
     <div className="min-h-screen bg-muted/30">
       {/* Minimal, distraction-free header — no nav on a checkout page, just a
           brand mark and a security cue to build trust. */}
-      <header className="mx-auto flex max-w-lg items-center justify-between px-4 py-4 sm:px-6">
+      <header className={cn("mx-auto flex max-w-lg items-center justify-between px-4 py-4 sm:px-6", wide && "lg:max-w-5xl")}>
         {/* In an embedded overlay, the mark must not navigate the iframe. */}
         {embed ? (
           <Logo markClassName="h-6 w-6" />
@@ -190,271 +199,338 @@ function ProductCheckoutPage() {
       <main
         id="main-content"
         tabIndex={-1}
-        className={cn("mx-auto flex max-w-lg flex-col gap-4 px-4 pb-16 sm:px-6", brandStyle && "brand-theme")}
+        className={cn(
+          "mx-auto flex max-w-lg flex-col gap-4 px-4 pb-28 sm:px-6 lg:pb-16",
+          wide && "lg:grid lg:max-w-5xl lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-8",
+          brandStyle && "brand-theme",
+        )}
         style={brandStyle as CSSProperties | undefined}
       >
-        {/* Product card */}
-        <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-          <ProductMedia
-            items={buildMediaItems({
-              name: product.name,
-              coverUrl: product.imageUrl,
-              video: product.video,
-              galleryUrls: product.galleryUrls,
-            })}
+        {/* The left column on a computer. On a phone it dissolves into the one
+            column, and the order classes put checkout straight after the
+            product, with reviews and more products below it. */}
+        <div className={cn("contents", wide && "lg:flex lg:min-w-0 lg:flex-col lg:gap-4")}>
+          {/* Product card */}
+          <div className="order-1 overflow-hidden rounded-2xl border bg-card shadow-sm">
+            <ProductMedia
+              items={buildMediaItems({
+                name: product.name,
+                coverUrl: product.imageUrl,
+                video: product.video,
+                galleryUrls: product.galleryUrls,
+              })}
+            />
+            <div className="flex flex-col gap-3 p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h1 className="font-[family-name:var(--font-display)] text-xl font-semibold sm:text-2xl">
+                    {product.name}
+                  </h1>
+                  {product.sellerName ? (
+                    <p className="text-sm text-muted-foreground">
+                      by{" "}
+                      {/* Link to the seller's storefront so a buyer can see the
+                          rest of their catalogue — but not inside the embed
+                          iframe, where it would hijack the host page. */}
+                      {product.sellerHandle && !embed ? (
+                        <Link
+                          to="/$handle"
+                          params={{ handle: product.sellerHandle }}
+                          className="font-medium text-foreground underline-offset-2 hover:underline"
+                        >
+                          {product.sellerName}
+                        </Link>
+                      ) : (
+                        product.sellerName
+                      )}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="font-[family-name:var(--font-display)] text-xl font-semibold text-primary sm:text-2xl">
+                    {priceLabel}
+                  </p>
+                  {product.price.regularLabel ? (
+                    <p className="text-sm text-muted-foreground">
+                      <span className="sr-only">Regular price </span>
+                      <s>{product.price.regularLabel}</s>
+                    </p>
+                  ) : null}
+                  {product.installmentCount ? (
+                    <p className="text-xs text-muted-foreground">
+                      or {product.installmentCount} × {formatCents(installmentAmountCents(product.priceCents, product.installmentCount), product.currency)}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+              {/* On a phone the checkout is below the description; this takes the
+                  buyer straight to it. On a computer it sits alongside instead. */}
+              {canBuy ? (
+                <Button id="buy-jump" size="lg" className="w-full lg:hidden" onClick={goToCheckout}>
+                  {buyLabel}
+                </Button>
+              ) : null}
+              {product.description ? (
+                // whitespace-pre-line keeps the seller's paragraph/line breaks
+                // instead of collapsing a multi-line description into one block;
+                // break-words stops a pasted long URL from overflowing the card.
+                <p className="whitespace-pre-line break-words text-sm text-muted-foreground">{product.description}</p>
+              ) : null}
+              <div className="flex flex-wrap items-center gap-2">
+                {product.salesCount > 0 ? (
+                  <div className="flex w-fit items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-sm text-primary">
+                    <CircleCheck className="h-4 w-4" />
+                    <span className="font-medium">{product.salesCount}</span> already sold
+                  </div>
+                ) : null}
+                {summary && summary.count > 0 ? (
+                  <div className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground">
+                    <Stars value={summary.rounded} />
+                    <span className="font-medium text-foreground">{summary.average}</span>
+                    <span>
+                      ({summary.count} review{summary.count === 1 ? "" : "s"})
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+
+          {reviewsQ.data && reviewsQ.data.reviews.length > 0 ? (
+            <div className="order-3 rounded-2xl border bg-card p-5">
+              <p className="font-[family-name:var(--font-display)] font-semibold">What buyers say</p>
+              <div className="mt-4 flex flex-col gap-4">
+                {reviewsQ.data.reviews.slice(0, 5).map((review) => (
+                  <div key={review.id} className="border-b pb-4 last:border-b-0 last:pb-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Stars value={review.rating} />
+                      {/* Every review on Halvo is tied to a real, completed, non-
+                          refunded purchase — server-enforced — so this label is
+                          always truthful, and it's the strongest trust signal here. */}
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+                        <CircleCheck className="h-3.5 w-3.5" aria-hidden="true" /> Verified purchase
+                      </span>
+                    </div>
+                    <p className="mt-1.5 text-sm text-muted-foreground">{review.body}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {!embed && more.length > 0 ? (
+            <div className="order-4 rounded-2xl border bg-card p-5">
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-[family-name:var(--font-display)] font-semibold">
+                  More from {product.sellerName ?? "this seller"}
+                </p>
+                {product.sellerHandle ? (
+                  <Link
+                    to="/$handle"
+                    params={{ handle: product.sellerHandle }}
+                    className="shrink-0 text-xs text-primary underline underline-offset-4"
+                  >
+                    View all
+                  </Link>
+                ) : null}
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                {more.map((p) => (
+                  <Link key={p.id} to="/p/$slug" params={{ slug: p.slug }} className="group">
+                    <div className="aspect-video w-full overflow-hidden rounded-lg bg-muted">
+                      {p.imageUrl ? (
+                        <img
+                          src={p.imageUrl}
+                          alt={p.name}
+                          loading="lazy"
+                          decoding="async"
+                          className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                        />
+                      ) : (
+                        // No cover: the product's initial instead of an empty grey box.
+                        <span className="flex h-full w-full items-center justify-center bg-primary/10 font-[family-name:var(--font-display)] text-2xl font-bold text-primary">
+                          {p.name.trim().charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1.5 truncate text-sm font-medium">{p.name}</p>
+                    <p className="text-xs text-primary">
+                      {p.price.label}
+                      {p.price.regularLabel ? (<s className="ml-1.5 text-xs font-normal text-muted-foreground">{p.price.regularLabel}</s>) : null}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        <aside aria-label="Checkout" className="order-2 flex min-w-0 flex-col gap-4">
+          <OfferBanner
+            saleEndsAt={product.saleEndsAt}
+            stockLimit={product.stockLimit}
+            stockRemaining={product.stockRemaining}
           />
-          <div className="flex flex-col gap-3 p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h1 className="font-[family-name:var(--font-display)] text-xl font-semibold sm:text-2xl">
-                  {product.name}
-                </h1>
-                {product.sellerName ? (
-                  <p className="text-sm text-muted-foreground">
-                    by{" "}
-                    {/* Link to the seller's storefront so a buyer can see the
-                        rest of their catalogue — but not inside the embed
-                        iframe, where it would hijack the host page. */}
-                    {product.sellerHandle && !embed ? (
+
+          {/* Checkout card */}
+          <div id="checkout" className="scroll-mt-4 rounded-2xl border bg-card p-5 shadow-sm">
+            {product.soldOut ? (
+              <div className="py-3 text-center">
+                <p className="font-medium">Sold out</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Every copy has been claimed.
+                  {product.sellerHandle && !embed ? (
+                    <>
+                      {" "}
                       <Link
                         to="/$handle"
                         params={{ handle: product.sellerHandle }}
-                        className="font-medium text-foreground underline-offset-2 hover:underline"
+                        className="text-primary underline underline-offset-2"
                       >
-                        {product.sellerName}
+                        See what else {product.sellerName ?? "this seller"} offers
                       </Link>
-                    ) : (
-                      product.sellerName
-                    )}
-                  </p>
-                ) : null}
-              </div>
-              <div className="shrink-0 text-right">
-                <p className="font-[family-name:var(--font-display)] text-xl font-semibold text-primary sm:text-2xl">
-                  {priceLabel}
+                      .
+                    </>
+                  ) : null}
                 </p>
-                {product.price.regularLabel ? (
-                  <p className="text-sm text-muted-foreground">
-                    <span className="sr-only">Regular price </span>
-                    <s>{product.price.regularLabel}</s>
-                  </p>
-                ) : null}
-                {product.installmentCount ? (
-                  <p className="text-xs text-muted-foreground">
-                    or {product.installmentCount} × {formatCents(installmentAmountCents(product.priceCents, product.installmentCount), product.currency)}
-                  </p>
-                ) : null}
               </div>
-            </div>
-            {product.description ? (
-              // whitespace-pre-line keeps the seller's paragraph/line breaks
-              // instead of collapsing a multi-line description into one block;
-              // break-words stops a pasted long URL from overflowing the card.
-              <p className="whitespace-pre-line break-words text-sm text-muted-foreground">{product.description}</p>
+            ) : (
+              <CheckoutWidget
+                // Remount when the price or currency changes (a launch price
+                // ending, or the buyer switching euros/dollars), so the widget's
+                // amount state starts from the price actually shown.
+                key={`${product.priceCents}-${product.currency}`}
+                initialCoupon={coupon}
+                product={{
+                  id: product.id,
+                  name: product.name,
+                  priceCents: product.priceCents,
+                  currency: product.currency,
+                  payWhatYouWant: product.payWhatYouWant,
+                  billingType: product.billingType,
+                  billingInterval: product.billingInterval,
+                  installmentCount: product.installmentCount,
+                }}
+                embedded={!!embed}
+              />
+            )}
+            {product.sellerName ? (
+              // The seller is the merchant of record (on_behalf_of), so say so plainly.
+              <p className="mt-3 text-center text-xs text-muted-foreground">
+                Sold by {product.sellerName} · {BRAND_NAME} handles checkout and delivery
+              </p>
             ) : null}
-            <div className="flex flex-wrap items-center gap-2">
-              {product.salesCount > 0 ? (
-                <div className="flex w-fit items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-sm text-primary">
-                  <CircleCheck className="h-4 w-4" />
-                  <span className="font-medium">{product.salesCount}</span> already sold
-                </div>
-              ) : null}
-              {summary && summary.count > 0 ? (
-                <div className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground">
-                  <Stars value={summary.rounded} />
-                  <span className="font-medium text-foreground">{summary.average}</span>
-                  <span>
-                    ({summary.count} review{summary.count === 1 ? "" : "s"})
-                  </span>
-                </div>
-              ) : null}
-            </div>
+            {!isFree && !product.soldOut ? <CurrencySwitch current={product.currency} /> : null}
           </div>
-        </div>
 
-        <OfferBanner
-          saleEndsAt={product.saleEndsAt}
-          stockLimit={product.stockLimit}
-          stockRemaining={product.stockRemaining}
-        />
+          {/* Trust strip — right where hesitation happens, all statements true */}
+          <div className="grid grid-cols-3 gap-2">
+            <TrustItem icon={Zap} label="Instant download" />
+            <TrustItem icon={Lock} label={isFree ? "No card needed" : "Secure checkout"} />
+            <TrustItem icon={CreditCard} label={isFree ? "No payment" : "Powered by Stripe"} />
+          </div>
 
-        {/* Checkout card */}
-        <div className="rounded-2xl border bg-card p-5 shadow-sm">
-          {product.soldOut ? (
-            <div className="py-3 text-center">
-              <p className="font-medium">Sold out</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Every copy has been claimed.
-                {product.sellerHandle && !embed ? (
-                  <>
-                    {" "}
-                    <Link
-                      to="/$handle"
-                      params={{ handle: product.sellerHandle }}
-                      className="text-primary underline underline-offset-2"
-                    >
-                      See what else {product.sellerName ?? "this seller"} offers
-                    </Link>
-                    .
-                  </>
-                ) : null}
+          {/* Policy and contact sit right under checkout, where the buyer decides —
+              they used to be the last thing on the page, after the footer link. */}
+          <div className="flex flex-col gap-2 rounded-xl border bg-card p-4 text-sm text-muted-foreground">
+            {product.refundPolicy ? (
+              <p className="flex items-start gap-2">
+                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <span className="whitespace-pre-line break-words">{product.refundPolicy}</span>
               </p>
-            </div>
-          ) : (
-            <CheckoutWidget
-              // Remount when the price or currency changes (a launch price
-              // ending, or the buyer switching euros/dollars), so the widget's
-              // amount state starts from the price actually shown.
-              key={`${product.priceCents}-${product.currency}`}
-              initialCoupon={coupon}
-              product={{
-                id: product.id,
-                name: product.name,
-                priceCents: product.priceCents,
-                currency: product.currency,
-                payWhatYouWant: product.payWhatYouWant,
-                billingType: product.billingType,
-                billingInterval: product.billingInterval,
-                installmentCount: product.installmentCount,
-              }}
-              embedded={!!embed}
-            />
-          )}
-          {product.sellerName ? (
-            // The seller is the merchant of record (on_behalf_of), so say so plainly.
-            <p className="mt-3 text-center text-xs text-muted-foreground">
-              Sold by {product.sellerName} · {BRAND_NAME} handles checkout and delivery
-            </p>
-          ) : null}
-          {!isFree && !product.soldOut ? <CurrencySwitch current={product.currency} /> : null}
-        </div>
-
-        {/* Trust strip — right where hesitation happens, all statements true */}
-        <div className="grid grid-cols-3 gap-2">
-          <TrustItem icon={Zap} label="Instant download" />
-          <TrustItem icon={Lock} label={isFree ? "No card needed" : "Secure checkout"} />
-          <TrustItem icon={CreditCard} label={isFree ? "No payment" : "Powered by Stripe"} />
-        </div>
-
-        {/* Policy and contact sit right under checkout, where the buyer decides —
-            they used to be the last thing on the page, after the footer link. */}
-        <div className="flex flex-col gap-2 rounded-xl border bg-card p-4 text-sm text-muted-foreground">
-          {product.refundPolicy ? (
+            ) : null}
+            {/* The refund policy tells buyers to contact the seller about a
+                faulty file, so there must always be somewhere to write: the
+                seller's support email, or Halvo's if they haven't set one. */}
             <p className="flex items-start gap-2">
-              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-              <span className="whitespace-pre-line break-words">{product.refundPolicy}</span>
+              <Mail className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <span>
+                Questions or a problem with a file?{" "}
+                <a href={`mailto:${product.supportEmail ?? BRAND_EMAIL}`} className="underline underline-offset-2 [overflow-wrap:anywhere]">
+                  {product.supportEmail ?? BRAND_EMAIL}
+                </a>
+              </span>
             </p>
-          ) : null}
-          {/* The refund policy tells buyers to contact the seller about a
-              faulty file, so there must always be somewhere to write: the
-              seller's support email, or Halvo's if they haven't set one. */}
-          <p className="flex items-start gap-2">
-            <Mail className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            <span>
-              Questions or a problem with a file?{" "}
-              <a href={`mailto:${product.supportEmail ?? BRAND_EMAIL}`} className="underline underline-offset-2 [overflow-wrap:anywhere]">
-                {product.supportEmail ?? BRAND_EMAIL}
-              </a>
-            </span>
-          </p>
-        </div>
-
-        {reviewsQ.data && reviewsQ.data.reviews.length > 0 ? (
-          <div className="rounded-2xl border bg-card p-5">
-            <p className="font-[family-name:var(--font-display)] font-semibold">What buyers say</p>
-            <div className="mt-4 flex flex-col gap-4">
-              {reviewsQ.data.reviews.slice(0, 5).map((review) => (
-                <div key={review.id} className="border-b pb-4 last:border-b-0 last:pb-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Stars value={review.rating} />
-                    {/* Every review on Halvo is tied to a real, completed, non-
-                        refunded purchase — server-enforced — so this label is
-                        always truthful, and it's the strongest trust signal here. */}
-                    <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
-                      <CircleCheck className="h-3.5 w-3.5" aria-hidden="true" /> Verified purchase
-                    </span>
-                  </div>
-                  <p className="mt-1.5 text-sm text-muted-foreground">{review.body}</p>
-                </div>
-              ))}
-            </div>
           </div>
-        ) : null}
-
-        {!embed && more.length > 0 ? (
-          <div className="rounded-2xl border bg-card p-5">
-            <div className="flex items-center justify-between gap-3">
-              <p className="font-[family-name:var(--font-display)] font-semibold">
-                More from {product.sellerName ?? "this seller"}
-              </p>
-              {product.sellerHandle ? (
-                <Link
-                  to="/$handle"
-                  params={{ handle: product.sellerHandle }}
-                  className="shrink-0 text-xs text-primary underline underline-offset-4"
-                >
-                  View all
-                </Link>
-              ) : null}
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              {more.map((p) => (
-                <Link key={p.id} to="/p/$slug" params={{ slug: p.slug }} className="group">
-                  <div className="aspect-video w-full overflow-hidden rounded-lg bg-muted">
-                    {p.imageUrl ? (
-                      <img
-                        src={p.imageUrl}
-                        alt={p.name}
-                        loading="lazy"
-                        decoding="async"
-                        className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                      />
-                    ) : (
-                      // No cover: the product's initial instead of an empty grey box.
-                      <span className="flex h-full w-full items-center justify-center bg-primary/10 font-[family-name:var(--font-display)] text-2xl font-bold text-primary">
-                        {p.name.trim().charAt(0).toUpperCase()}
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-1.5 truncate text-sm font-medium">{p.name}</p>
-                  <p className="text-xs text-primary">
-                    {p.price.label}
-                    {p.price.regularLabel ? (<s className="ml-1.5 text-xs font-normal text-muted-foreground">{p.price.regularLabel}</s>) : null}
-                  </p>
-                </Link>
-              ))}
-            </div>
-          </div>
-        ) : null}
+        </aside>
 
         {/* Every checkout quietly advertises the platform — the Calendly loop.
             Understated on purpose: it must never compete with the seller's own
             brand or distract from the buy button. When embedded, open Halvo in
             a new tab so a curious buyer discovers us without losing checkout. */}
-        {embed ? (
-          <a
-            href={BASE_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="mx-auto flex w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+        <div className="order-5 flex justify-center lg:col-span-2">
+          {embed ? (
+            <a
+              href={BASE_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="flex w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Powered by
+              <LogoMark className="h-3.5 w-3.5" />
+              <span className="font-medium">{BRAND_NAME}</span>
+            </a>
+          ) : (
+            <Link
+              to="/"
+              className="flex w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Powered by
+              <LogoMark className="h-3.5 w-3.5" />
+              <span className="font-medium">{BRAND_NAME}</span>
+            </Link>
+          )}
+        </div>
+
+        {/* Phones: a Buy bar along the bottom while neither the Buy button nor
+            the checkout is on screen, so the way to pay is never a scroll away. */}
+        {canBuy ? (
+          <div
+            aria-hidden={!showBuyBar}
+            className={cn(
+              "fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 shadow-lg backdrop-blur transition-transform duration-200 lg:hidden",
+              showBuyBar ? "translate-y-0" : "pointer-events-none translate-y-full",
+            )}
           >
-            Powered by
-            <LogoMark className="h-3.5 w-3.5" />
-            <span className="font-medium">{BRAND_NAME}</span>
-          </a>
-        ) : (
-          <Link
-            to="/"
-            className="mx-auto flex w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Powered by
-            <LogoMark className="h-3.5 w-3.5" />
-            <span className="font-medium">{BRAND_NAME}</span>
-          </Link>
-        )}
+            <div className="mx-auto flex max-w-lg items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{product.name}</p>
+                <p className="text-sm font-semibold tabular-nums text-primary">{priceLabel}</p>
+              </div>
+              <Button size="lg" onClick={goToCheckout} tabIndex={showBuyBar ? 0 : -1}>
+                {buyLabel}
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </main>
     </div>
   );
+}
+
+// True while neither the Buy button under the price nor the checkout itself is
+// on screen. Both start out of the picture on a computer (the button is hidden
+// there), but so is the bar, so nothing shows.
+function useBuyBar(enabled: boolean): boolean {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    if (!enabled || typeof IntersectionObserver === "undefined") return;
+    const targets = ["buy-jump", "checkout"]
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => !!el);
+    if (targets.length === 0) return;
+    const onScreen = new Set<Element>();
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) onScreen.add(e.target);
+        else onScreen.delete(e.target);
+      }
+      setShow(onScreen.size === 0);
+    });
+    targets.forEach((t) => io.observe(t));
+    return () => io.disconnect();
+  }, [enabled]);
+  return show;
 }
 
 function TrustItem({ icon: Icon, label }: { icon: typeof Lock; label: string }) {

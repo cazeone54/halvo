@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { productImageUrl, avatarImageUrl } from "@/lib/public-image-url";
+import { productImageUrl, avatarImageUrl, bannerImageUrl } from "@/lib/public-image-url";
+import { isOwnStoredImage } from "@/lib/avatar";
+import { announcementForDisplay } from "@/lib/shop-look";
 import { summarizeRatings } from "@/lib/ratings";
 import { listingPrice } from "@/lib/format";
 import { requestCurrency } from "@/lib/currency.server";
@@ -13,7 +15,7 @@ export const getSellerStorefront = createServerFn({ method: "GET" })
 
     const { data: profile, error } = await supabaseAdmin
       .from("profiles")
-      .select("id, handle, display_name, bio, avatar_url, accent_color, deactivated_at")
+      .select("id, handle, display_name, bio, avatar_url, accent_color, support_email, deactivated_at")
       .eq("handle", data.handle.toLowerCase())
       .single();
     // A deactivated seller's storefront is gone while they're away, not
@@ -21,7 +23,7 @@ export const getSellerStorefront = createServerFn({ method: "GET" })
     if (error || !profile || profile.deactivated_at) throw new Error("Storefront not found");
 
     const { sellerCanTakePayments, isReachableByLink } = await import("@/lib/seller-visibility.server");
-    const [{ data: products }, canPay, linkData, funnelData] = await Promise.all([
+    const [{ data: products }, canPay, linkData, funnelData, lookData] = await Promise.all([
       supabaseAdmin
         .from("products")
         .select("id, name, description, price_cents, price_usd_cents, pay_what_you_want, url_slug, category, image_url, sale_price_cents, sale_ends_at, billing_type, billing_interval")
@@ -49,6 +51,13 @@ export const getSellerStorefront = createServerFn({ method: "GET" })
         }),
         () => ({ startHereId: null, followUps: false }),
       ),
+      // Banner and announcement bar (migration 0030), the same way again.
+      supabaseAdmin
+        .from("profiles")
+        .select("banner_path, announcement_text, announcement_url")
+        .eq("id", profile.id)
+        .single()
+        .then(({ data: d, error: e }) => (e ? null : d), () => null),
     ]);
 
     // Until the seller connects Stripe, only their free products are shown:
@@ -120,6 +129,12 @@ export const getSellerStorefront = createServerFn({ method: "GET" })
       featured,
       startHere,
       followUps: funnelData.followUps,
+      look: {
+        bannerUrl: isOwnStoredImage(lookData?.banner_path, profile.id, "banner")
+          ? bannerImageUrl(profile.id, lookData?.banner_path)
+          : null,
+        announcement: announcementForDisplay(lookData?.announcement_text, lookData?.announcement_url),
+      },
       products: shown,
     };
   });

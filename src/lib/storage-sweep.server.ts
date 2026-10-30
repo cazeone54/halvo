@@ -6,7 +6,7 @@ const BUCKET = "digital-assets";
 type Admin = SupabaseClient<Database>;
 
 // Every object in the bucket. Paths are at most three levels deep
-// ({user}/{product|avatar|covers}/{file}), so this walks folders breadth-first.
+// ({user}/{product|avatar|banner|covers}/{file}), so this walks folders breadth-first.
 async function listAll(admin: Admin): Promise<StoredObject[]> {
   const out: StoredObject[] = [];
   const queue: string[] = [""];
@@ -33,7 +33,9 @@ async function referencedPaths(admin: Admin): Promise<Set<string>> {
   const [{ data: files, error: e1 }, { data: products, error: e2 }, { data: profiles, error: e3 }] = await Promise.all([
     admin.from("product_files").select("storage_file_path"),
     admin.from("products").select("*"),
-    admin.from("profiles").select("avatar_url"),
+    // "*" so the shop banner (migration 0030) counts once it exists, without
+    // the sweep failing before then.
+    admin.from("profiles").select("*"),
   ]);
   // Any failed read means we can't be sure what's referenced — refuse to sweep.
   if (e1 || e2 || e3) throw new Error(`Couldn't read references: ${(e1 ?? e2 ?? e3)!.message}`);
@@ -42,7 +44,10 @@ async function referencedPaths(admin: Admin): Promise<Set<string>> {
     if (p.image_url) refs.add(p.image_url);
     for (const g of p.gallery_paths ?? []) refs.add(g);
   }
-  for (const pr of profiles ?? []) if (pr.avatar_url) refs.add(pr.avatar_url);
+  for (const pr of profiles ?? []) {
+    if (pr.avatar_url) refs.add(pr.avatar_url);
+    if (pr.banner_path) refs.add(pr.banner_path);
+  }
   return refs;
 }
 

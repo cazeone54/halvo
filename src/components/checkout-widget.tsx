@@ -691,8 +691,16 @@ function PaymentForm({
           onChange={(e) => setEmail(e.target.value)}
         />
       </div>
-      {/* Wallets live in the express row above, so they're not repeated as tabs here. */}
-      <PaymentElement options={{ wallets: { applePay: "never", googlePay: "never" } }} />
+      {/* Wallets live in the express row above, so they're not repeated as tabs here.
+          Two methods shown (Stripe picks the likeliest for where the buyer is) and
+          the rest under "More": six rows at once pushed the Pay button off a phone
+          screen. Closed until tapped, or the card form alone fills the screen. */}
+      <PaymentElement
+        options={{
+          wallets: { applePay: "never", googlePay: "never" },
+          layout: { type: "accordion", defaultCollapsed: true, spacedAccordionItems: true, visibleAccordionItemsCount: 2 },
+        }}
+      />
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       <Button type="submit" size="lg" disabled={!stripe || submitting || !acknowledged}>
         {submitting

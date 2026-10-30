@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useId, useState } from "react";
-import { Facebook, Globe, Instagram, Linkedin, Music2, Package, Twitter, Youtube, type LucideIcon } from "lucide-react";
+import { useEffect, useId, useMemo, useState } from "react";
+import { ArrowRight, Facebook, Globe, Instagram, Linkedin, Music2, Package, Twitter, Youtube, type LucideIcon } from "lucide-react";
 import { Stars } from "@/components/stars";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,9 +12,9 @@ import { formatCountdown } from "@/lib/offer";
 import { UserAvatar } from "@/components/user-avatar";
 import { ProductCard, ProductGrid } from "@/components/product-card";
 import { getSellerStorefront } from "@/lib/storefront.functions";
-import { PublicNav } from "@/components/public-nav";
-import { PublicFooter } from "@/components/public-footer";
+import { LogoMark } from "@/components/logo";
 import { BRAND_NAME, BASE_URL } from "@/lib/site";
+import { categoryLabel } from "@/lib/category-label";
 import { brandThemeStyle } from "@/lib/brand-color";
 import { cn } from "@/lib/utils";
 import { usePagedList } from "@/lib/use-paged-list";
@@ -174,12 +174,22 @@ function StartHereCard({
 }
 
 function StorefrontPage() {
-  const { profile, products, currency, social, links, featured, startHere, followUps } = Route.useLoaderData();
+  const { profile, products, currency, social, links, featured, startHere, followUps, look } = Route.useLoaderData();
   const brandStyle = brandThemeStyle(profile.accent_color);
-  const paged = usePagedList(products, "halvo:storefront:per-page", profile.handle ?? "");
   const handle = profile.handle ?? "";
   const sellerName = profile.display_name ?? handle;
   const recordViewFn = useServerFn(recordShopView);
+
+  // Category tabs over the grid, from the categories this shop really uses —
+  // only when there are at least two, or a single tab would just repeat "All".
+  const categories = useMemo(
+    () => [...new Set(products.map((p) => p.category).filter((c): c is string => !!c))].sort(),
+    [products],
+  );
+  const [category, setCategory] = useState<string | null>(null);
+  const shownProducts = category ? products.filter((p) => p.category === category) : products;
+  // Twenty to start: four across, ten left a half-empty row.
+  const paged = usePagedList(shownProducts, "halvo:storefront:per-page", `${handle}|${category ?? ""}`, 20);
 
   // One visit per page per browser session, client-side only (bots that never
   // run scripts don't count), with the same arrival rules as product views.
@@ -196,18 +206,80 @@ function StorefrontPage() {
   }, [handle, recordViewFn]);
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <PublicNav />
-      <main
-        id="main-content"
-        tabIndex={-1}
-        className={cn("flex-1", brandStyle && "brand-theme")}
-        style={brandStyle as CSSProperties | undefined}
-      >
+    <div
+      className={cn("flex min-h-screen flex-col", brandStyle && "brand-theme")}
+      style={brandStyle as CSSProperties | undefined}
+    >
+      {/* The seller's own news, above everything — set in Settings. */}
+      {look.announcement ? (
+        <div className="bg-primary px-4 py-2 text-center text-sm font-medium text-primary-foreground">
+          {look.announcement.url ? (
+            <a
+              href={look.announcement.url}
+              rel="nofollow ugc noopener"
+              className="inline-flex items-center gap-1.5 underline-offset-4 hover:underline"
+            >
+              {look.announcement.text}
+              <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            </a>
+          ) : (
+            look.announcement.text
+          )}
+        </div>
+      ) : null}
+
+      {/* The shop's own header, not Halvo's: a visitor from a bio link came to
+          see this seller, so the name and menu are theirs. Halvo is credited
+          once, in the footer. */}
+      <header className="border-b bg-background">
+        <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
+          <Link
+            to="/$handle"
+            params={{ handle }}
+            className="flex min-w-0 items-center gap-2.5 font-[family-name:var(--font-display)] font-semibold"
+          >
+            <UserAvatar
+              src={profile.avatarUrl}
+              name={sellerName}
+              className="h-8 w-8 shrink-0 bg-primary/10 text-primary"
+              textClassName="text-xs"
+              iconClassName="h-4 w-4"
+            />
+            <span className="truncate">{sellerName}</span>
+          </Link>
+          <nav aria-label={`${sellerName} shop`} className="flex shrink-0 items-center gap-4 text-sm text-muted-foreground">
+            {products.length > 0 ? (
+              <a href="#storefront-products" className="transition-colors hover:text-foreground">
+                Products
+              </a>
+            ) : null}
+            {profile.support_email ? (
+              <a href={`mailto:${profile.support_email}`} className="transition-colors hover:text-foreground">
+                Contact
+              </a>
+            ) : null}
+          </nav>
+        </div>
+      </header>
+
+      <main id="main-content" tabIndex={-1} className="flex-1">
         {/* The link-in-bio part: one narrow column, sized for the phone a
             follower tapped through from, the same on every screen. */}
         <div className="border-b bg-hero-glow">
-          <div className="mx-auto flex w-full max-w-md flex-col items-center gap-4 px-4 py-10 text-center">
+          {look.bannerUrl ? (
+            <div className="mx-auto w-full max-w-6xl sm:px-6 sm:pt-6">
+              <div className="aspect-[3/1] w-full overflow-hidden bg-muted sm:aspect-[4/1] sm:rounded-2xl">
+                <img src={look.bannerUrl} alt="" className="h-full w-full object-cover" />
+              </div>
+            </div>
+          ) : null}
+          {/* With a banner, the picture of the seller sits half over it. */}
+          <div
+            className={cn(
+              "relative mx-auto flex w-full max-w-md flex-col items-center gap-4 px-4 pb-10 text-center",
+              look.bannerUrl ? "-mt-12" : "pt-10",
+            )}
+          >
             <UserAvatar
               src={profile.avatarUrl}
               name={profile.display_name ?? profile.handle}
@@ -312,8 +384,29 @@ function StorefrontPage() {
         <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
           {products.length > 0 ? (
             <h2 className="mb-4 font-[family-name:var(--font-display)] text-lg font-semibold">
-              All products <span className="font-normal text-muted-foreground">({products.length})</span>
+              {category ? categoryLabel(category) : "All products"}{" "}
+              <span className="font-normal text-muted-foreground">({shownProducts.length})</span>
             </h2>
+          ) : null}
+          {categories.length > 1 ? (
+            <div role="group" aria-label="Show a category" className="mb-5 flex flex-wrap gap-1.5">
+              {[null, ...categories].map((c) => (
+                <button
+                  key={c ?? "all"}
+                  type="button"
+                  onClick={() => setCategory(c)}
+                  aria-pressed={category === c}
+                  className={cn(
+                    "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                    category === c
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-card text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {c === null ? "All" : categoryLabel(c)}
+                </button>
+              ))}
+            </div>
           ) : null}
           <ProductGrid id="storefront-products">
             {paged.items.map((product) => (
@@ -343,7 +436,32 @@ function StorefrontPage() {
           ) : null}
         </div>
       </main>
-      <PublicFooter />
+
+      {/* Halvo's one appearance on a seller's shop: small, at the bottom, with
+          the links a buyer might need. */}
+      <footer className="border-t">
+        <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-3 px-4 py-8 text-xs text-muted-foreground sm:flex-row sm:justify-between sm:px-6">
+          <Link to="/" className="flex items-center gap-1.5 transition-colors hover:text-foreground">
+            Powered by
+            <LogoMark className="h-3.5 w-3.5" />
+            <span className="font-medium">{BRAND_NAME}</span>
+          </Link>
+          <nav aria-label="Help" className="flex flex-wrap justify-center gap-x-4 gap-y-2">
+            <Link to="/access" className="hover:text-foreground">
+              Recover a purchase
+            </Link>
+            <Link to="/terms" className="hover:text-foreground">
+              Terms
+            </Link>
+            <Link to="/privacy" className="hover:text-foreground">
+              Privacy
+            </Link>
+            <Link to="/refund-policy" className="hover:text-foreground">
+              Refund policy
+            </Link>
+          </nav>
+        </div>
+      </footer>
     </div>
   );
 }

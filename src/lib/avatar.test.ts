@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { initialsFor, isStoredAvatarPath, trustedExternalAvatar } from "./avatar";
+import { initialsFor, isOwnStoredImage, isStoredAvatarPath, trustedExternalAvatar } from "./avatar";
 
 describe("trustedExternalAvatar", () => {
   it("accepts Google's photo links — what a Google sign-up actually stores", () => {
@@ -42,6 +42,25 @@ describe("isStoredAvatarPath", () => {
     expect(isStoredAvatarPath(null)).toBe(false);
     expect(isStoredAvatarPath(undefined)).toBe(false);
     expect(isStoredAvatarPath("")).toBe(false);
+  });
+});
+
+describe("isOwnStoredImage", () => {
+  it("accepts a file in the user's own folder of that kind", () => {
+    expect(isOwnStoredImage("u1/avatar/1700-me.png", "u1", "avatar")).toBe(true);
+    expect(isOwnStoredImage("u1/banner/1700-top.jpg", "u1", "banner")).toBe(true);
+  });
+
+  it("refuses anyone else's file, a paid download above all", () => {
+    expect(isOwnStoredImage("u2/avatar/1700-me.png", "u1", "avatar")).toBe(false);
+    expect(isOwnStoredImage("u1/p9/1700-course.pdf", "u1", "avatar")).toBe(false);
+    expect(isOwnStoredImage("u1/avatar/../p9/course.pdf", "u1", "avatar")).toBe(false);
+    expect(isOwnStoredImage("u1/banner/1700-top.jpg", "u1", "avatar")).toBe(false);
+  });
+
+  it("refuses URLs and nothing", () => {
+    expect(isOwnStoredImage("https://lh3.googleusercontent.com/a/x", "u1", "avatar")).toBe(false);
+    expect(isOwnStoredImage(null, "u1", "banner")).toBe(false);
   });
 });
 

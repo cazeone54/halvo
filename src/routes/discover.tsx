@@ -11,6 +11,7 @@ import { ProductCard, ProductGrid, ProductGridSkeleton } from "@/components/prod
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { cn } from "@/lib/utils";
+import { categoryLabel } from "@/lib/category-label";
 import { usePagedList } from "@/lib/use-paged-list";
 import { PAGE_SIZES } from "@/lib/paginate";
 import { ListPager } from "@/components/list-pager";
@@ -135,13 +136,13 @@ function DiscoverPage() {
                 onClick={() => setCategory(c === null ? null : category === c ? null : c)}
                 aria-pressed={category === c}
                 className={cn(
-                  "rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors",
+                  "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
                   category === c
                     ? "border-primary bg-primary text-primary-foreground"
                     : "border-border text-muted-foreground hover:text-foreground",
                 )}
               >
-                {c ?? "All"}
+                {c === null ? "All" : categoryLabel(c)}
               </button>
             ))}
           </div>

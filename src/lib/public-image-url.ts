@@ -31,3 +31,7 @@ export function productImageUrl(productId: string, imagePath: string | null): st
 export function avatarImageUrl(userId: string, avatarPath: string | null): string | null {
   return avatarPath ? `/img/avatar/${userId}?v=${version(avatarPath)}` : null;
 }
+
+export function bannerImageUrl(userId: string, bannerPath: string | null | undefined): string | null {
+  return bannerPath ? `/img/banner/${userId}?v=${version(bannerPath)}` : null;
+}

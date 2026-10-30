@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Zap, Wallet, Percent, Code2, ArrowRight, ShieldCheck, Users2, Unlock } from "lucide-react";
+import { Zap, Wallet, Percent, Code2, ArrowRight, ShieldCheck, Users2, Unlock, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PublicNav } from "@/components/public-nav";
@@ -7,9 +7,22 @@ import { PublicFooter } from "@/components/public-footer";
 import { PersonaMarquee } from "@/components/persona-marquee";
 import { ExplainerAnimation } from "@/components/explainer-animation";
 import { PricingTiers } from "@/components/pricing-tiers";
+import { ProductCard, ProductGrid } from "@/components/product-card";
+import { UserAvatar } from "@/components/user-avatar";
+import { getHomeShowcase } from "@/lib/showcase.functions";
 import { BRAND_NAME, BASE_URL } from "@/lib/site";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
+  // Real products and a real shop for the page. If that read fails, the page
+  // still renders — just without those two sections.
+  loader: async () => {
+    try {
+      return await getHomeShowcase();
+    } catch {
+      return null;
+    }
+  },
   head: () => ({
     links: [{ rel: "canonical", href: BASE_URL }],
     scripts: [
@@ -102,7 +115,64 @@ const PROOF_STATS = [
   { value: "24/7", label: "Sells while you sleep" },
 ];
 
+// What a Halvo shop page gives a seller — every line true of the shop today.
+const SHOP_POINTS = [
+  "Your products in a grid, in your colour, with your banner and news across the top",
+  "A free download at the top that collects email addresses",
+  "Your Instagram, TikTok and other links in one place",
+  "Checkout and instant download on every product",
+];
+
+type Showcase = Awaited<ReturnType<typeof getHomeShowcase>>;
+
+// A real shop, drawn small inside a browser window, from the same data its
+// page uses — not a screenshot that goes out of date.
+function ShopPreview({ shop }: { shop: NonNullable<Showcase["shop"]> }) {
+  return (
+    <Link
+      to="/$handle"
+      params={{ handle: shop.handle }}
+      aria-label={`Open ${shop.name}'s shop at halvo.io/${shop.handle}`}
+      className="group block overflow-hidden rounded-2xl border bg-card shadow-xl transition-transform duration-200 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <div className="flex items-center gap-3 border-b bg-muted/60 px-4 py-2.5" aria-hidden="true">
+        <span className="flex gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-foreground/15" />
+          <span className="h-2.5 w-2.5 rounded-full bg-foreground/15" />
+          <span className="h-2.5 w-2.5 rounded-full bg-foreground/15" />
+        </span>
+        <span className="mx-auto min-w-0 truncate rounded-md bg-background px-3 py-1 text-xs text-muted-foreground">
+          halvo.io/{shop.handle}
+        </span>
+      </div>
+      <div className="bg-hero-glow px-5 pb-5 pt-6 text-center">
+        <UserAvatar
+          src={shop.avatarUrl}
+          name={shop.name}
+          className="mx-auto h-14 w-14 bg-primary/10 text-primary ring-4 ring-background"
+          textClassName="text-lg"
+          iconClassName="h-6 w-6"
+        />
+        <p className="mt-2 font-[family-name:var(--font-display)] font-semibold">{shop.name}</p>
+        {shop.bio ? <p className="mx-auto mt-0.5 line-clamp-2 max-w-xs text-xs text-muted-foreground">{shop.bio}</p> : null}
+      </div>
+      <div className="grid grid-cols-3 gap-2.5 p-4">
+        {shop.products.map((p) => (
+          <div key={p.id} className="min-w-0">
+            <div className="aspect-video overflow-hidden rounded-md border bg-muted">
+              {p.imageUrl ? <img src={p.imageUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" /> : null}
+            </div>
+            <p className="mt-1 truncate text-[11px] font-medium">{p.name}</p>
+            <p className="text-[11px] font-semibold tabular-nums text-primary">{p.price.label}</p>
+          </div>
+        ))}
+      </div>
+    </Link>
+  );
+}
+
 function HomePage() {
+  const showcase = Route.useLoaderData();
   return (
     <div className="flex min-h-screen flex-col">
       <PublicNav />
@@ -154,6 +224,32 @@ function HomePage() {
           </div>
         </section>
 
+        {/* Real products rather than a description of them: the newest on sale,
+            each one opening the checkout a buyer would see. */}
+        {showcase && showcase.products.length >= 4 ? (
+          <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+            <div className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+              <div>
+                <h2 className="font-[family-name:var(--font-display)] text-2xl font-semibold sm:text-3xl">
+                  On sale on {BRAND_NAME} right now
+                </h2>
+                <p className="mt-1 text-muted-foreground">Real products. Open any of them to see what your buyers would see.</p>
+              </div>
+              <Link to="/discover" className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                Browse everything <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </div>
+            <ProductGrid>
+              {showcase.products.map((p, i) => (
+                // Four on a phone, six on a tablet, eight on a computer: always full rows.
+                <div key={p.id} className={cn(i >= 6 ? "hidden lg:block" : i >= 4 ? "hidden md:block" : "")}>
+                  <ProductCard product={p} />
+                </div>
+              ))}
+            </ProductGrid>
+          </section>
+        ) : null}
+
         <section className="mx-auto max-w-3xl px-4 pb-20 sm:px-6">
           <h2 className="text-center font-[family-name:var(--font-display)] text-2xl font-semibold sm:text-3xl">
             See how it works
@@ -163,6 +259,45 @@ function HomePage() {
             <ExplainerAnimation />
           </div>
         </section>
+
+        {showcase?.shop ? (
+          <section className="border-t bg-muted/30">
+            <div className="mx-auto grid max-w-5xl items-center gap-10 px-4 py-20 sm:px-6 md:grid-cols-2">
+              <div>
+                <h2 className="font-[family-name:var(--font-display)] text-2xl font-semibold sm:text-3xl">
+                  One link for everything you sell
+                </h2>
+                <p className="mt-2 text-muted-foreground">
+                  Your shop lives at halvo.io/yourname. Put it in your bio and send everyone there.
+                </p>
+                <ul className="mt-6 flex flex-col gap-3 text-sm">
+                  {SHOP_POINTS.map((point) => (
+                    <li key={point} className="flex gap-2.5">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                      {point}
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
+                  <Button asChild size="lg">
+                    <Link to="/login">
+                      Start your shop
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <Link
+                    to="/$handle"
+                    params={{ handle: showcase.shop.handle }}
+                    className="text-sm text-primary underline underline-offset-4"
+                  >
+                    See a real one
+                  </Link>
+                </div>
+              </div>
+              <ShopPreview shop={showcase.shop} />
+            </div>
+          </section>
+        ) : null}
 
         {/* Trust anchor — answered loudly and high on the page, because "will I
             get paid?" is the real reason a first seller hesitates on a new

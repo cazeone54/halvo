@@ -53,6 +53,7 @@ import { Route as ApiPublicUnsubscribeRouteImport } from './routes/api/public/un
 import { Route as DTransactionIdFileIdRouteImport } from './routes/d.$transactionId.$fileId'
 import { Route as GoHandleLinkIdRouteImport } from './routes/go.$handle.$linkId'
 import { Route as ImgAvatarUserIdRouteImport } from './routes/img.avatar.$userId'
+import { Route as ImgBannerUserIdRouteImport } from './routes/img.banner.$userId'
 import { Route as ImgProductProductIdRouteImport } from './routes/img.product.$productId'
 import { Route as AuthenticatedDashboardStripeRefreshRouteImport } from './routes/_authenticated/dashboard/stripe.refresh'
 import { Route as AuthenticatedDashboardStripeReturnRouteImport } from './routes/_authenticated/dashboard/stripe.return'
@@ -286,6 +287,11 @@ const ImgAvatarUserIdRoute = ImgAvatarUserIdRouteImport.update({
   path: '/img/avatar/$userId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ImgBannerUserIdRoute = ImgBannerUserIdRouteImport.update({
+  id: '/img/banner/$userId',
+  path: '/img/banner/$userId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ImgProductProductIdRoute = ImgProductProductIdRouteImport.update({
   id: '/img/product/$productId',
   path: '/img/product/$productId',
@@ -359,6 +365,7 @@ export interface FileRoutesByFullPath {
   '/d/$transactionId/$fileId': typeof DTransactionIdFileIdRoute
   '/go/$handle/$linkId': typeof GoHandleLinkIdRoute
   '/img/avatar/$userId': typeof ImgAvatarUserIdRoute
+  '/img/banner/$userId': typeof ImgBannerUserIdRoute
   '/img/product/$productId': typeof ImgProductProductIdRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/stripe/refresh': typeof AuthenticatedDashboardStripeRefreshRoute
@@ -408,6 +415,7 @@ export interface FileRoutesByTo {
   '/d/$transactionId/$fileId': typeof DTransactionIdFileIdRoute
   '/go/$handle/$linkId': typeof GoHandleLinkIdRoute
   '/img/avatar/$userId': typeof ImgAvatarUserIdRoute
+  '/img/banner/$userId': typeof ImgBannerUserIdRoute
   '/img/product/$productId': typeof ImgProductProductIdRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/stripe/refresh': typeof AuthenticatedDashboardStripeRefreshRoute
@@ -460,6 +468,7 @@ export interface FileRoutesById {
   '/d/$transactionId/$fileId': typeof DTransactionIdFileIdRoute
   '/go/$handle/$linkId': typeof GoHandleLinkIdRoute
   '/img/avatar/$userId': typeof ImgAvatarUserIdRoute
+  '/img/banner/$userId': typeof ImgBannerUserIdRoute
   '/img/product/$productId': typeof ImgProductProductIdRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/dashboard/stripe/refresh': typeof AuthenticatedDashboardStripeRefreshRoute
@@ -512,6 +521,7 @@ export interface FileRouteTypes {
     | '/d/$transactionId/$fileId'
     | '/go/$handle/$linkId'
     | '/img/avatar/$userId'
+    | '/img/banner/$userId'
     | '/img/product/$productId'
     | '/dashboard/'
     | '/dashboard/stripe/refresh'
@@ -561,6 +571,7 @@ export interface FileRouteTypes {
     | '/d/$transactionId/$fileId'
     | '/go/$handle/$linkId'
     | '/img/avatar/$userId'
+    | '/img/banner/$userId'
     | '/img/product/$productId'
     | '/dashboard'
     | '/dashboard/stripe/refresh'
@@ -612,6 +623,7 @@ export interface FileRouteTypes {
     | '/d/$transactionId/$fileId'
     | '/go/$handle/$linkId'
     | '/img/avatar/$userId'
+    | '/img/banner/$userId'
     | '/img/product/$productId'
     | '/_authenticated/dashboard/'
     | '/_authenticated/dashboard/stripe/refresh'
@@ -657,6 +669,7 @@ export interface RootRouteChildren {
   DTransactionIdFileIdRoute: typeof DTransactionIdFileIdRoute
   GoHandleLinkIdRoute: typeof GoHandleLinkIdRoute
   ImgAvatarUserIdRoute: typeof ImgAvatarUserIdRoute
+  ImgBannerUserIdRoute: typeof ImgBannerUserIdRoute
   ImgProductProductIdRoute: typeof ImgProductProductIdRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   ImgGalleryProductIdIndexRoute: typeof ImgGalleryProductIdIndexRoute
@@ -972,6 +985,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ImgAvatarUserIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/img/banner/$userId': {
+      id: '/img/banner/$userId'
+      path: '/img/banner/$userId'
+      fullPath: '/img/banner/$userId'
+      preLoaderRoute: typeof ImgBannerUserIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/img/product/$productId': {
       id: '/img/product/$productId'
       path: '/img/product/$productId'
@@ -1091,6 +1111,7 @@ const rootRouteChildren: RootRouteChildren = {
   DTransactionIdFileIdRoute: DTransactionIdFileIdRoute,
   GoHandleLinkIdRoute: GoHandleLinkIdRoute,
   ImgAvatarUserIdRoute: ImgAvatarUserIdRoute,
+  ImgBannerUserIdRoute: ImgBannerUserIdRoute,
   ImgProductProductIdRoute: ImgProductProductIdRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   ImgGalleryProductIdIndexRoute: ImgGalleryProductIdIndexRoute,

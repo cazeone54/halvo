@@ -15,6 +15,7 @@ import { BrandColorPicker } from "@/components/brand-color-picker";
 import { AccountClosureCard } from "@/components/account-closure-card";
 import { LinkInBioEditor } from "@/components/link-in-bio-editor";
 import { FunnelSettings } from "@/components/funnel-settings";
+import { ShopLookEditor } from "@/components/shop-look-editor";
 import { STANDARD_REFUND_POLICY } from "@/lib/refund-terms";
 
 export const Route = createFileRoute("/_authenticated/dashboard/settings")({
@@ -186,6 +187,8 @@ function SettingsPage() {
           {saveMut.error ? <p className="text-sm text-destructive">{(saveMut.error as Error).message}</p> : null}
         </CardContent>
       </Card>
+
+      <ShopLookEditor />
 
       <LinkInBioEditor handle={profileQ.data?.handle ?? null} />
 

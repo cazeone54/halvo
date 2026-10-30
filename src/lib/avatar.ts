@@ -37,6 +37,21 @@ export function isStoredAvatarPath(value: string | null | undefined): value is s
 }
 
 /**
+ * True when a stored path sits in that user's own folder of that kind
+ * ("<uid>/avatar/…", "<uid>/banner/…"). A profile's columns can be written by
+ * its owner straight through the API, so the image routes check this before
+ * signing anything — otherwise a profile could point at someone else's file,
+ * a paid download included, and have it served as a picture.
+ */
+export function isOwnStoredImage(
+  value: string | null | undefined,
+  userId: string,
+  folder: "avatar" | "banner",
+): value is string {
+  return isStoredAvatarPath(value) && value.startsWith(`${userId}/${folder}/`) && !value.split("/").includes("..");
+}
+
+/**
  * Up to two initials for the placeholder: "Petar Yakimov" -> "PY",
  * "grando" -> "G", "halvo-press" -> "HP". Null when there's nothing usable,
  * so the caller can fall back to an icon.
