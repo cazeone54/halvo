@@ -17,7 +17,7 @@ import { SINGLE_TIER_PRICING, DIRECT_CHARGES } from "@/lib/plans";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useId, useEffect } from "react";
+import { useState, useId, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import {
   CreditCard,
@@ -645,15 +645,19 @@ function DashboardHome() {
       {deleteNotice ? <p className="text-sm text-muted-foreground">{deleteNotice}</p> : null}
 
         <div className="flex flex-col gap-3">
-          {productPage.items.map((product) => (
-            <ProductRow
-              key={product.id}
-              product={product}
-              canTakePayments={connectQ.isSuccess ? !!connect?.chargesEnabled : null}
-              onDelete={() => deleteMut.mutate(product.id)}
-              displayCurrency={displayCurrency}
-            />
-          ))}
+          {/* A grid of covers, like Discover, so a seller sees their shop the way
+              buyers do. A card opened for editing spans the full row. */}
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            {productPage.items.map((product) => (
+              <ProductRow
+                key={product.id}
+                product={product}
+                canTakePayments={connectQ.isSuccess ? !!connect?.chargesEnabled : null}
+                onDelete={() => deleteMut.mutate(product.id)}
+                displayCurrency={displayCurrency}
+              />
+            ))}
+          </div>
           {productPage.total > PAGE_SIZES[0] ? (
             <ListPager
               label="Products"
@@ -1323,8 +1327,30 @@ function ProductRow({
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // An open edit, share or bundle panel needs room, so that card takes the full
+  // width of the grid and is brought into view.
+  const expanded = editing || bundling || (sharing && !!product.url_slug && !hiddenFromBuyers);
+  const cardRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (expanded) cardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [expanded]);
+
+  const coverInput = (
+    <input
+      type="file"
+      accept="image/*"
+      aria-label="Upload cover image"
+      className="sr-only"
+      onChange={(e) => {
+        const file = e.target.files?.[0];
+        if (file) imageMut.mutate(file);
+        e.target.value = "";
+      }}
+    />
+  );
+
   return (
-    <Card className="card-hover">
+    <Card ref={cardRef} className={cn("card-hover flex min-w-0 flex-col overflow-hidden", expanded && "col-span-full")}>
       {preview ? (
         <FilePreviewOverlay
           fileName={preview.fileName}
@@ -1333,85 +1359,107 @@ function ProductRow({
           onClose={() => setPreview(null)}
         />
       ) : null}
-      <CardContent className="flex flex-col gap-2 pt-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <label className="group relative flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-md bg-primary/10 text-primary">
-              {product.imageUrl ? (
-                // Lazy: with 40 products the dashboard was downloading every
-                // full-size cover up front just to show 56px thumbnails.
-                <img src={product.imageUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
-              ) : (
-                // ImagePlus (not a generic cube) so an imageless product reads
-                // as "click to add a cover".
-                <ImagePlus className="h-5 w-5" />
-              )}
-              <span className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
-                <ImagePlus className="h-4 w-4 text-white" />
-              </span>
-              <input
-                type="file"
-                accept="image/*"
-                aria-label="Upload cover image"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) imageMut.mutate(file);
-                  e.target.value = "";
-                }}
-              />
+      <div className={cn("flex flex-col", expanded && "sm:flex-row sm:items-start sm:gap-4 sm:p-4")}>
+        <div
+          className={cn(
+            "relative aspect-video w-full shrink-0 overflow-hidden bg-muted",
+            expanded && "sm:w-56 sm:rounded-md",
+          )}
+        >
+          {product.imageUrl ? (
+            <>
+              {/* Lazy: a seller with dozens of products shouldn't download
+                  every cover before the first screen appears. */}
+              <img src={product.imageUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+              {/* A small button rather than the whole cover: on a phone, tapping
+                  a big picture opening a file picker is easy to do by accident. */}
+              <label
+                className="absolute bottom-1.5 right-1.5 flex h-7 cursor-pointer items-center gap-1 rounded-full bg-black/60 px-2 text-[11px] font-medium text-white backdrop-blur-sm transition-colors focus-within:outline-2 focus-within:outline-ring hover:bg-black/75"
+                title="Change cover image"
+              >
+                <ImagePlus className="h-3.5 w-3.5" aria-hidden="true" />
+                <span className="hidden sm:inline">Change</span>
+                {coverInput}
+              </label>
+            </>
+          ) : (
+            // No cover yet: the whole space is the upload button.
+            <label className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-1 text-primary transition-colors focus-within:outline-2 focus-within:outline-ring hover:bg-primary/10">
+              <ImagePlus className="h-6 w-6" aria-hidden="true" />
+              <span className="text-xs font-medium">{imageMut.isPending ? "Uploading…" : "Add a cover"}</span>
+              {coverInput}
             </label>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="truncate font-medium">{product.name}</p>
-                {!product.url_slug ? (
-                  <Badge variant="secondary">Draft</Badge>
-                ) : hiddenFromBuyers ? (
-                  <Badge variant="secondary">Hidden</Badge>
-                ) : null}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {/* The price this seller's buyers see in the currency the
-                    dashboard is set to — not both at once. A dollar price the
-                    seller set by hand wins over the converted one. */}
-                {displayCurrency === "usd" && product.price_cents > 0
-                  ? formatCents(product.price_usd_cents ?? eurToUsdCents(product.price_cents), "usd")
-                  : formatCents(product.price_cents)}
-                {!product.url_slug
-                  ? " · add a file below to publish"
-                  : hiddenFromBuyers
-                    ? " · hidden from buyers until you connect Stripe"
-                    : notInDiscover
-                      ? " · works by its link; listed in Discover once you connect Stripe"
-                      : !product.imageUrl
-                        ? " · add a cover image to stand out"
-                        : null}
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2 sm:justify-end">
+          )}
+          {!product.url_slug ? (
+            <Badge variant="secondary" className="absolute left-2 top-2 shadow-sm">
+              Draft
+            </Badge>
+          ) : hiddenFromBuyers ? (
+            <Badge variant="secondary" className="absolute left-2 top-2 shadow-sm">
+              Hidden
+            </Badge>
+          ) : null}
+        </div>
+
+        <div className={cn("flex min-w-0 flex-1 flex-col gap-1 p-3", expanded && "sm:p-0")}>
+          <p className={cn("text-sm font-medium leading-snug", !expanded && "line-clamp-2")}>{product.name}</p>
+          {/* The price this seller's buyers see in the currency the dashboard
+              is set to — not both at once. A dollar price the seller set by
+              hand wins over the converted one. */}
+          <p className="text-sm font-semibold tabular-nums text-primary">
+            {displayCurrency === "usd" && product.price_cents > 0
+              ? formatCents(product.price_usd_cents ?? eurToUsdCents(product.price_cents), "usd")
+              : formatCents(product.price_cents)}
+          </p>
+          {!product.url_slug || hiddenFromBuyers || notInDiscover || !product.imageUrl ? (
+            <p className="text-xs leading-snug text-muted-foreground">
+              {!product.url_slug
+                ? "Add a file below to publish."
+                : hiddenFromBuyers
+                  ? "Hidden from buyers until you connect Stripe."
+                  : notInDiscover
+                    ? "Works by its link; listed in Discover once you connect Stripe."
+                    : "Add a cover image to stand out."}
+            </p>
+          ) : null}
+          <div className="flex flex-wrap gap-1.5 pt-1.5">
             {/* A hidden product's page is "not found" for everyone, so its link
                 and share snippets would lead nowhere until Stripe is connected. */}
             {product.url_slug && !hiddenFromBuyers ? (
               <>
-                <Button asChild variant="outline" size="sm">
-                  <a href={`/p/${product.url_slug}`} target="_blank" rel="noreferrer">
-                    <ExternalLink className="h-3.5 w-3.5" /> View
+                <Button asChild variant="outline" size="icon-sm" title="View product page">
+                  <a href={`/p/${product.url_slug}`} target="_blank" rel="noreferrer" aria-label="View product page">
+                    <ExternalLink className="h-3.5 w-3.5" />
                   </a>
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setSharing((v) => !v)} aria-label="Share links">
+                <Button
+                  variant={sharing ? "secondary" : "outline"}
+                  size="icon-sm"
+                  onClick={() => setSharing((v) => !v)}
+                  aria-label="Share links"
+                  aria-pressed={sharing}
+                  title="Share links and Buy button"
+                >
                   <Share2 className="h-3.5 w-3.5" />
                 </Button>
               </>
             ) : null}
-            <Button variant="outline" size="sm" onClick={() => setEditing((v) => !v)} aria-label="Edit product">
+            <Button
+              variant={editing ? "secondary" : "outline"}
+              size="icon-sm"
+              onClick={() => setEditing((v) => !v)}
+              aria-label="Edit product"
+              aria-pressed={editing}
+              title="Edit product"
+            >
               <Pencil className="h-3.5 w-3.5" />
             </Button>
             <Button
-              variant="outline"
-              size="sm"
+              variant={bundling ? "secondary" : "outline"}
+              size="icon-sm"
               onClick={() => setBundling((v) => !v)}
               aria-label="Bundle and order bump"
+              aria-pressed={bundling}
               title="Bundle other products or add an order bump"
             >
               <Layers className="h-3.5 w-3.5" />
@@ -1421,14 +1469,17 @@ function ProductRow({
               confirmLabel="Delete"
               onConfirm={onDelete}
               trigger={
-                <Button variant="destructive" size="sm" aria-label="Delete product">
+                <Button variant="destructive" size="icon-sm" aria-label="Delete product" title="Delete product">
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               }
             />
           </div>
         </div>
-        {imageMut.error ? <p className="text-sm text-destructive">{(imageMut.error as Error).message}</p> : null}
+      </div>
+
+      <div className="flex flex-col gap-2 px-3 pb-3 empty:hidden sm:px-4">
+        {imageMut.error ?<p className="text-sm text-destructive">{(imageMut.error as Error).message}</p> : null}
 
         {editing ? (
           <div className="flex flex-col gap-3 rounded-md border p-3">
@@ -1663,67 +1714,69 @@ function ProductRow({
           </div>
         ) : null}
 
-        <div className="flex flex-col gap-1 border-t pt-2">
-          {(filesQ.data ?? []).map((f) => (
-            <div key={f.id} className="flex items-center justify-between gap-2 text-sm">
-              <span className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
-                <FileText className="h-3.5 w-3.5 shrink-0" />
-                <span className="truncate">{f.file_name}</span>
-                {fileSize(f.size_bytes) ? (
-                  <span className="shrink-0 text-xs tabular-nums">· {fileSize(f.size_bytes)}</span>
-                ) : null}
-              </span>
-              <span className="flex shrink-0 items-center">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => previewFile(f)}
-                  disabled={previewingId === f.id}
-                  title="See the file buyers receive"
-                >
-                  <Eye className="h-3.5 w-3.5" />
-                  {previewingId === f.id ? "Opening…" : "Preview"}
-                </Button>
-                <ConfirmAction
-                  message="Remove this file? Buyers of this product may lose access to this download."
-                  confirmLabel="Remove"
-                  onConfirm={() => removeMut.mutate(f.id)}
-                  trigger={
-                    <Button variant="ghost" size="sm">
-                      Remove
-                    </Button>
-                  }
-                />
-              </span>
-            </div>
-          ))}
-          {/* A labelled button instead of the browser's own "Choose File / No
-              file chosen" control, which looked broken next to a file that's
-              already attached. */}
-          <label className="inline-flex w-fit cursor-pointer items-center gap-1.5 rounded-md border border-dashed px-3 py-1.5 text-sm text-muted-foreground transition-colors focus-within:outline-2 focus-within:outline-ring hover:border-primary hover:text-primary">
-            <Upload className="h-3.5 w-3.5" aria-hidden="true" />
-            {attachMut.isPending
-              ? "Uploading…"
-              : (filesQ.data?.length ?? 0) > 0
-                ? "Add another file"
-                : "Upload the file buyers receive"}
-            <input
-              type="file"
-              className="sr-only"
-              aria-label="Upload the file buyers receive"
-              disabled={attachMut.isPending}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) attachMut.mutate(file);
-                e.target.value = "";
-              }}
-            />
-          </label>
-          {attachMut.error ? (
-            <p className="text-sm text-destructive">{(attachMut.error as Error).message}</p>
-          ) : null}
-        </div>
-      </CardContent>
+      </div>
+
+      {/* Files sit at the bottom of every card, so cards in a row line up. */}
+      <div className="mt-auto flex flex-col gap-1 border-t px-3 py-2 sm:px-4">
+        {(filesQ.data ?? []).map((f) => (
+          <div key={f.id} className="flex items-center justify-between gap-1 text-xs">
+            <span className="flex min-w-0 items-center gap-1.5 text-muted-foreground" title={f.file_name ?? undefined}>
+              <FileText className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{f.file_name}</span>
+              {fileSize(f.size_bytes) ? (
+                <span className="hidden shrink-0 tabular-nums sm:inline">· {fileSize(f.size_bytes)}</span>
+              ) : null}
+            </span>
+            <span className="flex shrink-0 items-center">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => previewFile(f)}
+                disabled={previewingId === f.id}
+                aria-label={`Preview ${f.file_name ?? "file"}`}
+                title="See the file buyers receive"
+              >
+                <Eye className="h-3.5 w-3.5" />
+              </Button>
+              <ConfirmAction
+                message="Remove this file? Buyers of this product may lose access to this download."
+                confirmLabel="Remove"
+                onConfirm={() => removeMut.mutate(f.id)}
+                trigger={
+                  <Button variant="ghost" size="icon-sm" aria-label={`Remove ${f.file_name ?? "file"}`} title="Remove file">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                }
+              />
+            </span>
+          </div>
+        ))}
+        {/* A labelled button instead of the browser's own "Choose File / No
+            file chosen" control, which looked broken next to a file that's
+            already attached. */}
+        <label className="inline-flex w-fit cursor-pointer items-center gap-1.5 rounded-md border border-dashed px-2.5 py-1 text-xs text-muted-foreground transition-colors focus-within:outline-2 focus-within:outline-ring hover:border-primary hover:text-primary">
+          <Upload className="h-3.5 w-3.5" aria-hidden="true" />
+          {attachMut.isPending
+            ? "Uploading…"
+            : (filesQ.data?.length ?? 0) > 0
+              ? "Add file"
+              : "Upload the file buyers get"}
+          <input
+            type="file"
+            className="sr-only"
+            aria-label="Upload the file buyers receive"
+            disabled={attachMut.isPending}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) attachMut.mutate(file);
+              e.target.value = "";
+            }}
+          />
+        </label>
+        {attachMut.error ? (
+          <p className="text-xs text-destructive">{(attachMut.error as Error).message}</p>
+        ) : null}
+      </div>
     </Card>
   );
 }
