@@ -59,7 +59,7 @@ export function BrandColorPicker({
       <div>
         <Label id="brand-color-label">Brand color</Label>
         <p className="text-xs text-muted-foreground">
-          Used for buttons, prices and highlights on your storefront and product pages.
+          Used for buttons, prices and highlights on your shop and product pages.
         </p>
       </div>
 
@@ -102,7 +102,7 @@ export function BrandColorPicker({
       <div
         className={cn("overflow-hidden rounded-xl border bg-background", brandStyle && "brand-theme")}
         style={brandStyle as CSSProperties | undefined}
-        aria-label="Storefront preview"
+        aria-label="Shop preview"
         role="img"
       >
         <div className="flex flex-col items-center gap-1.5 border-b bg-hero-glow px-4 py-5">

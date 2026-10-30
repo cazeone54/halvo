@@ -94,7 +94,7 @@ export function OnboardingChecklist({
     {
       key: "handle",
       done: !!savedHandle,
-      label: "Claim your storefront handle",
+      label: "Claim your shop handle",
       hint: "Your public store address — it lists everything you sell.",
     },
     {

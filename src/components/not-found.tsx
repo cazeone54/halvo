@@ -1,5 +1,7 @@
 import { Link } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Home, Compass, LifeBuoy } from "lucide-react";
+import { BRAND_NAME } from "@/lib/site";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { Button } from "@/components/ui/button";
@@ -7,6 +9,11 @@ import { Button } from "@/components/ui/button";
 // Shown for any unmatched route. Full Halvo chrome + real ways forward, so a
 // mistyped or dead link reads as "wrong page" rather than "the app crashed".
 export function NotFound() {
+  // A not-found route has no head of its own, so the tab kept the homepage's
+  // title. Set after load; it's the tab name a person sees that matters here.
+  useEffect(() => {
+    document.title = `Page not found — ${BRAND_NAME}`;
+  }, []);
   return (
     <div className="flex min-h-screen flex-col">
       <PublicNav />

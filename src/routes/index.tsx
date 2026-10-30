@@ -5,7 +5,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { PersonaMarquee } from "@/components/persona-marquee";
-import { ExplainerAnimation } from "@/components/explainer-animation";
 import { PricingTiers } from "@/components/pricing-tiers";
 import { ProductCard, ProductGrid } from "@/components/product-card";
 import { UserAvatar } from "@/components/user-avatar";
@@ -115,6 +114,37 @@ const PROOF_STATS = [
   { value: "24/7", label: "Sells while you sleep" },
 ];
 
+// The three steps, each with a screenshot of the real screen (public/screens).
+const HOW_IT_WORKS = [
+  {
+    title: "Add your product",
+    body: "A name, a price and a cover. It starts as a draft, so nobody sees it until it's ready.",
+    src: "/screens/step-new-product.webp",
+    alt: "The New product form, filled in: name, description, a price of 12 euros, a cover and the file buyers receive.",
+    width: 1500,
+    height: 990,
+    fit: "wide",
+  },
+  {
+    title: "Upload the file",
+    body: "The file your buyers get. The moment it's attached, your product is live with its own link.",
+    src: "/screens/step-upload.webp",
+    alt: "A draft product card in the dashboard with a big Upload file button.",
+    width: 508,
+    height: 591,
+    fit: "tall",
+  },
+  {
+    title: "Share the link and get paid",
+    body: "Buyers pay on your product page and download straight away. The money goes to your own Stripe.",
+    src: "/screens/buy-phone.webp",
+    alt: "A product page on a phone: the cover, the name and price, and a Buy now button.",
+    width: 585,
+    height: 1140,
+    fit: "phone",
+  },
+] as const;
+
 // What a Halvo shop page gives a seller — every line true of the shop today.
 const SHOP_POINTS = [
   "Your products in a grid, in your colour, with your banner and news across the top",
@@ -186,9 +216,6 @@ function HomePage() {
           </div>
 
           <div className="relative mx-auto flex max-w-3xl flex-col items-center gap-5 px-4 py-20 text-center sm:px-6 sm:py-28">
-            <span className="rounded-full border border-border/60 bg-card px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm">
-              Now in early access
-            </span>
             <h1 className="font-[family-name:var(--font-display)] text-4xl font-bold tracking-tight sm:text-6xl">
               Sell digital products <span className="text-gradient">in minutes</span>.
             </h1>
@@ -250,14 +277,50 @@ function HomePage() {
           </section>
         ) : null}
 
-        <section className="mx-auto max-w-3xl px-4 pb-20 sm:px-6">
+        {/* The real screens, in order, rather than an animation of them: a
+            seller can see exactly what they'll be doing. */}
+        <section className="mx-auto max-w-6xl px-4 pb-20 sm:px-6">
           <h2 className="text-center font-[family-name:var(--font-display)] text-2xl font-semibold sm:text-3xl">
             See how it works
           </h2>
-          <p className="mt-2 text-center text-muted-foreground">30 seconds: list a product, get paid.</p>
-          <div className="mt-6">
-            <ExplainerAnimation />
-          </div>
+          <p className="mt-2 text-center text-muted-foreground">Three steps, a few minutes. These are the real screens.</p>
+          <ol className="mt-10 grid gap-10 md:grid-cols-3 md:gap-8">
+            {HOW_IT_WORKS.map((step, i) => (
+              <li key={step.title} className="flex flex-col">
+                {/* Same-sized panels so the captions line up; each picture sits
+                    in its own way — the whole form, the whole card, and a phone
+                    peeking up from the bottom. */}
+                <div
+                  className={cn(
+                    "flex h-72 justify-center overflow-hidden rounded-2xl border bg-hero-glow",
+                    step.fit === "phone" ? "items-end px-6 pt-6" : "items-center p-6",
+                  )}
+                >
+                  <img
+                    src={step.src}
+                    alt={step.alt}
+                    width={step.width}
+                    height={step.height}
+                    loading="lazy"
+                    decoding="async"
+                    className={cn(
+                      "border shadow-lg",
+                      step.fit === "phone" && "h-auto w-44 rounded-t-xl border-b-0",
+                      step.fit === "wide" && "h-auto w-full rounded-xl",
+                      step.fit === "tall" && "h-full w-auto rounded-xl",
+                    )}
+                  />
+                </div>
+                <p className="mt-5 flex items-center gap-2.5 font-[family-name:var(--font-display)] font-semibold">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
+                    {i + 1}
+                  </span>
+                  {step.title}
+                </p>
+                <p className="mt-1.5 text-sm text-muted-foreground">{step.body}</p>
+              </li>
+            ))}
+          </ol>
         </section>
 
         {showcase?.shop ? (
@@ -281,7 +344,7 @@ function HomePage() {
                 <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
                   <Button asChild size="lg">
                     <Link to="/login">
-                      Start your shop
+                      Start free
                       <ArrowRight className="h-4 w-4" />
                     </Link>
                   </Button>
@@ -346,7 +409,7 @@ function HomePage() {
             <h2 className="font-[family-name:var(--font-display)] text-2xl font-semibold sm:text-3xl">
               Everything you need to sell
             </h2>
-            <p className="mt-2 text-muted-foreground">No plugins, no storefront to build, no code.</p>
+            <p className="mt-2 text-muted-foreground">No plugins, no website to build, no code.</p>
           </div>
           <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
             {FEATURES.map((f) => (

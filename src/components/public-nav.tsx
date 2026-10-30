@@ -54,7 +54,7 @@ export function PublicNav() {
               <Link to="/login">Sign in</Link>
             </Button>
             <Button asChild size="sm">
-              <Link to="/login">Get started</Link>
+              <Link to="/login">Start free</Link>
             </Button>
           </div>
 
@@ -66,7 +66,7 @@ export function PublicNav() {
               <>
                 <Button asChild size="lg" className="w-full">
                   <Link to="/login" onClick={close}>
-                    Get started
+                    Start free
                   </Link>
                 </Button>
                 <Button asChild size="lg" variant="outline" className="w-full">

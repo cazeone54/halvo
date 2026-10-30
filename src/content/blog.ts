@@ -217,7 +217,7 @@ export const BLOG_POSTS: BlogPost[] = [
     body: [
       {
         type: "p",
-        text: `Until Stripe is connected, your product page shows a polite "not available yet" notice instead of a checkout. Connecting is the step that turns your product into something people can actually buy. Here's the whole process, including what to do when it doesn't go smoothly.`,
+        text: `Until Stripe is connected, your paid products stay hidden from buyers. Connecting is the step that turns your product into something people can actually buy. Here's the whole process, including what to do when it doesn't go smoothly.`,
       },
       { type: "h2", text: "Why Stripe, and where your money goes" },
       {

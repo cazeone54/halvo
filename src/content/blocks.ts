@@ -8,4 +8,8 @@ export type ContentBlock =
   | { type: "ul"; items: string[] }
   | { type: "note"; text: string }
   | { type: "code"; code: string }
-  | { type: "pricing" };
+  | { type: "pricing" }
+  // A screenshot from public/screens, at its real pixel size so the page
+  // doesn't jump while it loads. `narrow` for a small picture (a single card)
+  // that would look blown up across the whole column.
+  | { type: "image"; src: string; alt: string; width: number; height: number; caption?: string; narrow?: boolean };

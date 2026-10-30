@@ -1,5 +1,6 @@
 import { PricingTiers } from "@/components/pricing-tiers";
 import type { ContentBlock } from "@/content/blocks";
+import { cn } from "@/lib/utils";
 
 // Single renderer shared by guides and blog posts so long-form content looks
 // identical everywhere and only has to be styled once.
@@ -52,6 +53,23 @@ function Block({ block }: { block: ContentBlock }) {
         <pre className="mt-6 overflow-x-auto whitespace-pre-wrap break-all rounded-xl border bg-muted/40 p-4 font-mono text-[13px] leading-relaxed">
           {block.code}
         </pre>
+      );
+    case "image":
+      return (
+        <figure className={cn("mt-6", block.narrow && "mx-auto max-w-xs")}>
+          <img
+            src={block.src}
+            alt={block.alt}
+            width={block.width}
+            height={block.height}
+            loading="lazy"
+            decoding="async"
+            className="block h-auto w-full rounded-xl border shadow-sm"
+          />
+          {block.caption ? (
+            <figcaption className="mt-2 text-center text-[13px] text-muted-foreground">{block.caption}</figcaption>
+          ) : null}
+        </figure>
       );
     case "pricing":
       // Rendered from plans.ts so fee content can never drift from real rates.

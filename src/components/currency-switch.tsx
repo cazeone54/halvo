@@ -5,12 +5,17 @@ import { CURRENCY_COOKIE, CURRENCY_META, type Currency } from "@/lib/currency";
 // every price and the checkout are rebuilt in the new currency.
 // `className` so the same control can sit centred under a checkout button or
 // left-aligned in a page header without each caller rebuilding it.
+//
+// `seller`: on the dashboard nobody is paying — the seller is choosing which
+// currency to read their own numbers in — so it says "Show" instead of "Pay".
 export function CurrencySwitch({
   current,
   className = "mt-2 text-center text-xs text-muted-foreground",
+  seller = false,
 }: {
   current: Currency;
   className?: string;
+  seller?: boolean;
 }) {
   const other: Currency = current === "eur" ? "usd" : "eur";
   const choose = () => {
@@ -19,9 +24,9 @@ export function CurrencySwitch({
   };
   return (
     <p className={className}>
-      Prices in {CURRENCY_META[current].name} ·{" "}
+      {seller ? "Shown in" : "Prices in"} {CURRENCY_META[current].name} ·{" "}
       <button type="button" onClick={choose} className="underline underline-offset-2 hover:text-foreground">
-        Pay in {CURRENCY_META[other].name} instead
+        {seller ? "Show" : "Pay"} in {CURRENCY_META[other].name} instead
       </button>
     </p>
   );

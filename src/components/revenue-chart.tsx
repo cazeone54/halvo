@@ -49,7 +49,7 @@ export function RevenueChart({
       ) : null}
       <div className="flex gap-2">
         {/* y-axis labels */}
-        <div className="flex w-12 shrink-0 flex-col justify-between py-0.5 text-right text-[10px] tabular-nums text-muted-foreground">
+        <div className="flex w-12 shrink-0 flex-col justify-between py-0.5 text-right text-[11px] tabular-nums text-muted-foreground">
           <span>{money(niceMax)}</span>
           <span>{money(niceMax / 2)}</span>
           <span>{CURRENCY_META[currency].symbol}0</span>
@@ -83,7 +83,7 @@ export function RevenueChart({
       </div>
 
       {/* x-axis endpoints */}
-      <figcaption className="mt-2 flex justify-between pl-14 text-[10px] text-muted-foreground">
+      <figcaption className="mt-2 flex justify-between pl-14 text-[11px] text-muted-foreground">
         <span>{fmtBucket(series[0].start)}</span>
         <span>{lastLabel}</span>
       </figcaption>

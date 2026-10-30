@@ -59,7 +59,9 @@ export function GoogleSignInButton({ onUnavailable }: { onUnavailable?: () => vo
           text: "continue_with",
           shape: "rectangular",
           logo_alignment: "left",
-          width: 320,
+          // As wide as the email box below it, so the two line up. Google
+          // takes a fixed number of pixels (200–400), measured here once.
+          width: Math.max(200, Math.min(400, Math.floor(holder.current.getBoundingClientRect().width) || 320)),
           // Google localises its button to the browser by default, which put
           // a Bulgarian button inside an otherwise English card. The site is
           // English throughout, so the button should be too.
@@ -85,7 +87,7 @@ export function GoogleSignInButton({ onUnavailable }: { onUnavailable?: () => vo
           first paint: without it the card grew by 40px on arrival, and since
           the page centres the card vertically, the whole thing jumped —
           under the cursor of anyone already typing their email.
-          Centred because its fixed width won't always match the card. */}
+          Centred in case the card is wider than Google's 400px maximum. */}
       <div ref={holder} className="flex min-h-10 justify-center [color-scheme:light]" />
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
     </div>

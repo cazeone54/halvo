@@ -112,7 +112,7 @@ export function AppHeader({ sideNav = false }: { sideNav?: boolean }) {
                 {storefrontUrl ? (
                   <Button asChild variant="outline" className="h-11">
                     <a href={storefrontUrl} target="_blank" rel="noreferrer" onClick={close}>
-                      <Store className="h-4 w-4" /> Storefront
+                      <Store className="h-4 w-4" /> My shop
                     </a>
                   </Button>
                 ) : (
@@ -175,7 +175,7 @@ export function AppHeader({ sideNav = false }: { sideNav?: boolean }) {
             {storefrontUrl ? (
               <DropdownMenuItem asChild>
                 <a href={storefrontUrl} target="_blank" rel="noreferrer">
-                  <Store className="h-4 w-4" /> View storefront
+                  <Store className="h-4 w-4" /> View my shop
                   <ExternalLink className="ml-auto h-3 w-3 opacity-60" />
                 </a>
               </DropdownMenuItem>

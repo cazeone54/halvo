@@ -63,8 +63,9 @@ function SettingsPage() {
 
   return (
     <UnsavedChangesContext.Provider value={report}>
-      <div className="flex flex-col gap-6">
-        <h1 className="text-xl font-semibold font-[family-name:var(--font-display)]">Settings</h1>
+      {/* Forms read best at this width, even where the page around them is wider. */}
+      <div className="flex max-w-3xl flex-col gap-6">
+        <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold tracking-tight">Settings</h1>
 
         <nav aria-label="Settings sections" className="-mx-4 flex gap-1 overflow-x-auto border-b px-4 sm:mx-0 sm:px-0">
           {TABS.map((t) => {
@@ -201,7 +202,7 @@ function ProfileSettings() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Storefront profile</CardTitle>
+        <CardTitle className="text-base">Shop profile</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="flex items-center gap-4">
@@ -241,7 +242,7 @@ function ProfileSettings() {
         </div>
         <div>
           <Label htmlFor={`${uid}-f2`}>Bio</Label>
-          <Textarea id={`${uid}-f2`} value={bio} onChange={(e) => setBio(e.target.value)} rows={3} placeholder="Shown on your storefront" />
+          <Textarea id={`${uid}-f2`} value={bio} onChange={(e) => setBio(e.target.value)} rows={3} placeholder="Shown on your shop page" />
         </div>
         <BrandColorPicker
           value={accentColor}

@@ -1,5 +1,6 @@
 import { createFileRoute, notFound, Link } from "@tanstack/react-router";
-import { ArrowLeft, Clock } from "lucide-react";
+import { ArrowLeft, ArrowRight, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { ContentBlocks } from "@/components/content-blocks";
@@ -76,12 +77,11 @@ function GuidePage() {
             <p className="mt-1 text-sm text-muted-foreground">
               Your first product can be live in a few minutes. Free to start.
             </p>
-            <Link
-              to="/login"
-              className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary underline underline-offset-4"
-            >
-              Get started
-            </Link>
+            <Button asChild className="mt-4">
+              <Link to="/login">
+                Start free <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </Button>
           </div>
 
           {related.length > 0 ? (

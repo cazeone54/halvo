@@ -62,6 +62,7 @@ import { getMyBandwidthUsage } from "@/lib/bandwidth.functions";
 import { getServerFeatures } from "@/lib/server-features.functions";
 import { describeConnectStatus } from "@/lib/stripe-requirements";
 import { getBundleEditor, addBundleItem, removeBundleItem } from "@/lib/bundles.functions";
+import { getMyFunnel } from "@/lib/funnel.functions";
 import { getBumpEditor, setProductBump, removeProductBump } from "@/lib/bumps.functions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createSubscriptionCheckout, createPortalSession } from "@/lib/payments.functions";
@@ -145,6 +146,10 @@ function DashboardHome() {
   const planQ = useQuery({ queryKey: ["my-plan"], queryFn: () => planFn() });
   const bandwidthFn = useServerFn(getMyBandwidthUsage);
   const bandwidthQ = useQuery({ queryKey: ["my-bandwidth"], queryFn: () => bandwidthFn() });
+  // The same query the Analytics page runs for its 30-day view, so the two
+  // share one answer.
+  const funnelFn = useServerFn(getMyFunnel);
+  const viewsQ = useQuery({ queryKey: ["my-funnel", 30], queryFn: () => funnelFn({ data: { period: 30 } }) });
   const featuresFn = useServerFn(getServerFeatures);
   const featuresQ = useQuery({ queryKey: ["server-features"], queryFn: () => featuresFn(), staleTime: Infinity });
 
@@ -173,7 +178,7 @@ function DashboardHome() {
   const handleMut = useMutation({
     mutationFn: (h: string) => updateHandleFn({ data: { handle: h } }),
     onSuccess: () => {
-      toast.success("Storefront handle saved.");
+      toast.success("Shop handle saved.");
       qc.invalidateQueries({ queryKey: ["my-profile"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -481,13 +486,13 @@ function DashboardHome() {
               <ExternalLink className="h-3 w-3 shrink-0" />
             </a>
           ) : (
-            <p className="mt-0.5 text-sm text-muted-foreground">Pick a handle below to open your storefront.</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">Pick a handle below to open your shop.</p>
           )}
         </div>
         {storefrontUrl ? (
           <Button asChild variant="outline" size="sm" className="shrink-0">
             <a href={storefrontUrl} target="_blank" rel="noreferrer">
-              View storefront
+              View my shop
               <ExternalLink className="h-3.5 w-3.5" />
             </a>
           </Button>
@@ -566,7 +571,14 @@ function DashboardHome() {
               value={formatCents(totalsIn(revenue, displayCurrency), displayCurrency)}
             />
             <StatCard icon={ShoppingBag} label="Sales" value={String(paidSales.length)} />
-            <StatCard icon={Package} label="Products" value={String(productCount)} />
+            {/* Views rather than a product count: the list right below already
+                says how many products there are, and views are what tells a
+                seller whether anyone is seeing them. */}
+            <StatCard
+              icon={Eye}
+              label="30-day views"
+              value={viewsQ.data?.productViews == null ? "–" : viewsQ.data.productViews.toLocaleString("en-GB")}
+            />
           </div>
           <div className="flex flex-wrap items-center justify-between gap-x-3">
             {/* Only when something was actually converted — on a dashboard
@@ -579,7 +591,7 @@ function DashboardHome() {
             ) : (
               <span />
             )}
-            <CurrencySwitch current={displayCurrency} className="text-xs text-muted-foreground" />
+            <CurrencySwitch current={displayCurrency} className="text-xs text-muted-foreground" seller />
           </div>
         </div>
       ) : null}
@@ -684,7 +696,7 @@ function DashboardHome() {
                 />
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                A clear cover sells more — it's shown on your storefront and the product page.
+                A clear cover sells more — it's shown on your shop and the product page.
               </p>
             </div>
 
@@ -736,8 +748,11 @@ function DashboardHome() {
 
         <div className="flex flex-col gap-3">
           {/* A grid of covers, like Discover, so a seller sees their shop the way
-              buyers do. A card opened for editing spans the full row. */}
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              buyers do: three across on a computer, two on a tablet. On a phone
+              one per row, picture beside the details — two side by side there
+              cut titles off and squeezed the buttons. A card opened for editing
+              spans the full row. */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
             {productPage.items.map((product) => (
               <ProductRow
                 key={product.id}
@@ -1371,11 +1386,16 @@ function ProductRow({
           onClose={() => setPreview(null)}
         />
       ) : null}
-      <div className={cn("flex flex-col", expanded && "sm:flex-row sm:items-start sm:gap-4 sm:p-4")}>
+      <div
+        className={cn(
+          "flex",
+          expanded ? "flex-col sm:flex-row sm:items-start sm:gap-4 sm:p-4" : "flex-row sm:flex-col",
+        )}
+      >
         <div
           className={cn(
-            "relative aspect-video w-full shrink-0 overflow-hidden bg-muted",
-            expanded && "sm:w-56 sm:rounded-md",
+            "relative aspect-video shrink-0 overflow-hidden bg-muted",
+            expanded ? "w-full sm:w-56 sm:rounded-md" : "m-3 mr-0 w-32 self-start rounded-md sm:m-0 sm:w-full sm:rounded-none",
           )}
         >
           {product.imageUrl ? (
@@ -1424,7 +1444,7 @@ function ProductRow({
               : formatCents(product.price_cents)}
           </p>
           {!product.url_slug || hiddenFromBuyers || notInDiscover || !product.imageUrl ? (
-            <p className="text-xs leading-snug text-muted-foreground">
+            <p className="text-[13px] leading-snug text-muted-foreground">
               {!product.url_slug
                 ? "Upload the file buyers get to publish it."
                 : hiddenFromBuyers
@@ -1740,7 +1760,7 @@ function ProductRow({
       {/* Files sit at the bottom of every card, so cards in a row line up. */}
       <div className="mt-auto flex flex-col gap-1 border-t px-3 py-2 sm:px-4">
         {(filesQ.data ?? []).map((f) => (
-          <div key={f.id} className="flex items-center justify-between gap-1 text-xs">
+          <div key={f.id} className="flex items-center justify-between gap-1 text-[13px]">
             <span className="flex min-w-0 items-center gap-1.5 text-muted-foreground" title={f.file_name ?? undefined}>
               <FileText className="h-3.5 w-3.5 shrink-0" />
               <span className="truncate">{f.file_name}</span>

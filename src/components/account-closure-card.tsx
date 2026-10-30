@@ -44,7 +44,7 @@ export function AccountClosureCard() {
   const deactivateMut = useMutation({
     mutationFn: () => deactivateFn(),
     onSuccess: () => {
-      toast.success("Your account is deactivated. Nothing is for sale and your storefront is hidden.");
+      toast.success("Your account is deactivated. Nothing is for sale and your shop is hidden.");
       invalidate();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -53,7 +53,7 @@ export function AccountClosureCard() {
   const reactivateMut = useMutation({
     mutationFn: () => reactivateFn(),
     onSuccess: () => {
-      toast.success("Welcome back — your storefront and products are live again.");
+      toast.success("Welcome back — your shop and products are live again.");
       invalidate();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -91,7 +91,7 @@ export function AccountClosureCard() {
               Your account is deactivated
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Your storefront and product pages are hidden and nothing can be bought. Your products, files and sales
+              Your shop and product pages are hidden and nothing can be bought. Your products, files and sales
               history are untouched, and buyers who already paid keep their downloads.
             </p>
             <Button className="mt-3" onClick={() => reactivateMut.mutate()} disabled={reactivateMut.isPending}>
@@ -106,7 +106,7 @@ export function AccountClosureCard() {
               Take everything off sale without losing it. Reversible at any time, from this page.
             </p>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-              <li>Your storefront and product pages stop loading</li>
+              <li>Your shop and product pages stop loading</li>
               <li>No new sales, free claims or memberships</li>
               <li>Your products, files, sales history and payout details are kept exactly as they are</li>
               <li>Buyers who already paid keep their downloads</li>
@@ -118,7 +118,7 @@ export function AccountClosureCard() {
                   {deactivateMut.isPending ? "Deactivating…" : "Deactivate my account"}
                 </Button>
               }
-              message="Hide your storefront and stop all new sales? You can turn this back on whenever you like."
+              message="Hide your shop and stop all new sales? You can turn this back on whenever you like."
               confirmLabel="Deactivate"
               onConfirm={() => deactivateMut.mutate()}
             />

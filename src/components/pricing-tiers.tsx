@@ -101,7 +101,7 @@ export function PricingTiers() {
               </ul>
               <Button asChild className="mt-2" variant={isFeatured ? "default" : "outline"}>
                 <Link to="/login">
-                  {SINGLE ? "Start selling" : tier === "free" ? "Start free" : `Choose ${PLAN_LABELS[tier]}`}
+                  {SINGLE ? "Start free" : tier === "free" ? "Start free" : `Choose ${PLAN_LABELS[tier]}`}
                 </Link>
               </Button>
             </CardContent>

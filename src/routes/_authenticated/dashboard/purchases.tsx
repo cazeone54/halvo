@@ -19,7 +19,7 @@ function PurchasesPage() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-xl font-semibold">Your purchases</h1>
+        <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold tracking-tight">Your purchases</h1>
         <p className="mt-0.5 text-sm text-muted-foreground">
           Everything you've bought — re-download your files any time.
         </p>

@@ -537,7 +537,7 @@ function TrustItem({ icon: Icon, label }: { icon: typeof Lock; label: string }) 
   return (
     <div className="flex flex-col items-center gap-1 rounded-xl border bg-card px-2 py-3 text-center">
       <Icon className="h-4 w-4 text-primary" />
-      <span className="text-[11px] leading-tight text-muted-foreground">{label}</span>
+      <span className="text-xs leading-tight text-muted-foreground sm:text-[13px]">{label}</span>
     </div>
   );
 }

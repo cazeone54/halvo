@@ -17,11 +17,12 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { BrowserFrame, Screenshot } from "@/components/browser-frame";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { AI_COPYWRITER_ENABLED, BRAND_NAME, BASE_URL } from "@/lib/site";
 import { DIRECT_CHARGES, PLAN_LIMITS } from "@/lib/plans";
+import { cn } from "@/lib/utils";
 
 // Derived so a copy change can never claim a rate the checkout doesn't charge.
 // This page previously advertised "from 4%" — the old Pro tier — which stopped
@@ -86,23 +87,50 @@ const GROW: Feature[] = [
   { icon: Package, title: "Discover marketplace", body: "Get found by buyers browsing Halvo, on top of the traffic you bring yourself." },
 ];
 
-function FeatureGrid({ items }: { items: Feature[] }) {
+// A compact list rather than a wall of identical cards: the screenshot beside
+// it carries the section, the list says what's in it.
+function FeatureList({ items, columns = 1 }: { items: Feature[]; columns?: 1 | 2 }) {
   return (
-    <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <ul className={cn("mt-6 grid grid-cols-1 gap-x-8 gap-y-5", columns === 2 && "sm:grid-cols-2")}>
       {items.map((f) => (
-        <Card key={f.title} className="card-hover">
-          <CardContent className="flex gap-4 p-5">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20">
-              <f.icon className="h-5 w-5" aria-hidden="true" />
-            </div>
-            <div>
-              <h3 className="font-[family-name:var(--font-display)] font-semibold">{f.title}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">{f.body}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <li key={f.title} className="flex gap-3.5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <f.icon className="h-[18px] w-[18px]" aria-hidden="true" />
+          </div>
+          <div>
+            <h3 className="font-[family-name:var(--font-display)] font-semibold">{f.title}</h3>
+            <p className="mt-0.5 text-sm text-muted-foreground">{f.body}</p>
+          </div>
+        </li>
       ))}
-    </div>
+    </ul>
+  );
+}
+
+// One section: words on one side, a real screenshot of that part of Halvo on
+// the other, swapping sides down the page so it doesn't read as a column.
+function ShowcaseSection({
+  eyebrow,
+  title,
+  items,
+  shot,
+  flip = false,
+}: {
+  eyebrow: string;
+  title: string;
+  items: Feature[];
+  shot: React.ReactNode;
+  flip?: boolean;
+}) {
+  return (
+    <section className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
+      <div className={cn(flip && "lg:order-2")}>
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-primary">{eyebrow}</h2>
+        <p className="mt-1 font-[family-name:var(--font-display)] text-2xl font-semibold sm:text-3xl">{title}</p>
+        <FeatureList items={items} />
+      </div>
+      <div className={cn(flip && "lg:order-1")}>{shot}</div>
+    </section>
   );
 }
 
@@ -134,27 +162,62 @@ function FeaturesPage() {
           </div>
         </section>
 
-        <div className="mx-auto w-full max-w-4xl px-4 py-16 sm:px-6">
-          <section>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-primary">Sell anything digital</h2>
-            <p className="mt-1 font-[family-name:var(--font-display)] text-2xl font-semibold">A checkout that closes</p>
-            <FeatureGrid items={SELL} />
-          </section>
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-24 px-4 py-16 sm:px-6 sm:py-20">
+          <ShowcaseSection
+            eyebrow="Sell anything digital"
+            title="A checkout that closes"
+            items={SELL}
+            shot={
+              <BrowserFrame url="halvo.io/p/the-side-hustle-finder">
+                <Screenshot
+                  src="/screens/checkout.webp"
+                  alt="A real Halvo product page: the cover, name, price and description on the left, and the checkout with card and other payment methods on the right."
+                  width={1920}
+                  height={1200}
+                />
+              </BrowserFrame>
+            }
+          />
 
-          <section className="mt-16">
+          {/* No picture here: payouts happen in the seller's own Stripe, not on
+              a Halvo screen worth showing. Two columns of points instead. */}
+          <section className="rounded-2xl border bg-muted/30 p-6 sm:p-10">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-primary">Get paid, your way</h2>
-            <p className="mt-1 font-[family-name:var(--font-display)] text-2xl font-semibold">Your money, your account</p>
-            <FeatureGrid items={GET_PAID} />
+            <p className="mt-1 font-[family-name:var(--font-display)] text-2xl font-semibold sm:text-3xl">
+              Your money, your account
+            </p>
+            <FeatureList items={GET_PAID} columns={2} />
           </section>
 
-          <section className="mt-16">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-primary">Grow your sales</h2>
-            <p className="mt-1 font-[family-name:var(--font-display)] text-2xl font-semibold">More buyers, bigger orders</p>
-            <FeatureGrid items={GROW} />
-          </section>
+          <ShowcaseSection
+            flip
+            eyebrow="Grow your sales"
+            title="More buyers, bigger orders"
+            items={GROW}
+            shot={
+              <div className="flex flex-col gap-6">
+                <BrowserFrame url="halvo.io/halvo-press">
+                  <Screenshot
+                    src="/screens/shop.webp"
+                    alt="A real Halvo shop page: the seller's picture and name, a free download that collects email addresses, and pinned products."
+                    width={1920}
+                    height={1725}
+                  />
+                </BrowserFrame>
+                <BrowserFrame url="halvo.io/discover" className="hidden sm:block">
+                  <Screenshot
+                    src="/screens/discover.webp"
+                    alt="Halvo's Discover page: filters down the left and a grid of product covers with prices."
+                    width={1920}
+                    height={1200}
+                  />
+                </BrowserFrame>
+              </div>
+            }
+          />
 
           {/* CTA */}
-          <section className="mt-20 rounded-2xl border bg-muted/30 px-6 py-12 text-center">
+          <section className="rounded-2xl border bg-muted/30 px-6 py-12 text-center">
             <h2 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight sm:text-3xl">
               Your first product can be live in five minutes.
             </h2>

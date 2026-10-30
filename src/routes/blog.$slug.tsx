@@ -107,7 +107,7 @@ function BlogPostPage() {
               Upload a file, set a price, share one link. Free to start.
             </p>
             <Button asChild className="mt-4">
-              <Link to="/login">Get started</Link>
+              <Link to="/login">Start free</Link>
             </Button>
           </div>
 

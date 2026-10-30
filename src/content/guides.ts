@@ -32,21 +32,29 @@ export const GUIDES: Guide[] = [
     body: [
       {
         type: "p",
-        text: "You need three things to start selling: a storefront handle, a product, and the file you're delivering. Here's the whole path.",
+        text: "You need three things to start selling: a shop handle, a product, and the file you're delivering. Here's the whole path.",
       },
-      { type: "h2", text: "1. Pick your storefront handle" },
+      { type: "h2", text: "1. Pick your shop handle" },
       {
         type: "p",
-        text: "Your handle is your public store address. If you pick “ana”, your storefront lives at halvo.io/ana and lists everything you sell. It doubles as a link-in-bio page: add your social profiles and links in Settings. You can set it from the top of your dashboard.",
+        text: "Your handle is your shop's address. If you pick “ana”, your shop lives at halvo.io/ana and lists everything you sell. It doubles as a link-in-bio page: add your social profiles and links in Settings. You can set it from the top of your dashboard.",
       },
       { type: "h2", text: "2. Create the product" },
       {
         type: "steps",
         items: [
           "Click New product on your dashboard.",
-          "Give it a name, a short description, and a price.",
-          "Hit Create product. It's saved as a draft for now.",
+          "Give it a name, a short description, and a price. A cover picture is optional, but it sells.",
+          "Hit Create as draft. It's saved as a draft for now.",
         ],
+      },
+      {
+        type: "image",
+        src: "/screens/step-new-product.webp",
+        width: 1500,
+        height: 990,
+        alt: "The New product form, filled in: name, description, a price of 12 euros, a cover and the file buyers receive.",
+        caption: "The New product form. You can attach the file here too, and the product goes live straight away.",
       },
       {
         type: "note",
@@ -55,7 +63,16 @@ export const GUIDES: Guide[] = [
       { type: "h2", text: "3. Attach the file — this publishes it" },
       {
         type: "p",
-        text: "Open the product and upload the file your buyer receives: the PDF, the zip, the video, whatever it is. The moment the first file lands, the product publishes and gets its public link.",
+        text: "On the product's card, click Upload file and pick the file your buyer receives: the PDF, the zip, the video, whatever it is. The moment the first file lands, the product publishes and gets its public link.",
+      },
+      {
+        type: "image",
+        src: "/screens/step-upload.webp",
+        width: 508,
+        height: 591,
+        alt: "A draft product card in the dashboard with a big Upload file button.",
+        caption: "A draft waiting for its file.",
+        narrow: true,
       },
       {
         type: "p",
@@ -64,7 +81,7 @@ export const GUIDES: Guide[] = [
       { type: "h2", text: "4. Connect Stripe so you can actually be paid" },
       {
         type: "p",
-        text: "Until Stripe is connected, your product page shows a polite “not available yet” notice instead of a checkout. Connecting takes a few minutes — see the guide on connecting Stripe.",
+        text: "Until Stripe is connected, your paid products stay hidden from buyers; free ones already work by their link. Connecting takes a few minutes — see the guide on connecting Stripe.",
       },
       { type: "h2", text: "5. Share the link" },
       {

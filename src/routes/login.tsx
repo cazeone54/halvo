@@ -13,6 +13,8 @@ import { BRAND_NAME } from "@/lib/site";
 import { readArrival } from "@/lib/signup-arrival";
 
 export const Route = createFileRoute("/login")({
+  // Its own name in the browser tab, rather than the homepage's.
+  head: () => ({ meta: [{ title: `Sign in — ${BRAND_NAME}` }] }),
   component: LoginPage,
 });
 

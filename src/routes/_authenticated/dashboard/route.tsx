@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { Package, Tag, BarChart3, Settings, PauseCircle } from "lucide-react";
+import { LayoutDashboard, Tag, BarChart3, Settings, PauseCircle } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 import { DashboardSidebar } from "@/components/dashboard-sidebar";
 import { getMyProfile } from "@/lib/profile.functions";
@@ -16,7 +16,8 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 // hamburger (faster, one-handed, always visible). Overflow (Affiliate,
 // Discover) still lives in the top menu.
 const PRIMARY_TABS = [
-  { to: "/dashboard", label: "Products", icon: Package, exact: true },
+  // Named like the side menu on a computer, so it's one place with one name.
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/dashboard/discounts", label: "Discounts", icon: Tag },
   { to: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/dashboard/settings", label: "Settings", icon: Settings },
@@ -40,7 +41,7 @@ function DashboardLayout() {
           <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-2 gap-y-1 px-4 py-2 text-sm sm:px-6">
             <PauseCircle className="h-4 w-4 shrink-0" />
             <span className="font-medium">Your account is deactivated.</span>
-            <span className="text-muted-foreground">Nothing is for sale and your storefront is hidden.</span>
+            <span className="text-muted-foreground">Nothing is for sale and your shop is hidden.</span>
             <Link to="/dashboard/settings" search={{ tab: "account" }} className="font-medium underline underline-offset-2">
               Reactivate
             </Link>
@@ -52,7 +53,10 @@ function DashboardLayout() {
           space beside it. */}
       <div className="lg:flex">
         <DashboardSidebar />
-        <main id="main-content" tabIndex={-1} className="mx-auto w-full min-w-0 max-w-3xl px-4 py-6 pb-24 sm:px-6 sm:pb-6">
+        {/* Wider on a computer, where the side menu leaves room: three products
+            to a row instead of two in a narrow column. Forms keep their own
+            narrower width (see Settings). */}
+        <main id="main-content" tabIndex={-1} className="mx-auto w-full min-w-0 max-w-3xl px-4 py-6 pb-24 sm:px-6 sm:pb-6 lg:max-w-5xl">
           <Outlet />
         </main>
       </div>
