@@ -1,13 +1,27 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { Settings, ExternalLink, Store, LogOut, LifeBuoy, ShoppingBag } from "lucide-react";
+import {
+  Settings,
+  ExternalLink,
+  Store,
+  LogOut,
+  LifeBuoy,
+  ShoppingBag,
+  LayoutDashboard,
+  Tag,
+  Handshake,
+  BarChart3,
+  Users,
+  Compass,
+} from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile } from "@/lib/profile.functions";
 import { BASE_URL, BRAND_EMAIL } from "@/lib/site";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
+import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { MobileMenu, MOBILE_MENU_LINK, MOBILE_MENU_LINK_ACTIVE } from "@/components/mobile-menu";
 import {
@@ -23,20 +37,23 @@ export const APP_NAV_LINKS = [
   // "Dashboard", not "Products": this page carries the KPIs, the products list
   // AND the sales list, so labelling it after one of them sent sellers hunting
   // under Analytics or Customers for the sale they'd just been emailed about.
-  { to: "/dashboard", label: "Dashboard", exact: true },
-  { to: "/dashboard/discounts", label: "Discounts" },
-  { to: "/dashboard/referrals", label: "Affiliate" },
-  { to: "/dashboard/analytics", label: "Analytics" },
-  { to: "/dashboard/customers", label: "Customers" },
-  { to: "/discover", label: "Discover" },
-  { to: "/guides", label: "Help" },
-  { to: "/dashboard/settings", label: "Settings" },
+  { to: "/dashboard", label: "Dashboard", exact: true, icon: LayoutDashboard, group: "shop" },
+  { to: "/dashboard/discounts", label: "Discounts", icon: Tag, group: "shop" },
+  { to: "/dashboard/referrals", label: "Affiliate", icon: Handshake, group: "shop" },
+  { to: "/dashboard/analytics", label: "Analytics", icon: BarChart3, group: "shop" },
+  { to: "/dashboard/customers", label: "Customers", icon: Users, group: "shop" },
+  { to: "/discover", label: "Discover", icon: Compass, group: "site" },
+  { to: "/guides", label: "Help", icon: LifeBuoy, group: "site" },
+  { to: "/dashboard/settings", label: "Settings", icon: Settings, group: "shop" },
 ] as const;
 
 // The signed-in header. Used by the dashboard and by every public page while a
 // seller is signed in, so moving to Discover or Help keeps their navigation
 // and account menu instead of looking like they were logged out.
-export function AppHeader() {
+//
+// `sideNav`: the page has the menu down the left on a wide screen (the
+// dashboard), so the same links aren't repeated across the top there.
+export function AppHeader({ sideNav = false }: { sideNav?: boolean }) {
   const navigate = useNavigate();
   const profileFn = useServerFn(getMyProfile);
   const profileQ = useQuery({ queryKey: ["my-profile"], queryFn: () => profileFn() });
@@ -55,7 +72,7 @@ export function AppHeader() {
         <Link to="/dashboard">
           <Logo />
         </Link>
-        <nav className="hidden gap-4 text-sm text-muted-foreground sm:flex">
+        <nav className={cn("hidden gap-4 text-sm text-muted-foreground sm:flex", sideNav && "lg:hidden")}>
           {APP_NAV_LINKS.map((link) => (
             <Link
               key={link.to}

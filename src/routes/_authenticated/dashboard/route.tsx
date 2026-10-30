@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { Package, Tag, BarChart3, Settings, PauseCircle } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
+import { DashboardSidebar } from "@/components/dashboard-sidebar";
 import { getMyProfile } from "@/lib/profile.functions";
 import { useRecordSignup } from "@/lib/use-record-signup";
 
@@ -32,7 +33,7 @@ function DashboardLayout() {
 
   return (
     <div className="min-h-screen">
-      <AppHeader />
+      <AppHeader sideNav />
 
       {deactivated ? (
         <div className="border-b border-amber-500/40 bg-amber-500/10">
@@ -47,9 +48,14 @@ function DashboardLayout() {
         </div>
       ) : null}
 
-      <main id="main-content" tabIndex={-1} className="mx-auto max-w-3xl px-4 py-6 pb-24 sm:px-6 sm:pb-6">
-        <Outlet />
-      </main>
+      {/* On a computer the menu runs down the left and the page sits in the
+          space beside it. */}
+      <div className="lg:flex">
+        <DashboardSidebar />
+        <main id="main-content" tabIndex={-1} className="mx-auto w-full min-w-0 max-w-3xl px-4 py-6 pb-24 sm:px-6 sm:pb-6">
+          <Outlet />
+        </main>
+      </div>
 
       {/* Thumb-zone bottom navigation — mobile only. Labeled icons (not
           "mystery meat"), ≥56px tap targets, safe-area aware for notched phones. */}
