@@ -1,6 +1,8 @@
 import { Link } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { useAuthState } from "@/lib/auth-state";
 import { AppHeader } from "@/components/app-header";
+import { DashboardSidebar } from "@/components/dashboard-sidebar";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -16,12 +18,30 @@ const NAV_LINKS = [
   { to: "/discover", label: "Discover" },
 ] as const;
 
+// Signed in, a public page keeps the dashboard's whole frame: the same header
+// and the same menu down the left. Clicking Discover or Help in that menu used
+// to swap it for links across the top, as if they'd left the app. The menu is
+// fixed to the left edge; the "app-sidebar" class moves the page over by its
+// width (styles.css).
+function SignedInChrome() {
+  useEffect(() => {
+    document.documentElement.classList.add("app-sidebar");
+    return () => document.documentElement.classList.remove("app-sidebar");
+  }, []);
+  return (
+    <>
+      <AppHeader sideNav />
+      <DashboardSidebar floating />
+    </>
+  );
+}
+
 export function PublicNav() {
   // A signed-in seller keeps their own header (navigation, account menu,
   // sign out) on every public page — swapping it for the marketing header made
   // Discover and Help look like they'd logged you out.
   const auth = useAuthState();
-  if (auth === "in") return <AppHeader />;
+  if (auth === "in") return <SignedInChrome />;
 
   return (
     <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur">

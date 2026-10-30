@@ -183,6 +183,19 @@
   --hero-glow: color-mix(in oklab, var(--brand-dark) 18%, var(--background));
 }
 
+/* Signed in, public pages (Discover, Help…) keep the dashboard's menu down the
+   left. It's fixed to the left edge, so the page moves over by its width and
+   the header reaches back across it to the edge, as on the dashboard. The class
+   is set by PublicNav; below the lg width there's no side menu at all. */
+@media (min-width: 64rem) {
+  html.app-sidebar body {
+    padding-left: 14rem;
+  }
+  html.app-sidebar .app-header {
+    margin-left: -14rem;
+  }
+}
+
 @layer base {
   * {
     border-color: var(--color-border);

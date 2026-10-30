@@ -21,7 +21,9 @@ export function useRecordSignup(): void {
       } catch {
         // Storage blocked: check anyway; the server only records once.
       }
-      const { isNew } = await recordFn({ data: { arrival: readArrival() } }).catch(() => ({ isNew: false }));
+      // No answer at all (the page was left before it arrived) counts as "not new".
+      const result = await recordFn({ data: { arrival: readArrival() } }).catch(() => null);
+      const isNew = !!result?.isNew;
       try {
         localStorage.setItem(flag, "1");
       } catch {

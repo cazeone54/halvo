@@ -67,7 +67,7 @@ export function AppHeader({ sideNav = false }: { sideNav?: boolean }) {
   };
 
   return (
-    <header className="sticky top-0 z-10 flex items-center justify-between border-b bg-background/80 px-4 py-3 backdrop-blur sm:px-6">
+    <header className="app-header sticky top-0 z-10 flex items-center justify-between border-b bg-background/80 px-4 py-3 backdrop-blur sm:px-6">
       <div className="flex items-center gap-6">
         <Link to="/dashboard">
           <Logo />
