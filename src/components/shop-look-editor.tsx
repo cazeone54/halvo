@@ -6,6 +6,8 @@ import { ImagePlus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyShopLook, removeMyBanner, setMyBanner, updateMyAnnouncement } from "@/lib/shop-look.functions";
 import { MAX_ANNOUNCEMENT, MAX_BANNER_MB } from "@/lib/shop-look";
+import { snapshot, useReportUnsaved } from "@/lib/unsaved-changes";
+import { UnsavedHint } from "@/components/unsaved-hint";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +27,10 @@ export function ShopLookEditor() {
 
   const [text, setText] = useState("");
   const [url, setUrl] = useState("");
+  // What was last loaded or saved, to tell when there are edits not saved yet.
+  const [saved, setSaved] = useState<string | null>(null);
+  const unsaved = saved !== null && snapshot([text.trim(), url.trim()]) !== saved;
+  useReportUnsaved("announcement", unsaved);
 
   // Fill once, like the rest of Settings: a refetch must not wipe unsaved edits.
   const filled = useRef(false);
@@ -33,6 +39,7 @@ export function ShopLookEditor() {
     filled.current = true;
     setText(lookQ.data.announcementText);
     setUrl(lookQ.data.announcementUrl);
+    setSaved(snapshot([lookQ.data.announcementText.trim(), lookQ.data.announcementUrl.trim()]));
   }, [lookQ.data]);
 
   const bannerMut = useMutation({
@@ -71,6 +78,7 @@ export function ShopLookEditor() {
     onSuccess: (res) => {
       setText(res.announcement?.text ?? "");
       setUrl(res.announcement?.url ?? "");
+      setSaved(snapshot([res.announcement?.text ?? "", res.announcement?.url ?? ""]));
       toast.success(res.announcement ? "Announcement is live on your shop." : "Announcement removed.");
       qc.invalidateQueries({ queryKey: ["my-shop-look"] });
     },
@@ -161,9 +169,12 @@ export function ShopLookEditor() {
                   placeholder="halvo.io/p/your-product"
                 />
               </div>
-              <Button className="self-start" onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
-                {saveMut.isPending ? "Saving…" : "Save announcement"}
-              </Button>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
+                  {saveMut.isPending ? "Saving…" : "Save announcement"}
+                </Button>
+                <UnsavedHint show={unsaved} />
+              </div>
             </div>
           </>
         )}

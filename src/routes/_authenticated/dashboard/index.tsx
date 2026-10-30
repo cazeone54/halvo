@@ -376,6 +376,94 @@ function DashboardHome() {
   };
   const storefrontUrl = profile?.handle ? `${BASE_URL}/${profile.handle}` : null;
 
+  // Until Stripe is connected nothing can be sold, so the Payouts box (with the
+  // country Stripe needs first) goes to the top of the page instead of waiting
+  // below the products, sales and downloads. Once connected it moves back down.
+  const payoutsFirst = connectQ.isSuccess && !connect?.chargesEnabled;
+  const payoutsCard = (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Wallet className="h-4 w-4 text-muted-foreground" />
+          Payouts
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {connect?.chargesEnabled ? (
+          <Badge>Stripe connected</Badge>
+        ) : connect?.connected ? (
+          // Mid-onboarding: say precisely what Stripe is waiting for rather
+          // than leaving the seller staring at a disabled checkout.
+          <div className="flex flex-col items-start gap-3">
+            <p className="text-sm">{connectStatus.headline}</p>
+            {connectStatus.items.length > 0 ? (
+              <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
+                {connectStatus.items.map((item) => (
+                  <li key={item}>· {item}</li>
+                ))}
+              </ul>
+            ) : null}
+            {connectStatus.state === "in_review" ? null : (
+              <Button size="sm" onClick={() => connectMut.mutate(undefined)} disabled={connectMut.isPending}>
+                {connectMut.isPending ? "Opening Stripe…" : "Finish setup"}
+              </Button>
+            )}
+          </div>
+        ) : (
+          // Most of the friction here is uncertainty, not clicks — so say
+          // up front how long it takes, what's needed, and where the money
+          // actually goes, rather than presenting a bare button.
+          <div className="flex flex-col items-start gap-3">
+            <p className="text-sm text-muted-foreground">
+              Connect Stripe to start selling. Until you do, your paid products are hidden from buyers. Your
+              share goes straight to your own Stripe account — we never hold it.
+            </p>
+            <ul className="flex flex-col gap-1 text-xs text-muted-foreground">
+              <li>· About 5 minutes</li>
+              <li>· Photo ID and your bank details</li>
+              <li>· Required by law for card payments, not by us</li>
+            </ul>
+            <div className="flex w-full max-w-sm flex-col gap-1.5">
+              <label htmlFor="connect-country" className="text-sm font-medium">
+                Country you live in, or where your business is registered
+              </label>
+              <select
+                id="connect-country"
+                value={connectCountry}
+                onChange={(e) => setConnectCountry(e.target.value)}
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="">Choose your country…</option>
+                {SELLER_COUNTRIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">Stripe sets this once and it can't be changed later.</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                size="sm"
+                onClick={() => connectMut.mutate(connectCountry)}
+                disabled={connectMut.isPending || !connectCountry}
+              >
+                {connectMut.isPending ? "Opening Stripe…" : "Connect Stripe"}
+              </Button>
+              <Link
+                to="/blog/$slug"
+                params={{ slug: "connect-stripe-to-halvo" }}
+                className="text-xs text-primary underline underline-offset-4"
+              >
+                Read the walkthrough first
+              </Link>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="flex flex-col gap-8">
       {/* Page header */}
@@ -464,6 +552,8 @@ function DashboardHome() {
           picker?.focus({ preventScroll: true });
         }}
       />
+
+      {payoutsFirst ? payoutsCard : null}
 
       {/* KPI overview — hidden until there's something to show. Three zeros and
           an upgrade pitch is a deflating first screen for a new seller. */}
@@ -966,87 +1056,7 @@ function DashboardHome() {
           </Card>
         ) : null}
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Wallet className="h-4 w-4 text-muted-foreground" />
-              Payouts
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {connect?.chargesEnabled ? (
-              <Badge>Stripe connected</Badge>
-            ) : connect?.connected ? (
-              // Mid-onboarding: say precisely what Stripe is waiting for rather
-              // than leaving the seller staring at a disabled checkout.
-              <div className="flex flex-col items-start gap-3">
-                <p className="text-sm">{connectStatus.headline}</p>
-                {connectStatus.items.length > 0 ? (
-                  <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
-                    {connectStatus.items.map((item) => (
-                      <li key={item}>· {item}</li>
-                    ))}
-                  </ul>
-                ) : null}
-                {connectStatus.state === "in_review" ? null : (
-                  <Button size="sm" onClick={() => connectMut.mutate(undefined)} disabled={connectMut.isPending}>
-                    {connectMut.isPending ? "Opening Stripe…" : "Finish setup"}
-                  </Button>
-                )}
-              </div>
-            ) : (
-              // Most of the friction here is uncertainty, not clicks — so say
-              // up front how long it takes, what's needed, and where the money
-              // actually goes, rather than presenting a bare button.
-              <div className="flex flex-col items-start gap-3">
-                <p className="text-sm text-muted-foreground">
-                  Connect Stripe to start selling. Until you do, your paid products are hidden from buyers. Your
-                  share goes straight to your own Stripe account — we never hold it.
-                </p>
-                <ul className="flex flex-col gap-1 text-xs text-muted-foreground">
-                  <li>· About 5 minutes</li>
-                  <li>· Photo ID and your bank details</li>
-                  <li>· Required by law for card payments, not by us</li>
-                </ul>
-                <div className="flex w-full max-w-sm flex-col gap-1.5">
-                  <label htmlFor="connect-country" className="text-sm font-medium">
-                    Country you live in, or where your business is registered
-                  </label>
-                  <select
-                    id="connect-country"
-                    value={connectCountry}
-                    onChange={(e) => setConnectCountry(e.target.value)}
-                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <option value="">Choose your country…</option>
-                    {SELLER_COUNTRIES.map((c) => (
-                      <option key={c.code} value={c.code}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-muted-foreground">Stripe sets this once and it can't be changed later.</p>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <Button
-                    size="sm"
-                    onClick={() => connectMut.mutate(connectCountry)}
-                    disabled={connectMut.isPending || !connectCountry}
-                  >
-                    {connectMut.isPending ? "Opening Stripe…" : "Connect Stripe"}
-                  </Button>
-                  <Link
-                    to="/blog/$slug"
-                    params={{ slug: "connect-stripe-to-halvo" }}
-                    className="text-xs text-primary underline underline-offset-4"
-                  >
-                    Read the walkthrough first
-                  </Link>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {payoutsFirst ? null : payoutsCard}
       </section>
     </div>
   );
@@ -1335,6 +1345,8 @@ function ProductRow({
     if (expanded) cardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [expanded]);
 
+  const noFile = (filesQ.data?.length ?? 0) === 0;
+
   const coverInput = (
     <input
       type="file"
@@ -1414,7 +1426,7 @@ function ProductRow({
           {!product.url_slug || hiddenFromBuyers || notInDiscover || !product.imageUrl ? (
             <p className="text-xs leading-snug text-muted-foreground">
               {!product.url_slug
-                ? "Add a file below to publish."
+                ? "Upload the file buyers get to publish it."
                 : hiddenFromBuyers
                   ? "Hidden from buyers until you connect Stripe."
                   : notInDiscover
@@ -1464,12 +1476,21 @@ function ProductRow({
             >
               <Layers className="h-3.5 w-3.5" />
             </Button>
+            {/* Quiet and set apart at the end: a solid red button was the
+                loudest thing on every card, pulling the eye to the one action
+                nobody comes here to take. Red only on hover; it still asks first. */}
             <ConfirmAction
               message={`Delete "${product.name}"? If it has sales it's unpublished and its history is kept; otherwise it's removed for good.`}
               confirmLabel="Delete"
               onConfirm={onDelete}
               trigger={
-                <Button variant="destructive" size="icon-sm" aria-label="Delete product" title="Delete product">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Delete product"
+                  title="Delete product"
+                  className="ml-auto text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               }
@@ -1753,14 +1774,18 @@ function ProductRow({
         ))}
         {/* A labelled button instead of the browser's own "Choose File / No
             file chosen" control, which looked broken next to a file that's
-            already attached. */}
-        <label className="inline-flex w-fit cursor-pointer items-center gap-1.5 rounded-md border border-dashed px-2.5 py-1 text-xs text-muted-foreground transition-colors focus-within:outline-2 focus-within:outline-ring hover:border-primary hover:text-primary">
-          <Upload className="h-3.5 w-3.5" aria-hidden="true" />
-          {attachMut.isPending
-            ? "Uploading…"
-            : (filesQ.data?.length ?? 0) > 0
-              ? "Add file"
-              : "Upload the file buyers get"}
+            already attached. With no file yet it's the card's main button —
+            uploading is what publishes the product — and a small one after. */}
+        <label
+          className={cn(
+            "cursor-pointer items-center gap-1.5 rounded-md transition-colors focus-within:outline-2 focus-within:outline-ring",
+            noFile
+              ? "my-1 flex w-full justify-center bg-primary px-3 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90"
+              : "inline-flex w-fit border border-dashed px-2.5 py-1 text-xs text-muted-foreground hover:border-primary hover:text-primary",
+          )}
+        >
+          <Upload className={noFile ? "h-4 w-4" : "h-3.5 w-3.5"} aria-hidden="true" />
+          {attachMut.isPending ? "Uploading…" : noFile ? "Upload file" : "Add file"}
           <input
             type="file"
             className="sr-only"

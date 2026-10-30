@@ -41,7 +41,7 @@ function DashboardLayout() {
             <PauseCircle className="h-4 w-4 shrink-0" />
             <span className="font-medium">Your account is deactivated.</span>
             <span className="text-muted-foreground">Nothing is for sale and your storefront is hidden.</span>
-            <Link to="/dashboard/settings" className="font-medium underline underline-offset-2">
+            <Link to="/dashboard/settings" search={{ tab: "account" }} className="font-medium underline underline-offset-2">
               Reactivate
             </Link>
           </div>

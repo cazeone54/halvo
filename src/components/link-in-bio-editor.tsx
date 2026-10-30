@@ -8,6 +8,8 @@ import { listMyProducts } from "@/lib/products.functions";
 import { MAX_BIO_LINKS, MAX_FEATURED, MAX_LINK_TITLE, SOCIAL_PLATFORMS, type SocialPlatform } from "@/lib/link-in-bio";
 import { BASE_URL } from "@/lib/site";
 import { isFreeProduct } from "@/lib/checkout-math";
+import { snapshot, useReportUnsaved } from "@/lib/unsaved-changes";
+import { UnsavedHint } from "@/components/unsaved-hint";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +26,25 @@ const ICONS: Record<SocialPlatform, LucideIcon> = {
 };
 
 type Row = { key: string; id?: string; title: string; url: string };
+
+// The page's settings as one comparable value. Empty social fields are left
+// out and the rest sorted, so typing into a field and clearing it again
+// doesn't count as a change.
+function pageSnapshot(
+  social: Record<string, string>,
+  links: Array<{ title: string; url: string }>,
+  featured: string[],
+  startHere: string,
+): string {
+  return snapshot({
+    social: Object.entries(social)
+      .filter(([, v]) => v.trim())
+      .sort(([a], [b]) => a.localeCompare(b)),
+    links: links.map((l) => [l.title.trim(), l.url.trim()]),
+    featured,
+    startHere,
+  });
+}
 
 const plural = (n: number, word: string) => `${n.toLocaleString("en-GB")} ${word}${n === 1 ? "" : "s"}`;
 
@@ -45,6 +66,9 @@ export function LinkInBioEditor({ handle }: { handle: string | null }) {
   const [startHere, setStartHere] = useState("");
   const nextKey = useRef(0);
   const newKey = () => `row-${++nextKey.current}`;
+  // What was last loaded or saved, to tell when there are edits not saved yet.
+  const [saved, setSaved] = useState<string | null>(null);
+  useReportUnsaved("links", saved !== null && pageSnapshot(social, rows, featured, startHere) !== saved);
 
   // Fill once, like the rest of Settings: a refetch must not wipe unsaved edits.
   const filled = useRef(false);
@@ -55,6 +79,7 @@ export function LinkInBioEditor({ handle }: { handle: string | null }) {
     setRows(linksQ.data.links.map((l) => ({ key: newKey(), id: l.id, title: l.title, url: l.url })));
     setFeatured(linksQ.data.featured);
     setStartHere(linksQ.data.startHere ?? "");
+    setSaved(pageSnapshot(linksQ.data.social, linksQ.data.links, linksQ.data.featured, linksQ.data.startHere ?? ""));
   }, [linksQ.data]);
 
   const saveMut = useMutation({
@@ -70,7 +95,9 @@ export function LinkInBioEditor({ handle }: { handle: string | null }) {
     onSuccess: (res) => {
       // New links get their id from the server; keep it so the next save
       // updates them instead of creating fresh ones with zero clicks.
-      setRows((current) => current.map((r, i) => ({ ...r, id: res.links[i]?.id ?? r.id, url: res.links[i]?.url ?? r.url })));
+      const next = rows.map((r, i) => ({ ...r, id: res.links[i]?.id ?? r.id, url: res.links[i]?.url ?? r.url }));
+      setRows(next);
+      setSaved(pageSnapshot(social, next, featured, startHere));
       toast.success("Your page is updated.");
       qc.invalidateQueries({ queryKey: ["my-links"] });
     },
@@ -314,9 +341,12 @@ export function LinkInBioEditor({ handle }: { handle: string | null }) {
             )}
           </section>
 
-          <Button type="button" className="self-start" onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
-            {saveMut.isPending ? "Saving…" : "Save page"}
-          </Button>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="button" onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
+              {saveMut.isPending ? "Saving…" : "Save page"}
+            </Button>
+            <UnsavedHint show={saved !== null && pageSnapshot(social, rows, featured, startHere) !== saved} />
+          </div>
         </fieldset>
       </CardContent>
     </Card>

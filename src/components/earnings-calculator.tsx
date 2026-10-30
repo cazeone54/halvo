@@ -1,4 +1,5 @@
 import { formatCents } from "@/lib/format";
+import { CURRENCY_SYMBOL } from "@/lib/site";
 import { useState } from "react";
 import { ACTIVE_TIERS, DIRECT_CHARGES, PLAN_LABELS, calcPlatformFeeCents, type PlanTier } from "@/lib/plans";
 import { Input } from "@/components/ui/input";
@@ -32,7 +33,8 @@ export function EarningsCalculator() {
         If you sell a product for…
       </Label>
       <div className="mt-1.5 flex items-center gap-2">
-        <span className="text-muted-foreground">$</span>
+        {/* The same currency as the answer below: sellers price in euros. */}
+        <span className="text-muted-foreground">{CURRENCY_SYMBOL}</span>
         <Input
           id="calc-price"
           type="number"

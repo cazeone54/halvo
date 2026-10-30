@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { snapshot, useReportUnsaved } from "@/lib/unsaved-changes";
+import { UnsavedHint } from "@/components/unsaved-hint";
 
 type Coupon = { code: string; percent_off: number | null; amount_off_cents: number | null; product_id: string | null; expires_at: string | null };
 
@@ -107,6 +109,17 @@ export function FunnelSettings() {
   const [s3Product, setS3Product] = useState("");
   const [s3Coupon, setS3Coupon] = useState("");
 
+  // What was last loaded or saved for each form, to tell when there are edits
+  // not saved yet.
+  const offerNow = snapshot([offerProduct, offerCoupon]);
+  const sequenceNow = snapshot([enabled, s2Subject, s2Body, s3Subject, s3Body, s3Product, s3Coupon]);
+  const [savedOffer, setSavedOffer] = useState<string | null>(null);
+  const [savedSequence, setSavedSequence] = useState<string | null>(null);
+  const offerUnsaved = savedOffer !== null && offerNow !== savedOffer;
+  const sequenceUnsaved = savedSequence !== null && sequenceNow !== savedSequence;
+  useReportUnsaved("offer", offerUnsaved);
+  useReportUnsaved("sequence", sequenceUnsaved);
+
   const filled = useRef(false);
   useEffect(() => {
     const d = settingsQ.data;
@@ -121,11 +134,24 @@ export function FunnelSettings() {
     setS3Body(d.sequence.step3Body);
     setS3Product(d.sequence.step3ProductId ?? "");
     setS3Coupon(d.sequence.step3CouponCode ?? "");
+    setSavedOffer(snapshot([d.offer.productId ?? "", d.offer.couponCode ?? ""]));
+    setSavedSequence(
+      snapshot([
+        d.sequence.enabled,
+        d.sequence.step2Subject,
+        d.sequence.step2Body,
+        d.sequence.step3Subject,
+        d.sequence.step3Body,
+        d.sequence.step3ProductId ?? "",
+        d.sequence.step3CouponCode ?? "",
+      ]),
+    );
   }, [settingsQ.data]);
 
   const offerMut = useMutation({
     mutationFn: () => offerFn({ data: { productId: offerProduct || null, couponCode: offerCoupon || null } }),
     onSuccess: () => {
+      setSavedOffer(offerNow);
       toast.success(offerProduct ? "Offer saved. Buyers will see it on their download page." : "Offer removed.");
       qc.invalidateQueries({ queryKey: ["my-funnel-settings"] });
     },
@@ -146,6 +172,7 @@ export function FunnelSettings() {
         },
       }),
     onSuccess: () => {
+      setSavedSequence(sequenceNow);
       toast.success(enabled ? "Follow-up emails are on." : "Follow-up emails saved, and switched off.");
       qc.invalidateQueries({ queryKey: ["my-funnel-settings"] });
     },
@@ -191,9 +218,12 @@ export function FunnelSettings() {
               onCoupon={setOfferCoupon}
             />
           )}
-          <Button type="button" className="self-start" onClick={() => offerMut.mutate()} disabled={offerMut.isPending || settingsQ.isLoading}>
-            {offerMut.isPending ? "Saving…" : "Save offer"}
-          </Button>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="button" onClick={() => offerMut.mutate()} disabled={offerMut.isPending || settingsQ.isLoading}>
+              {offerMut.isPending ? "Saving…" : "Save offer"}
+            </Button>
+            <UnsavedHint show={offerUnsaved} />
+          </div>
         </CardContent>
       </Card>
 
@@ -273,9 +303,12 @@ export function FunnelSettings() {
             </p>
           ) : null}
 
-          <Button type="button" className="self-start" onClick={() => sequenceMut.mutate()} disabled={sequenceMut.isPending || settingsQ.isLoading}>
-            {sequenceMut.isPending ? "Saving…" : "Save follow-up emails"}
-          </Button>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="button" onClick={() => sequenceMut.mutate()} disabled={sequenceMut.isPending || settingsQ.isLoading}>
+              {sequenceMut.isPending ? "Saving…" : "Save follow-up emails"}
+            </Button>
+            <UnsavedHint show={sequenceUnsaved} />
+          </div>
         </CardContent>
       </Card>
     </>
