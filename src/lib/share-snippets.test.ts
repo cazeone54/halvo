@@ -21,8 +21,22 @@ describe("buildButtonSnippet", () => {
     const html = buildButtonSnippet(baseUrl, product);
     expect(html).toContain("https://halvo.io/p/invoice-tracker-ab12");
     expect(html).toContain("Invoice Tracker");
-    expect(html).toContain("$19.00");
+    expect(html).toContain("€19.00");
+    expect(html).not.toContain("$");
     expect(html).toMatch(/^<a /);
+  });
+
+  it("doesn't promise a price on a pay-what-you-want product", () => {
+    const html = buildButtonSnippet(baseUrl, { ...product, priceCents: 0, payWhatYouWant: true });
+    expect(html).toContain("Buy Invoice Tracker — name your price");
+    expect(html).not.toContain("Free");
+  });
+
+  it("says Get … Free for a free product, not Buy … 0.00", () => {
+    const html = buildButtonSnippet(baseUrl, { ...product, priceCents: 0 });
+    expect(html).toContain("Get Invoice Tracker — Free");
+    expect(html).not.toContain("Buy");
+    expect(html).not.toContain("0.00");
   });
 });
 
@@ -48,6 +62,11 @@ describe("buildOverlaySnippet", () => {
 
   it("stays a real link so it still works with no JavaScript", () => {
     expect(buildOverlaySnippet(baseUrl, product)).toMatch(/^<a /);
+  });
+
+  it("labels the button the same way as the plain one", () => {
+    expect(buildOverlaySnippet(baseUrl, product)).toContain("Buy Invoice Tracker — €19.00");
+    expect(buildOverlaySnippet(baseUrl, { ...product, priceCents: 0 })).toContain("Get Invoice Tracker — Free");
   });
 });
 

@@ -1,9 +1,14 @@
+import { formatCents } from "@/lib/format";
+
 // Pure snippet generation — kept separate from the UI so the exact HTML
 // output is directly testable.
 export type ShareableProduct = {
   slug: string;
   name: string;
   priceCents: number;
+  // The price is then only a floor (possibly 0), so it isn't what the button
+  // should promise.
+  payWhatYouWant?: boolean | null;
 };
 
 // Snippets are copied verbatim into the seller's own HTML, so any product name
@@ -22,9 +27,17 @@ export function buildProductLink(baseUrl: string, product: ShareableProduct): st
   return `${baseUrl}/p/${product.slug}`;
 }
 
+// What the button says. It used to read "Buy X — $19.00" for every product:
+// a dollar sign on a euro price, and "Buy … $0.00" on a free one.
+function buttonLabel(product: ShareableProduct): string {
+  if (product.payWhatYouWant) return `Buy ${product.name} — name your price`;
+  return product.priceCents === 0
+    ? `Get ${product.name} — Free`
+    : `Buy ${product.name} — ${formatCents(product.priceCents)}`;
+}
+
 export function buildButtonSnippet(baseUrl: string, product: ShareableProduct): string {
-  const price = (product.priceCents / 100).toFixed(2);
-  const label = escapeHtml(`Buy ${product.name} — $${price}`);
+  const label = escapeHtml(buttonLabel(product));
   return `<a href="${buildProductLink(baseUrl, product)}" style="display:inline-block;padding:12px 24px;background:#1a7a7a;color:#fff;border-radius:8px;text-decoration:none;font-family:sans-serif;font-weight:600;">${label}</a>`;
 }
 
@@ -33,8 +46,7 @@ export function buildButtonSnippet(baseUrl: string, product: ShareableProduct): 
 // Both the button and the loader script are returned together so a seller can
 // paste one block anywhere that allows custom HTML.
 export function buildOverlaySnippet(baseUrl: string, product: ShareableProduct): string {
-  const price = (product.priceCents / 100).toFixed(2);
-  const label = escapeHtml(`Buy ${product.name} — $${price}`);
+  const label = escapeHtml(buttonLabel(product));
   return (
     `<a href="${buildProductLink(baseUrl, product)}" data-halvo-checkout="${product.slug}" ` +
     `style="display:inline-block;padding:12px 24px;background:#1a7a7a;color:#fff;border-radius:8px;text-decoration:none;font-family:sans-serif;font-weight:600;">${label}</a>\n` +
@@ -43,6 +55,6 @@ export function buildOverlaySnippet(baseUrl: string, product: ShareableProduct):
 }
 
 export function buildIframeSnippet(baseUrl: string, product: ShareableProduct): string {
-  const title = escapeHtml(`Buy ${product.name}`);
+  const title = escapeHtml(`${product.priceCents === 0 && !product.payWhatYouWant ? "Get" : "Buy"} ${product.name}`);
   return `<iframe src="${buildProductLink(baseUrl, product)}" width="100%" height="700" style="border:none;border-radius:16px;" title="${title}" allow="payment"></iframe>`;
 }

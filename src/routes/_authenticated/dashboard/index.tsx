@@ -1438,10 +1438,13 @@ function ProductRow({
           {/* The price this seller's buyers see in the currency the dashboard
               is set to — not both at once. A dollar price the seller set by
               hand wins over the converted one. */}
+          {/* "Free", as buyers see it, rather than €0.00. */}
           <p className="text-sm font-semibold tabular-nums text-primary">
-            {displayCurrency === "usd" && product.price_cents > 0
-              ? formatCents(product.price_usd_cents ?? eurToUsdCents(product.price_cents), "usd")
-              : formatCents(product.price_cents)}
+            {isFree
+              ? "Free"
+              : displayCurrency === "usd" && product.price_cents > 0
+                ? formatCents(product.price_usd_cents ?? eurToUsdCents(product.price_cents), "usd")
+                : formatCents(product.price_cents)}
           </p>
           {!product.url_slug || hiddenFromBuyers || notInDiscover || !product.imageUrl ? (
             <p className="text-[13px] leading-snug text-muted-foreground">
@@ -1726,11 +1729,11 @@ function ProductRow({
             ) : null}
             <CopySnippet
               label="Direct link"
-              value={buildProductLink(BASE_URL, { slug: product.url_slug, name: product.name, priceCents: product.price_cents })}
+              value={buildProductLink(BASE_URL, { slug: product.url_slug, name: product.name, priceCents: product.price_cents, payWhatYouWant: product.pay_what_you_want })}
             />
             <CopySnippet
               label="Buy button — opens checkout over your site (recommended)"
-              value={buildOverlaySnippet(BASE_URL, { slug: product.url_slug, name: product.name, priceCents: product.price_cents })}
+              value={buildOverlaySnippet(BASE_URL, { slug: product.url_slug, name: product.name, priceCents: product.price_cents, payWhatYouWant: product.pay_what_you_want })}
             />
             <p className="-mt-1 text-xs text-muted-foreground">
               Paste into Webflow, Framer, WordPress, Ghost, Carrd or any site that allows custom HTML. Buyers pay in a
@@ -1746,11 +1749,11 @@ function ProductRow({
             </p>
             <CopySnippet
               label="Plain link button (navigates to checkout)"
-              value={buildButtonSnippet(BASE_URL, { slug: product.url_slug, name: product.name, priceCents: product.price_cents })}
+              value={buildButtonSnippet(BASE_URL, { slug: product.url_slug, name: product.name, priceCents: product.price_cents, payWhatYouWant: product.pay_what_you_want })}
             />
             <CopySnippet
               label="Inline embed (iframe)"
-              value={buildIframeSnippet(BASE_URL, { slug: product.url_slug, name: product.name, priceCents: product.price_cents })}
+              value={buildIframeSnippet(BASE_URL, { slug: product.url_slug, name: product.name, priceCents: product.price_cents, payWhatYouWant: product.pay_what_you_want })}
             />
           </div>
         ) : null}
