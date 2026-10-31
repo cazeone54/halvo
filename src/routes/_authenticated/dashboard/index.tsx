@@ -253,7 +253,12 @@ function DashboardHome() {
       });
       return { published: true };
     },
-    onSuccess: (res) => {
+    onSuccess: async (res) => {
+      // The list first, then close the form. The other way round, a seller's
+      // first product flashed "Your first product goes here" for a moment —
+      // as if it had vanished — until the list caught up. Meanwhile the button
+      // still says "Publishing…".
+      await qc.invalidateQueries({ queryKey: ["my-products"] });
       setName("");
       setDescription("");
       setPrice("");
@@ -267,7 +272,6 @@ function DashboardHome() {
             : "Product saved. It stays hidden from buyers until you connect Stripe under Payouts."
           : "Product created — add a file to publish it.",
       );
-      qc.invalidateQueries({ queryKey: ["my-products"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
