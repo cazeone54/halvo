@@ -114,36 +114,21 @@ const PROOF_STATS = [
   { value: "24/7", label: "Sells while you sleep" },
 ];
 
-// The three steps, each with a screenshot of the real screen (public/screens).
+// The three steps the video shows, in a line each underneath it.
 const HOW_IT_WORKS = [
   {
     title: "Add your product",
-    body: "A name, a price and a cover. It starts as a draft, so nobody sees it until it's ready.",
-    src: "/screens/step-new-product.webp",
-    alt: "The New product form, filled in: name, description, a price of 12 euros, a cover and the file buyers receive.",
-    width: 1500,
-    height: 990,
-    fit: "wide",
+    body: "A name, a price and a cover. Free or paid, it's your call.",
   },
   {
     title: "Upload the file",
     body: "The file your buyers get. The moment it's attached, your product is live with its own link.",
-    src: "/screens/step-upload.webp",
-    alt: "A draft product card in the dashboard with a big Upload file button.",
-    width: 508,
-    height: 591,
-    fit: "tall",
   },
   {
     title: "Share the link and get paid",
     body: "Buyers pay on your product page and download straight away. The money goes to your own Stripe.",
-    src: "/screens/buy-phone.webp",
-    alt: "A product page on a phone: the cover, the name and price, and a Buy now button.",
-    width: 585,
-    height: 1140,
-    fit: "phone",
   },
-] as const;
+];
 
 // What a Halvo shop page gives a seller — every line true of the shop today.
 const SHOP_POINTS = [
@@ -277,41 +262,34 @@ function HomePage() {
           </section>
         ) : null}
 
-        {/* The real screens, in order, rather than an animation of them: a
-            seller can see exactly what they'll be doing. */}
-        <section className="mx-auto max-w-6xl px-4 pb-20 sm:px-6">
+        {/* A screen recording of halvo.io itself (made in halvo-video,
+            src/howto), then the same three steps in a line each. Loaded only
+            when someone presses play. */}
+        <section className="mx-auto max-w-5xl px-4 pb-20 sm:px-6">
           <h2 className="text-center font-[family-name:var(--font-display)] text-2xl font-semibold sm:text-3xl">
             See how it works
           </h2>
-          <p className="mt-2 text-center text-muted-foreground">Three steps, a few minutes. These are the real screens.</p>
-          <ol className="mt-10 grid gap-10 md:grid-cols-3 md:gap-8">
+          <p className="mt-2 text-center text-muted-foreground">
+            Recorded on halvo.io: a seller adds a product, shares the link, a buyer gets it. Under a minute.
+          </p>
+          <div className="mt-8 overflow-hidden rounded-2xl border bg-card shadow-xl">
+            <video
+              src="/videos/how-it-works.mp4"
+              poster="/videos/how-it-works.jpg"
+              width={1280}
+              height={720}
+              controls
+              muted
+              playsInline
+              preload="none"
+              aria-label="A screen recording of Halvo: adding a product and its file, sharing the link, a buyer getting the download, a paid checkout, and the seller's shop page. Captions are part of the video."
+              className="block h-auto w-full bg-black"
+            />
+          </div>
+          <ol className="mt-10 grid gap-8 md:grid-cols-3">
             {HOW_IT_WORKS.map((step, i) => (
               <li key={step.title} className="flex flex-col">
-                {/* Same-sized panels so the captions line up; each picture sits
-                    in its own way — the whole form, the whole card, and a phone
-                    peeking up from the bottom. */}
-                <div
-                  className={cn(
-                    "flex h-72 justify-center overflow-hidden rounded-2xl border bg-hero-glow",
-                    step.fit === "phone" ? "items-end px-6 pt-6" : "items-center p-6",
-                  )}
-                >
-                  <img
-                    src={step.src}
-                    alt={step.alt}
-                    width={step.width}
-                    height={step.height}
-                    loading="lazy"
-                    decoding="async"
-                    className={cn(
-                      "border shadow-lg",
-                      step.fit === "phone" && "h-auto w-44 rounded-t-xl border-b-0",
-                      step.fit === "wide" && "h-auto w-full rounded-xl",
-                      step.fit === "tall" && "h-full w-auto rounded-xl",
-                    )}
-                  />
-                </div>
-                <p className="mt-5 flex items-center gap-2.5 font-[family-name:var(--font-display)] font-semibold">
+                <p className="flex items-center gap-2.5 font-[family-name:var(--font-display)] font-semibold">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
                     {i + 1}
                   </span>

@@ -104,7 +104,26 @@ async function staticFile(request) {
     "Cache-Control": pathname.startsWith("/assets/")
       ? "public, max-age=31536000, immutable"
       : "public, max-age=3600",
+    "Accept-Ranges": "bytes",
   };
+
+  // Video players ask for a file in pieces ("Range: bytes=0-1"), and Safari on
+  // an iPhone won't play a video at all if it gets the whole file instead. One
+  // range per request; anything fancier just gets the whole file.
+  const range = /^bytes=(\d*)-(\d*)$/.exec(request.headers.get("range")?.trim() ?? "");
+  if (range && (range[1] || range[2])) {
+    const start = range[1] ? Number(range[1]) : Math.max(0, info.size - Number(range[2]));
+    const end = range[1] && range[2] ? Math.min(Number(range[2]), info.size - 1) : info.size - 1;
+    if (start >= info.size || start > end) {
+      return new Response(null, { status: 416, headers: { "Content-Range": `bytes */${info.size}` } });
+    }
+    const body = request.method === "HEAD" ? null : Readable.toWeb(createReadStream(filePath, { start, end }));
+    return new Response(body, {
+      status: 206,
+      headers: { ...headers, "Content-Length": String(end - start + 1), "Content-Range": `bytes ${start}-${end}/${info.size}` },
+    });
+  }
+
   const body = request.method === "HEAD" ? null : Readable.toWeb(createReadStream(filePath));
   return new Response(body, { headers });
 }
