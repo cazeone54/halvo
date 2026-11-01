@@ -13,6 +13,7 @@ import { submitReview } from "@/lib/reviews.functions";
 import { getBillingForTransaction } from "@/lib/recurring.functions";
 import { getSupportContactForTransaction } from "@/lib/support.functions";
 import { trackEvent } from "@/lib/ad-pixels";
+import { responsiveImage } from "@/lib/public-image-url";
 import { StarInput } from "@/components/stars";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -237,7 +238,7 @@ function AfterPurchaseOffer({
       <CardContent className="flex flex-col gap-3 p-0 sm:flex-row sm:items-stretch">
         {offer.imageUrl ? (
           <div className="aspect-video w-full shrink-0 bg-muted sm:w-48">
-            <img src={offer.imageUrl} alt="" className="h-full w-full object-cover" />
+            <img {...responsiveImage(offer.imageUrl, "(min-width: 640px) 192px, 100vw")} alt="" className="h-full w-full object-cover" />
           </div>
         ) : null}
         <div className="flex flex-1 flex-col gap-2 p-5 sm:pl-2">

@@ -1,6 +1,7 @@
 import { useRef, useState, type KeyboardEvent } from "react";
 import { ChevronLeft, ChevronRight, Play } from "lucide-react";
 import type { MediaItem } from "@/lib/product-media";
+import { responsiveImage } from "@/lib/public-image-url";
 import { cn } from "@/lib/utils";
 
 // The product page's media stage: cover, preview video and gallery, with a
@@ -35,8 +36,10 @@ export function ProductMedia({ items }: { items: MediaItem[] }) {
       <div className="group relative aspect-video w-full overflow-hidden bg-muted">
         {current.kind === "image" ? (
           <img
-            src={current.src}
+            {...responsiveImage(current.src, "(min-width: 1024px) 580px, (min-width: 640px) 464px, 100vw")}
             alt={current.alt}
+            // The cover is usually the biggest thing on the page when it opens.
+            fetchPriority={index === 0 ? "high" : undefined}
             className={cn("h-full w-full", index === 0 ? "object-cover" : "object-contain")}
           />
         ) : playing ? (
@@ -104,7 +107,7 @@ export function ProductMedia({ items }: { items: MediaItem[] }) {
               )}
             >
               {item.kind === "image" ? (
-                <img src={item.src} alt="" loading="lazy" className="h-full w-full object-cover" />
+                <img {...responsiveImage(item.src, "64px")} alt="" loading="lazy" className="h-full w-full object-cover" />
               ) : (
                 <span className="flex h-full w-full items-center justify-center bg-hero-glow text-primary">
                   <Play className="h-4 w-4" fill="currentColor" aria-hidden="true" />

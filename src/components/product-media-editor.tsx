@@ -51,7 +51,8 @@ export function ProductMediaEditor({
       // Sequential so the server's 6-image cap is checked against each one in turn.
       for (const file of files) {
         const path = `${user.id}/${productId}/gallery-${Date.now()}-${file.name}`;
-        const { error } = await supabase.storage.from("digital-assets").upload(path, file);
+        // A new name per upload, so a cached copy can be kept for a year.
+        const { error } = await supabase.storage.from("digital-assets").upload(path, file, { cacheControl: "31536000" });
         if (error) throw error;
         await addFn({ data: { productId, storageFilePath: path, sizeBytes: file.size } });
       }

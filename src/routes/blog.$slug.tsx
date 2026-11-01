@@ -4,11 +4,14 @@ import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { ContentBlocks } from "@/components/content-blocks";
 import { Button } from "@/components/ui/button";
-import { findPost, BLOG_POSTS } from "@/content/blog";
+import { BLOG_POSTS } from "@/content/blog";
 import { BRAND_NAME, BASE_URL } from "@/lib/site";
 
 export const Route = createFileRoute("/blog/$slug")({
-  loader: ({ params }) => {
+  // Imported here rather than at the top: a loader is part of the script every
+  // page loads, and only blog pages need the articles.
+  loader: async ({ params }) => {
+    const { findPost } = await import("@/content/blog");
     const post = findPost(params.slug);
     if (!post) throw notFound();
     return post;

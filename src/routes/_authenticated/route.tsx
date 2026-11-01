@@ -1,5 +1,4 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { supabase } from "@/integrations/supabase/client";
 import { markSignedIn } from "@/lib/auth-state";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -11,6 +10,9 @@ export const Route = createFileRoute("/_authenticated")({
     // security is server-side: every server function re-validates the JWT
     // signature in requireSupabaseAuth, so a stale local session can't do
     // anything privileged.
+    // Imported here rather than at the top: this check is part of the script
+    // every page loads, and public pages don't need the Supabase client.
+    const { supabase } = await import("@/integrations/supabase/client");
     const { data } = await supabase.auth.getSession();
     if (!data.session) throw redirect({ to: "/login" });
     markSignedIn();

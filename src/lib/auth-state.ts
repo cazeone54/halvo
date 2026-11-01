@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { hasStoredSession } from "@/lib/stored-session";
 
 // Whether a seller is signed in, shared by every header on the site. The
 // session lives in localStorage, so the server can't know it: the server
@@ -10,6 +10,7 @@ export type AuthState = "unknown" | "in" | "out";
 
 let state: AuthState = "unknown";
 let started = false;
+let watching = false;
 const listeners = new Set<() => void>();
 
 function set(next: AuthState) {
@@ -18,16 +19,34 @@ function set(next: AuthState) {
   for (const l of listeners) l();
 }
 
+// Follow the Supabase client's own view of the session (it refreshes tokens
+// and notices sign-outs). Loaded on demand: a visitor with no saved session
+// doesn't download it just to learn they're signed out.
+function watchClient() {
+  if (watching) return;
+  watching = true;
+  void import("@/integrations/supabase/client").then(({ supabase }) => {
+    supabase.auth.getSession().then(({ data }) => set(data.session ? "in" : "out"));
+    supabase.auth.onAuthStateChange((_event, session) => set(session ? "in" : "out"));
+  });
+}
+
 function start() {
   if (started || typeof window === "undefined") return;
   started = true;
-  supabase.auth.getSession().then(({ data }) => set(data.session ? "in" : "out"));
-  supabase.auth.onAuthStateChange((_event, session) => set(session ? "in" : "out"));
+  if (hasStoredSession()) return watchClient();
+  set("out");
+  // Signed in from another tab: catch up.
+  window.addEventListener("storage", function onStorage() {
+    if (!hasStoredSession()) return;
+    window.removeEventListener("storage", onStorage);
+    watchClient();
+  });
 }
 
 function subscribe(listener: () => void) {
-  start();
   listeners.add(listener);
+  start();
   return () => listeners.delete(listener);
 }
 
@@ -42,6 +61,7 @@ export function useAuthState(): AuthState {
 // The dashboard gate already knows the answer — record it so the first public
 // page visited afterwards renders the signed-in header immediately.
 export function markSignedIn() {
+  started = true;
   set("in");
-  start();
+  watchClient();
 }

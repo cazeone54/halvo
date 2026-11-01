@@ -11,6 +11,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { getHomeShowcase } from "@/lib/showcase.functions";
 import { BRAND_NAME, BASE_URL } from "@/lib/site";
 import { cn } from "@/lib/utils";
+import { responsiveImage } from "@/lib/public-image-url";
 
 export const Route = createFileRoute("/")({
   // Real products and a real shop for the page. If that read fails, the page
@@ -175,7 +176,15 @@ function ShopPreview({ shop }: { shop: NonNullable<Showcase["shop"]> }) {
         {shop.products.map((p) => (
           <div key={p.id} className="min-w-0">
             <div className="aspect-video overflow-hidden rounded-md border bg-muted">
-              {p.imageUrl ? <img src={p.imageUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" /> : null}
+              {p.imageUrl ? (
+                <img
+                  {...responsiveImage(p.imageUrl, "(min-width: 768px) 140px, 30vw")}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  className="h-full w-full object-cover"
+                />
+              ) : null}
             </div>
             <p className="mt-1 truncate text-[11px] font-medium">{p.name}</p>
             <p className="text-[11px] font-semibold tabular-nums text-primary">{p.price.label}</p>
@@ -369,13 +378,15 @@ function HomePage() {
         <section className="border-y bg-muted/30">
           <div className="mx-auto max-w-4xl px-4 py-14 sm:px-6">
             <dl className="grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-4">
+              {/* Label first in the markup, as a <dl> requires (and a screen
+                  reader reads "Checkout to download: instant"); flex-col-reverse
+                  keeps the number on top on screen. */}
               {PROOF_STATS.map((stat) => (
-                <div key={stat.label} className="text-center">
-                  <dt className="sr-only">{stat.label}</dt>
+                <div key={stat.label} className="flex flex-col-reverse text-center">
+                  <dt className="mt-1 text-xs text-muted-foreground sm:text-sm">{stat.label}</dt>
                   <dd className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight text-primary sm:text-3xl">
                     {stat.value}
                   </dd>
-                  <p className="mt-1 text-xs text-muted-foreground sm:text-sm">{stat.label}</p>
                 </div>
               ))}
             </dl>
@@ -434,7 +445,7 @@ function HomePage() {
             <h2 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight sm:text-4xl">
               Your first product can be live in five minutes.
             </h2>
-            <p className="mx-auto mt-3 max-w-md text-primary-foreground/80">
+            <p className="mx-auto mt-3 max-w-md text-primary-foreground">
               Free to start, paid out to your own Stripe, and you can cancel any time.
             </p>
             <Button asChild size="lg" variant="secondary" className="mt-7">

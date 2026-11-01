@@ -9,6 +9,7 @@ import { useEffect } from "react";
 import type { QueryClient } from "@tanstack/react-query";
 import { QueryClientProvider } from "@tanstack/react-query";
 import appCss from "../styles.css?url";
+import manropeLatin from "../fonts/manrope-latin.woff2?url";
 import { BRAND_NAME, BRAND_KEY, BASE_URL } from "@/lib/site";
 import { captureReferralFromUrl } from "@/lib/referral-attribution";
 import { rememberArrival } from "@/lib/signup-arrival";
@@ -54,16 +55,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:image", content: `${BASE_URL}/og.png` },
     ],
     links: [
-      // Manrope — the intended display typeface (referenced by --font-display
-      // but not previously loaded, so headings + the wordmark were silently
-      // falling back to a system font). Loading it makes the logo and all
-      // display type render as designed.
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap",
-      },
+      // Manrope — the display typeface (headings and the wordmark). Declared in
+      // styles.css and served from our own /assets/; the English file is
+      // fetched straight away rather than after the CSS has been read.
+      { rel: "preload", href: manropeLatin, as: "font", type: "font/woff2", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: appCss },
       { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "icon", href: "/icon.svg", type: "image/svg+xml" },

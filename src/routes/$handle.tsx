@@ -17,6 +17,7 @@ import { BRAND_NAME, BASE_URL } from "@/lib/site";
 import { categoryLabel } from "@/lib/category-label";
 import { brandThemeStyle } from "@/lib/brand-color";
 import { cn } from "@/lib/utils";
+import { responsiveImage } from "@/lib/public-image-url";
 import { usePagedList } from "@/lib/use-paged-list";
 import { PAGE_SIZES } from "@/lib/paginate";
 import { ListPager } from "@/components/list-pager";
@@ -131,7 +132,7 @@ function StartHereCard({
     <section aria-labelledby={`${uid}-title`} className="w-full overflow-hidden rounded-2xl border-2 border-primary/40 bg-card text-left shadow-sm">
       {product.imageUrl ? (
         <div className="aspect-video w-full bg-muted">
-          <img src={product.imageUrl} alt="" className="h-full w-full object-cover" />
+          <img {...responsiveImage(product.imageUrl, "(min-width: 448px) 416px, 100vw")} alt="" className="h-full w-full object-cover" />
         </div>
       ) : null}
       <div className="flex flex-col gap-3 p-4">
@@ -329,7 +330,7 @@ function StorefrontPage() {
                   >
                     <div className="aspect-video w-28 shrink-0 overflow-hidden rounded-lg bg-muted">
                       {p.imageUrl ? (
-                        <img src={p.imageUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+                        <img {...responsiveImage(p.imageUrl, "112px")} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center text-muted-foreground">
                           <Package className="h-5 w-5" aria-hidden="true" />

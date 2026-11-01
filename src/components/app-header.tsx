@@ -16,7 +16,6 @@ import {
   Compass,
 } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
-import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile } from "@/lib/profile.functions";
 import { BASE_URL, BRAND_EMAIL } from "@/lib/site";
 import { Button } from "@/components/ui/button";
@@ -62,6 +61,8 @@ export function AppHeader({ sideNav = false }: { sideNav?: boolean }) {
   const displayName = profile?.display_name || profile?.handle || "Your account";
 
   const signOut = async () => {
+    // Loaded on demand: this header is part of the script every page loads.
+    const { supabase } = await import("@/integrations/supabase/client");
     await supabase.auth.signOut();
     navigate({ to: "/" });
   };

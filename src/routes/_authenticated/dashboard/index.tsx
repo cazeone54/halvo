@@ -101,6 +101,7 @@ import { BASE_URL, BRAND_KEY } from "@/lib/site";
 import { formatCents } from "@/lib/format";
 import { toCsv } from "@/lib/csv";
 import { cn } from "@/lib/utils";
+import { responsiveImage } from "@/lib/public-image-url";
 
 // The live per-sale fee, e.g. "5%" (no fixed part under direct charges).
 const PRODUCT_PAGE_SIZE_KEY = "halvo:dashboard:products-per-page";
@@ -228,7 +229,10 @@ function DashboardHome() {
       // deliverable from publishing the product.
       if (newCoverFile && user) {
         const coverPath = `${user.id}/${product.id}/cover-${Date.now()}-${newCoverFile.name}`;
-        const { error: coverErr } = await supabase.storage.from("digital-assets").upload(coverPath, newCoverFile);
+        // Every cover gets a new name, so a cached copy can be kept for a year.
+        const { error: coverErr } = await supabase.storage
+          .from("digital-assets")
+          .upload(coverPath, newCoverFile, { cacheControl: "31536000" });
         if (!coverErr) {
           await createSetImageFn({
             data: { productId: product.id, storageFilePath: coverPath, sizeBytes: newCoverFile.size },
@@ -1325,7 +1329,10 @@ function ProductRow({
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Not signed in");
       const path = `${user.id}/${product.id}/cover-${Date.now()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage.from("digital-assets").upload(path, file);
+      // Every cover gets a new name, so a cached copy can be kept for a year.
+      const { error: uploadError } = await supabase.storage
+        .from("digital-assets")
+        .upload(path, file, { cacheControl: "31536000" });
       if (uploadError) throw uploadError;
       await setImageFn({ data: { productId: product.id, storageFilePath: path, sizeBytes: file.size } });
     },
@@ -1406,7 +1413,13 @@ function ProductRow({
             <>
               {/* Lazy: a seller with dozens of products shouldn't download
                   every cover before the first screen appears. */}
-              <img src={product.imageUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+              <img
+                {...responsiveImage(product.imageUrl, expanded ? "(min-width: 640px) 224px, 100vw" : "(min-width: 640px) 320px, 128px")}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="h-full w-full object-cover"
+              />
               {/* A small button rather than the whole cover: on a phone, tapping
                   a big picture opening a file picker is easy to do by accident. */}
               <label

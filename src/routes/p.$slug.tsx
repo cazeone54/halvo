@@ -9,6 +9,7 @@ import { OfferBanner } from "@/components/offer-banner";
 import { installmentAmountCents } from "@/lib/recurring";
 import { formatCents } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { responsiveImage } from "@/lib/public-image-url";
 import { ShieldCheck, Mail, CircleCheck, Lock, Zap, CreditCard } from "lucide-react";
 import { getProductPublicView, listMoreFromSeller } from "@/lib/product-public.functions";
 import { recordProductView } from "@/lib/product-view.functions";
@@ -340,7 +341,7 @@ function ProductCheckoutPage() {
                     <div className="aspect-video w-full overflow-hidden rounded-lg bg-muted">
                       {p.imageUrl ? (
                         <img
-                          src={p.imageUrl}
+                          {...responsiveImage(p.imageUrl, "(min-width: 640px) 260px, 45vw")}
                           alt={p.name}
                           loading="lazy"
                           decoding="async"

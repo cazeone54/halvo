@@ -4,11 +4,14 @@ import { Button } from "@/components/ui/button";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { ContentBlocks } from "@/components/content-blocks";
-import { findGuide, GUIDES } from "@/content/guides";
+import { GUIDES } from "@/content/guides";
 import { BRAND_NAME, BASE_URL } from "@/lib/site";
 
 export const Route = createFileRoute("/guides/$slug")({
-  loader: ({ params }) => {
+  // Imported here rather than at the top: a loader is part of the script every
+  // page loads, and only guide pages need the guides.
+  loader: async ({ params }) => {
+    const { findGuide } = await import("@/content/guides");
     const guide = findGuide(params.slug);
     if (!guide) throw notFound();
     return guide;

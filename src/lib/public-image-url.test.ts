@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { avatarImageUrl, productImageUrl } from "./public-image-url";
+import { avatarImageUrl, IMAGE_WIDTHS, productImageUrl, responsiveImage } from "./public-image-url";
 
 const PRODUCT = "793dce45-fab6-4d17-956a-496e4d0f267b";
 const USER = "f0f1b27b-e1aa-442c-bf06-b087b3a66a2a";
@@ -32,6 +32,16 @@ describe("productImageUrl", () => {
   it("gives different products different addresses", () => {
     const path = "uid/pid/cover-1700000000-a.png";
     expect(productImageUrl(PRODUCT, path)).not.toBe(productImageUrl(USER, path));
+  });
+});
+
+describe("responsiveImage", () => {
+  it("offers every width the image route resizes to, keeping the version", () => {
+    const url = productImageUrl(PRODUCT, "uid/pid/cover-1700000000-a.png")!;
+    const img = responsiveImage(url, "50vw");
+    expect(img.srcSet.split(", ")).toEqual(IMAGE_WIDTHS.map((w) => `${url}&w=${w} ${w}w`));
+    expect(img.src).toBe(`${url}&w=800`);
+    expect(img.sizes).toBe("50vw");
   });
 });
 

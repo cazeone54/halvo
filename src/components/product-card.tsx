@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Package } from "lucide-react";
 import { Stars } from "@/components/stars";
+import { responsiveImage } from "@/lib/public-image-url";
 
 // One product as it appears in a grid — on Discover and on a seller's own
 // storefront, from this one definition, so the two can't drift into looking
@@ -43,7 +44,7 @@ export function ProductCard({ product, showSeller = false }: { product: GridProd
       <div className="relative aspect-video w-full overflow-hidden rounded-xl border bg-muted transition-colors group-hover:border-primary/50 group-focus-visible:ring-2 group-focus-visible:ring-ring">
         {product.imageUrl ? (
           <img
-            src={product.imageUrl}
+            {...responsiveImage(product.imageUrl, "(min-width: 1024px) 280px, (min-width: 768px) 33vw, 50vw")}
             alt=""
             loading="lazy"
             decoding="async"
