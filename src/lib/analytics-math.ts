@@ -45,80 +45,45 @@ export function sourceLabel(raw: string | null | undefined): string {
   return s.replace(/^www\./, "");
 }
 
-// The keys that get their own colour: the biggest few over ALL time, so a
-// colour stays with the same source or product when the period changes. (A
-// colour that followed the current ranking would repaint "Instagram" orange
-// one week and blue the next.)
-export function stableTopKeys(totals: Map<string, number>, max = 4): string[] {
-  return [...totals.entries()]
-    .filter(([, v]) => v > 0)
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-    .slice(0, max)
-    .map(([k]) => k);
-}
+export type BucketUnit = "day" | "week" | "month";
+export type Bucket = { key: string; start: string; unit: BucketUnit };
 
-export type Slice = { key: string; value: number; share: number; slot: number }; // slot 0 = Other
-
-// A circle chart's data, or the reason there isn't one yet. Each slice carries
-// its own label and formatted value, so the legend is also the table view.
-export type DonutData = {
-  ready: boolean;
-  have: number; // what there is so far
-  need: number; // what it takes before the split means something
-  totalLabel: string;
-  slices: Array<{ key: string; label: string; valueLabel: string; share: number; slot: number }>;
-};
-
-// "34%", or "<1%" for a sliver, so a real slice never reads as 0%.
-export const shareLabel = (share: number) => (share > 0 && share < 0.005 ? "<1%" : `${Math.round(share * 100)}%`);
-
-// Part-to-whole for a circle chart: the stable keys in their stable order and
-// colours, everything else folded into one "Other". Empty slices are dropped.
-export function toSlices(values: Map<string, number>, stableKeys: string[]): { slices: Slice[]; total: number } {
-  const total = [...values.values()].reduce((a, b) => a + b, 0);
-  if (total <= 0) return { slices: [], total: 0 };
-  const slices: Slice[] = [];
-  stableKeys.forEach((key, i) => {
-    const v = values.get(key) ?? 0;
-    if (v > 0) slices.push({ key, value: v, share: v / total, slot: i + 1 });
-  });
-  const other = total - slices.reduce((a, s) => a + s.value, 0);
-  if (other > 0) slices.push({ key: "Other", value: other, share: other / total, slot: 0 });
-  return { slices, total };
-}
-
-// Revenue bars for the chosen period: a bar per day for 7 and 30 days, per
-// week for 90 (ninety bars would be hairlines on a phone), per month for all
-// time (the last twelve). Keys are UTC dates, matching how sales are bucketed.
-export function revenueBuckets(
-  days: ReadonlyArray<{ day: string; revenueCents: number }>,
-  period: Period,
-  now: Date,
-): Array<{ key: string; start: Date; cents: number; unit: "day" | "week" | "month" }> {
-  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  const byDay = new Map(days.map((d) => [d.day, d.revenueCents]));
-  const dayKey = (d: Date) => d.toISOString().slice(0, 10);
+// The bars of the chart for the chosen period: a bar per day for 7 and 30
+// days, per week for 90 (ninety bars would be hairlines on a phone), per month
+// for all time (the last twelve). UTC dates, matching how activity is bucketed.
+export function timeBuckets(period: Period, now: Date): Bucket[] {
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const iso = (t: number) => new Date(t).toISOString();
 
   if (period === 7 || period === 30) {
     return Array.from({ length: period }, (_, i) => {
-      const d = new Date(today.getTime() - (period - 1 - i) * DAY);
-      return { key: dayKey(d), start: d, cents: byDay.get(dayKey(d)) ?? 0, unit: "day" as const };
+      const t = today - (period - 1 - i) * DAY;
+      return { key: iso(t).slice(0, 10), start: iso(t), unit: "day" as const };
     });
   }
   if (period === 90) {
     const weeks = 13; // 91 days, ending today
     return Array.from({ length: weeks }, (_, w) => {
-      const start = new Date(today.getTime() - (weeks * 7 - 1 - w * 7) * DAY);
-      let cents = 0;
-      for (let k = 0; k < 7; k++) cents += byDay.get(dayKey(new Date(start.getTime() + k * DAY))) ?? 0;
-      return { key: dayKey(start), start, cents, unit: "week" as const };
+      const t = today - (weeks * 7 - 1 - w * 7) * DAY;
+      return { key: iso(t).slice(0, 10), start: iso(t), unit: "week" as const };
     });
   }
-  const byMonth = new Map<string, number>();
-  for (const d of days) byMonth.set(d.day.slice(0, 7), (byMonth.get(d.day.slice(0, 7)) ?? 0) + d.revenueCents);
   return Array.from({ length: 12 }, (_, i) => {
-    const start = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - (11 - i), 1));
-    const key = start.toISOString().slice(0, 7);
-    return { key, start, cents: byMonth.get(key) ?? 0, unit: "month" as const };
+    const t = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (11 - i), 1);
+    return { key: iso(t).slice(0, 7), start: iso(t), unit: "month" as const };
   });
+}
+
+// Which bar a timestamp belongs to, or -1 when it falls outside the chart.
+export function bucketFinder(buckets: readonly Bucket[]): (iso: string) => number {
+  const index = new Map<string, number>();
+  buckets.forEach((b, i) => {
+    if (b.unit === "week") {
+      for (let k = 0; k < 7; k++) index.set(new Date(Date.parse(b.start) + k * DAY).toISOString().slice(0, 10), i);
+    } else {
+      index.set(b.key, i);
+    }
+  });
+  const monthly = buckets[0]?.unit === "month";
+  return (iso) => index.get(monthly ? iso.slice(0, 7) : iso.slice(0, 10)) ?? -1;
 }
