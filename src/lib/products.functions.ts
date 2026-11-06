@@ -8,6 +8,7 @@ import { checkUploadAgainstLimits, checkFreeBundleSize, checkFreeProductSize, is
 import { deliverableBytes, freeBundlesContaining } from "@/lib/bundle.server";
 import { productImageUrl } from "@/lib/public-image-url";
 import { isOwnProductPath } from "@/lib/product-media";
+import { isInOwnerFolder } from "@/lib/owned-storage";
 import type { Database } from "@/integrations/supabase/types";
 
 async function currentUploadUsage(
@@ -401,17 +402,28 @@ export const attachProductFile = createServerFn({ method: "POST" })
       .single();
     if (!product) throw new Error("Product not found");
 
+    // The path and the size both come from the browser. The file has to be in
+    // this product's own folder, and the limits (and later the bandwidth
+    // counts) use the size storage actually holds — a reported "1 byte" for a
+    // 2 GB file would otherwise slip past every limit.
+    if (!isInOwnerFolder(data.storageFilePath, context.userId) || !data.storageFilePath.startsWith(`${context.userId}/${data.productId}/`)) {
+      throw new Error("That upload isn't where it should be. Please try uploading it again.");
+    }
+    const { data: stored, error: storedError } = await context.supabase.storage.from("digital-assets").info(data.storageFilePath);
+    if (storedError || !stored) throw new Error("We couldn't find that upload. Please try uploading it again.");
+    const sizeBytes = typeof stored.size === "number" && stored.size >= 0 ? stored.size : data.sizeBytes;
+
     const productIsFree = isFreePricing(product);
     const [tier, usage, verified, free] = await Promise.all([
       resolveUserTier(context.supabase, context.userId),
       currentUploadUsage(context.supabase, context.userId, data.productId),
       isVerifiedSeller(context.supabase, context.userId),
-      freeDeliveryUsage(context.supabase, data.productId, productIsFree, data.sizeBytes),
+      freeDeliveryUsage(context.supabase, data.productId, productIsFree, sizeBytes),
     ]);
     const rejection =
       checkUploadAgainstLimits(
         {
-          sizeBytes: data.sizeBytes,
+          sizeBytes,
           ...usage,
           usedBytesForProduct: free.deliverableBytesForProduct ?? usage.usedBytesForProduct,
           productIsFree,
@@ -429,7 +441,7 @@ export const attachProductFile = createServerFn({ method: "POST" })
       owner_id: context.userId,
       storage_file_path: data.storageFilePath,
       file_name: data.fileName,
-      size_bytes: data.sizeBytes,
+      size_bytes: sizeBytes,
     });
     if (error) throw new Error(error.message);
 

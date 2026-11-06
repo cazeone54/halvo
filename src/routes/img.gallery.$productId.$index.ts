@@ -21,7 +21,7 @@ export const Route = createFileRoute("/img/gallery/$productId/$index")({
         const path = product?.gallery_paths?.[index];
         if (!path) return new Response("Not found", { status: 404 });
 
-        return serveStoredImage(request, path, galleryImageUrls(params.productId, product.gallery_paths)[index]);
+        return serveStoredImage(request, path, galleryImageUrls(params.productId, product.gallery_paths)[index], product.owner_id);
       },
     },
   },

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { productImageUrl } from "@/lib/public-image-url";
 import { amountIn, DEFAULT_CURRENCY } from "@/lib/currency";
+import { sameOwner } from "@/lib/owned-storage";
 
 // Public — the order-bump offer shown at checkout for a given product. Returns
 // null (never throws) so a product page renders identically whether or not a
@@ -16,18 +17,21 @@ export const getProductBump = createServerFn({ method: "GET" })
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { data: bump } = await supabaseAdmin
         .from("product_bumps")
-        .select("bump_product_id, price_cents")
+        .select("bump_product_id, price_cents, owner_id")
         .eq("product_id", data.productId)
         .maybeSingle();
       if (!bump) return null;
 
-      // The add-on has to be a real, deliverable product.
-      const { data: bumpProduct } = await supabaseAdmin
+      // The add-on has to be a real, deliverable product — and, like the offer
+      // itself, this seller's own (checkout refuses anything else too).
+      const { data: products } = await supabaseAdmin
         .from("products")
-        .select("id, name, description, image_url")
-        .eq("id", bump.bump_product_id)
-        .maybeSingle();
-      if (!bumpProduct) return null;
+        .select("id, name, description, image_url, owner_id")
+        .in("id", [data.productId, bump.bump_product_id]);
+      const product = products?.find((p) => p.id === data.productId);
+      const bumpProduct = products?.find((p) => p.id === bump.bump_product_id);
+      if (!product || !bumpProduct) return null;
+      if (!sameOwner(bump.owner_id, product.owner_id) || !sameOwner(bumpProduct.owner_id, product.owner_id)) return null;
 
       return {
         bumpProductId: bumpProduct.id,

@@ -33,7 +33,12 @@ export const Route = createFileRoute("/f/$token")({
           .eq("id", ticket.fileId)
           .eq("owner_id", ticket.ownerId)
           .maybeSingle();
-        if (!file) return new Response("Not found", { status: 404 });
+        // The row is the seller's, but its path is whatever they wrote — it has
+        // to be in their own folder, not someone else's.
+        const { isInOwnerFolder } = await import("@/lib/owned-storage");
+        if (!file || !isInOwnerFolder(file.storage_file_path, ticket.ownerId)) {
+          return new Response("Not found", { status: 404 });
+        }
 
         const { data: signed } = await supabaseAdmin.storage
           .from("digital-assets")

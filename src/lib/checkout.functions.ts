@@ -12,6 +12,7 @@ import { sendPurchaseConfirmationEmail } from "@/lib/email.server";
 import { notifySellerOfSale } from "@/lib/sale-notify.server";
 import { recordSaleSource } from "@/lib/record-source.server";
 import { countDeliverableFiles } from "@/lib/bundle.server";
+import { sameOwner } from "@/lib/owned-storage";
 import { activeSalePriceCents, effectivePricing } from "@/lib/offer";
 import { assertInStock } from "@/lib/offer.server";
 import {
@@ -95,7 +96,7 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
       assertInStock(supabaseAdmin, product),
       data.couponCode ? findValidCoupon(supabaseAdmin, data.couponCode, product.id) : Promise.resolve(null),
       data.bumpTaken
-        ? supabaseAdmin.from("product_bumps").select("bump_product_id, price_cents").eq("product_id", product.id).maybeSingle()
+        ? supabaseAdmin.from("product_bumps").select("bump_product_id, price_cents, owner_id").eq("product_id", product.id).maybeSingle()
         : Promise.resolve({ data: null }),
       data.referralCode ? resolveReferralCode(supabaseAdmin, data.referralCode, product.id) : Promise.resolve(null),
     ]);
@@ -136,7 +137,14 @@ export const createProductPaymentIntent = createServerFn({ method: "POST" })
     // referral, so the recorded amount and the delivered files agree.
     let bumpProductId: string | null = null;
     let bumpPriceCents = 0;
-    const bump = bumpRes.data;
+    let bump = bumpRes.data;
+    // The offer and the add-on must both be this seller's: a bump row written
+    // straight through the API could otherwise sell (or give away) another
+    // seller's product inside this checkout.
+    if (bump) {
+      const { data: bumpProduct } = await supabaseAdmin.from("products").select("owner_id").eq("id", bump.bump_product_id).maybeSingle();
+      if (!sameOwner(bump.owner_id, product.owner_id) || !sameOwner(bumpProduct?.owner_id, product.owner_id)) bump = null;
+    }
     if (bump) {
       bumpProductId = bump.bump_product_id;
       bumpPriceCents = Math.max(0, amountIn(bump.price_cents, currency));

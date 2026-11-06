@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { resolveDeliverableProductIds } from "@/lib/bundle.server";
+import { deliverableFiles, resolveDeliverableProductIds } from "@/lib/bundle.server";
+import { sameOwner } from "@/lib/owned-storage";
 import { accessForSubscriptionRow } from "@/lib/recurring.server";
 
 type Admin = SupabaseClient<Database>;
@@ -58,17 +59,23 @@ export async function resolveEntitledFiles(
       .eq("transaction_id", transaction.id)
       .maybeSingle();
     if (bump) {
-      for (const id of await resolveDeliverableProductIds(admin, bump.bump_product_id)) deliverableIds.add(id);
+      // Only an add-on from the same seller is delivered (checkout refuses
+      // anything else; this keeps an older or hand-written row from reaching
+      // another seller's product).
+      const { data: owners } = await admin
+        .from("products")
+        .select("id, owner_id")
+        .in("id", [transaction.product_id, bump.bump_product_id]);
+      const ownerOf = new Map((owners ?? []).map((p) => [p.id, p.owner_id]));
+      if (sameOwner(ownerOf.get(bump.bump_product_id), ownerOf.get(transaction.product_id))) {
+        for (const id of await resolveDeliverableProductIds(admin, bump.bump_product_id)) deliverableIds.add(id);
+      }
     }
   } catch {
     // No bump table yet — the base product's files, as before.
   }
 
-  const { data: files, error: filesError } = await admin
-    .from("product_files")
-    .select("id, file_name, storage_file_path, size_bytes")
-    .in("product_id", Array.from(deliverableIds));
-  if (filesError) throw new Error(filesError.message);
+  const files = await deliverableFiles(admin, Array.from(deliverableIds));
 
   return {
     transaction: {
@@ -76,6 +83,6 @@ export async function resolveEntitledFiles(
       seller_id: transaction.seller_id,
       amount_paid_cents: transaction.amount_paid_cents ?? 0,
     },
-    files: files ?? [],
+    files: files.map(({ id, file_name, storage_file_path, size_bytes }) => ({ id, file_name, storage_file_path, size_bytes })),
   };
 }

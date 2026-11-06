@@ -20,12 +20,12 @@ export const Route = createFileRoute("/img/product/$productId")({
 
         const { data: product } = await supabaseAdmin
           .from("products")
-          .select("image_url")
+          .select("image_url, owner_id")
           .eq("id", params.productId)
           .single();
         if (!product?.image_url) return new Response("Not found", { status: 404 });
 
-        return serveStoredImage(request, product.image_url, productImageUrl(params.productId, product.image_url)!);
+        return serveStoredImage(request, product.image_url, productImageUrl(params.productId, product.image_url)!, product.owner_id);
       },
     },
   },

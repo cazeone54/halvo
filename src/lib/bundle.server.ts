@@ -1,7 +1,34 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { isSellersFile, sameOwner } from "@/lib/owned-storage";
 
 type Admin = SupabaseClient<Database>;
+
+export type DeliverableFile = {
+  id: string;
+  product_id: string;
+  file_name: string | null;
+  storage_file_path: string;
+  size_bytes: number | null;
+};
+
+// The files a buyer of these products receives. A product_files row is written
+// by a seller and the database only checks that the row is theirs, so a row on
+// someone else's product — or one pointing into someone else's folder — is
+// dropped here (owned-storage.ts).
+export async function deliverableFiles(admin: Admin, productIds: string[]): Promise<DeliverableFile[]> {
+  if (productIds.length === 0) return [];
+  const [{ data: owners, error: ownersError }, { data: files, error: filesError }] = await Promise.all([
+    admin.from("products").select("id, owner_id").in("id", productIds),
+    admin.from("product_files").select("id, product_id, owner_id, file_name, storage_file_path, size_bytes").in("product_id", productIds),
+  ]);
+  if (ownersError) throw new Error(ownersError.message);
+  if (filesError) throw new Error(filesError.message);
+  const ownerOf = new Map((owners ?? []).map((p) => [p.id, p.owner_id]));
+  return (files ?? [])
+    .filter((f) => isSellersFile(f, ownerOf.get(f.product_id)))
+    .map(({ id, product_id, file_name, storage_file_path, size_bytes }) => ({ id, product_id, file_name, storage_file_path, size_bytes }));
+}
 
 // Every product id whose files a buyer of `productId` is entitled to: the
 // product itself, plus anything bundled into it.
@@ -10,14 +37,28 @@ type Admin = SupabaseClient<Database>;
 // migration 0011 hasn't been applied (or the query fails) this degrades to
 // exactly the pre-bundle behaviour rather than breaking delivery — which is the
 // one path that must never break, because the buyer has already paid.
+//
+// Only the bundle seller's OWN products count as bundled in. That's checked
+// here, not just when the bundle is made in the dashboard: a bundle_items row
+// written straight through the API skips the app, and without this check a
+// free "bundle" could hand out any other seller's paid product.
 export async function resolveDeliverableProductIds(admin: Admin, productId: string): Promise<string[]> {
   try {
     const { data, error } = await admin
       .from("bundle_items")
-      .select("item_product_id")
+      .select("item_product_id, owner_id")
       .eq("bundle_product_id", productId);
     if (error || !data || data.length === 0) return [productId];
-    return Array.from(new Set([productId, ...data.map((row) => row.item_product_id)]));
+    const { data: products } = await admin
+      .from("products")
+      .select("id, owner_id")
+      .in("id", [productId, ...data.map((row) => row.item_product_id)]);
+    const ownerOf = new Map((products ?? []).map((p) => [p.id, p.owner_id]));
+    const seller = ownerOf.get(productId);
+    const items = data
+      .filter((row) => sameOwner(row.owner_id, seller) && sameOwner(ownerOf.get(row.item_product_id), seller))
+      .map((row) => row.item_product_id);
+    return Array.from(new Set([productId, ...items]));
   } catch {
     return [productId];
   }
@@ -27,8 +68,8 @@ export async function resolveDeliverableProductIds(admin: Admin, productId: stri
 // any `extraProductIds` about to be bundled in.
 export async function deliverableBytes(client: Admin, productId: string, extraProductIds: string[] = []): Promise<number> {
   const ids = Array.from(new Set([...(await resolveDeliverableProductIds(client, productId)), ...extraProductIds]));
-  const { data } = await client.from("product_files").select("size_bytes").in("product_id", ids);
-  return (data ?? []).reduce((sum, f) => sum + (f.size_bytes ?? 0), 0);
+  const files = await deliverableFiles(client, ids);
+  return files.reduce((sum, f) => sum + (f.size_bytes ?? 0), 0);
 }
 
 // Free bundles that include `productId` — a file added to it reaches their
@@ -52,9 +93,5 @@ export async function freeBundlesContaining(client: Admin, productId: string): P
 // bundled products. Used to refuse a checkout that would hand over nothing.
 export async function countDeliverableFiles(admin: Admin, productId: string): Promise<number> {
   const ids = await resolveDeliverableProductIds(admin, productId);
-  const { count } = await admin
-    .from("product_files")
-    .select("id", { count: "exact", head: true })
-    .in("product_id", ids);
-  return count ?? 0;
+  return (await deliverableFiles(admin, ids)).length;
 }

@@ -6,6 +6,8 @@ import { sendPurchaseConfirmationEmail } from "@/lib/email.server";
 import { recordSaleSource } from "@/lib/record-source.server";
 import { countDeliverableFiles } from "@/lib/bundle.server";
 import { assertInStock } from "@/lib/offer.server";
+import { isRateLimited } from "@/lib/rate-limit";
+import { senderKey } from "@/lib/sender-key.server";
 
 // Claiming a free product (a lead magnet) deliberately never touches Stripe.
 // There is nothing to charge, so there is no PaymentIntent, no destination
@@ -75,6 +77,14 @@ export const claimFreeProduct = createServerFn({ method: "POST" })
 
     if (existing) {
       return { transactionId: existing.id };
+    }
+
+    // A new claim emails whatever address was typed, so cap new claims per
+    // sender — otherwise free products are a way to make Halvo email strangers
+    // in bulk. Re-claims above never count; a real person rarely needs more.
+    const sender = senderKey();
+    if (sender && isRateLimited(`free-claim:${sender}`, 15, 60 * 60 * 1000)) {
+      throw new Error("Too many downloads from this connection — please try again in a little while.");
     }
 
     // After the re-claim shortcut, so someone who already claimed a copy can
