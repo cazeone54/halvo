@@ -8,7 +8,10 @@ import {
   LogOut,
   LifeBuoy,
   ShoppingBag,
-  LayoutDashboard,
+  House,
+  Package,
+  Receipt,
+  Wallet,
   Tag,
   Handshake,
   BarChart3,
@@ -32,18 +35,28 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+// The seller's menu, in groups with a heading each (like Discover's filters).
+// Products, Sales and Payouts each have their own page, so a sale someone was
+// just emailed about is one click away under Sales.
+export const APP_NAV_GROUPS = [
+  { id: "sell", title: "Sell" },
+  { id: "grow", title: "Grow" },
+  { id: "account", title: "Account" },
+  { id: "site", title: "Halvo" },
+] as const;
+
 export const APP_NAV_LINKS = [
-  // "Dashboard", not "Products": this page carries the KPIs, the products list
-  // AND the sales list, so labelling it after one of them sent sellers hunting
-  // under Analytics or Customers for the sale they'd just been emailed about.
-  { to: "/dashboard", label: "Dashboard", exact: true, icon: LayoutDashboard, group: "shop" },
-  { to: "/dashboard/discounts", label: "Discounts", icon: Tag, group: "shop" },
-  { to: "/dashboard/referrals", label: "Affiliate", icon: Handshake, group: "shop" },
-  { to: "/dashboard/analytics", label: "Analytics", icon: BarChart3, group: "shop" },
-  { to: "/dashboard/customers", label: "Customers", icon: Users, group: "shop" },
+  { to: "/dashboard", label: "Home", exact: true, icon: House, group: "sell" },
+  { to: "/dashboard/products", label: "Products", icon: Package, group: "sell" },
+  { to: "/dashboard/sales", label: "Sales", icon: Receipt, group: "sell" },
+  { to: "/dashboard/customers", label: "Customers", icon: Users, group: "sell" },
+  { to: "/dashboard/analytics", label: "Analytics", icon: BarChart3, group: "grow" },
+  { to: "/dashboard/discounts", label: "Discounts", icon: Tag, group: "grow" },
+  { to: "/dashboard/referrals", label: "Affiliate", icon: Handshake, group: "grow" },
+  { to: "/dashboard/payouts", label: "Payouts", icon: Wallet, group: "account" },
+  { to: "/dashboard/settings", label: "Settings", icon: Settings, group: "account" },
   { to: "/discover", label: "Discover", icon: Compass, group: "site" },
   { to: "/guides", label: "Help", icon: LifeBuoy, group: "site" },
-  { to: "/dashboard/settings", label: "Settings", icon: Settings, group: "shop" },
 ] as const;
 
 // The signed-in header. Used by the dashboard and by every public page while a
@@ -51,7 +64,8 @@ export const APP_NAV_LINKS = [
 // and account menu instead of looking like they were logged out.
 //
 // `sideNav`: the page has the menu down the left on a wide screen (the
-// dashboard), so the same links aren't repeated across the top there.
+// dashboard). Too many links to fit across the top, so below that width they
+// sit behind the menu button instead.
 export function AppHeader({ sideNav = false }: { sideNav?: boolean }) {
   const navigate = useNavigate();
   const profileFn = useServerFn(getMyProfile);
@@ -73,7 +87,7 @@ export function AppHeader({ sideNav = false }: { sideNav?: boolean }) {
         <Link to="/dashboard">
           <Logo />
         </Link>
-        <nav className={cn("hidden gap-4 text-sm text-muted-foreground sm:flex", sideNav && "lg:hidden")}>
+        <nav className={cn("hidden gap-4 text-sm text-muted-foreground", !sideNav && "sm:flex")}>
           {APP_NAV_LINKS.map((link) => (
             <Link
               key={link.to}
@@ -92,6 +106,7 @@ export function AppHeader({ sideNav = false }: { sideNav?: boolean }) {
             reach every section from a phone, so it isn't optional polish. */}
         <MobileMenu
           homeTo="/dashboard"
+          until={sideNav ? "lg" : "sm"}
           footer={(close) => (
             <>
               <div className="flex items-center gap-3 pb-1">
@@ -140,17 +155,27 @@ export function AppHeader({ sideNav = false }: { sideNav?: boolean }) {
           )}
         >
           {(close) =>
-            APP_NAV_LINKS.map((link) => (
-              <Link
-                key={link.to}
-                to={link.to}
-                onClick={close}
-                className={MOBILE_MENU_LINK}
-                activeOptions={"exact" in link ? { exact: link.exact } : undefined}
-                activeProps={{ className: MOBILE_MENU_LINK_ACTIVE, "aria-current": "page" }}
-              >
-                {link.label}
-              </Link>
+            // The same groups as the side menu. Smaller rows than the public
+            // menu's, so all eleven fit on a phone with little scrolling.
+            APP_NAV_GROUPS.map((group) => (
+              <div key={group.id} role="group" aria-label={group.title} className="pb-3">
+                <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {group.title}
+                </p>
+                {APP_NAV_LINKS.filter((link) => link.group === group.id).map((link) => (
+                  <Link
+                    key={link.to}
+                    to={link.to}
+                    onClick={close}
+                    className={cn(MOBILE_MENU_LINK, "gap-3 py-2.5 text-lg")}
+                    activeOptions={"exact" in link ? { exact: link.exact } : undefined}
+                    activeProps={{ className: MOBILE_MENU_LINK_ACTIVE, "aria-current": "page" }}
+                  >
+                    <link.icon className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
             ))
           }
         </MobileMenu>

@@ -283,7 +283,7 @@ export async function sendSaleNotificationEmail(params: {
     amountCents: params.amountCents,
     currency: params.currency,
     isFirstSale: params.isFirstSale,
-    dashboardUrl: `${BASE_URL}/dashboard`,
+    dashboardUrl: `${BASE_URL}/dashboard/sales`,
   });
   await sendEmail({ to: params.sellerEmail, subject, html, text });
 }
