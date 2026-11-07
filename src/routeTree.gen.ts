@@ -44,6 +44,7 @@ import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedDashboardAnalyticsRouteImport } from './routes/_authenticated/dashboard/analytics'
 import { Route as AuthenticatedDashboardCustomersRouteImport } from './routes/_authenticated/dashboard/customers'
 import { Route as AuthenticatedDashboardDiscountsRouteImport } from './routes/_authenticated/dashboard/discounts'
+import { Route as AuthenticatedDashboardFunnelRouteImport } from './routes/_authenticated/dashboard/funnel'
 import { Route as AuthenticatedDashboardPurchasesRouteImport } from './routes/_authenticated/dashboard/purchases'
 import { Route as AuthenticatedDashboardReferralsRouteImport } from './routes/_authenticated/dashboard/referrals'
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard/settings'
@@ -240,6 +241,12 @@ const AuthenticatedDashboardDiscountsRoute =
     path: '/discounts',
     getParentRoute: () => AuthenticatedDashboardRouteRoute,
   } as any)
+const AuthenticatedDashboardFunnelRoute =
+  AuthenticatedDashboardFunnelRouteImport.update({
+    id: '/funnel',
+    path: '/funnel',
+    getParentRoute: () => AuthenticatedDashboardRouteRoute,
+  } as any)
 const AuthenticatedDashboardPurchasesRoute =
   AuthenticatedDashboardPurchasesRouteImport.update({
     id: '/purchases',
@@ -363,6 +370,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/dashboard/customers': typeof AuthenticatedDashboardCustomersRoute
   '/dashboard/discounts': typeof AuthenticatedDashboardDiscountsRoute
+  '/dashboard/funnel': typeof AuthenticatedDashboardFunnelRoute
   '/dashboard/purchases': typeof AuthenticatedDashboardPurchasesRoute
   '/dashboard/referrals': typeof AuthenticatedDashboardReferralsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
@@ -414,6 +422,7 @@ export interface FileRoutesByTo {
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/dashboard/customers': typeof AuthenticatedDashboardCustomersRoute
   '/dashboard/discounts': typeof AuthenticatedDashboardDiscountsRoute
+  '/dashboard/funnel': typeof AuthenticatedDashboardFunnelRoute
   '/dashboard/purchases': typeof AuthenticatedDashboardPurchasesRoute
   '/dashboard/referrals': typeof AuthenticatedDashboardReferralsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
@@ -468,6 +477,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/_authenticated/dashboard/customers': typeof AuthenticatedDashboardCustomersRoute
   '/_authenticated/dashboard/discounts': typeof AuthenticatedDashboardDiscountsRoute
+  '/_authenticated/dashboard/funnel': typeof AuthenticatedDashboardFunnelRoute
   '/_authenticated/dashboard/purchases': typeof AuthenticatedDashboardPurchasesRoute
   '/_authenticated/dashboard/referrals': typeof AuthenticatedDashboardReferralsRoute
   '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
@@ -522,6 +532,7 @@ export interface FileRouteTypes {
     | '/dashboard/analytics'
     | '/dashboard/customers'
     | '/dashboard/discounts'
+    | '/dashboard/funnel'
     | '/dashboard/purchases'
     | '/dashboard/referrals'
     | '/dashboard/settings'
@@ -573,6 +584,7 @@ export interface FileRouteTypes {
     | '/dashboard/analytics'
     | '/dashboard/customers'
     | '/dashboard/discounts'
+    | '/dashboard/funnel'
     | '/dashboard/purchases'
     | '/dashboard/referrals'
     | '/dashboard/settings'
@@ -626,6 +638,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/analytics'
     | '/_authenticated/dashboard/customers'
     | '/_authenticated/dashboard/discounts'
+    | '/_authenticated/dashboard/funnel'
     | '/_authenticated/dashboard/purchases'
     | '/_authenticated/dashboard/referrals'
     | '/_authenticated/dashboard/settings'
@@ -935,6 +948,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardDiscountsRouteImport
       parentRoute: typeof AuthenticatedDashboardRouteRoute
     }
+    '/_authenticated/dashboard/funnel': {
+      id: '/_authenticated/dashboard/funnel'
+      path: '/funnel'
+      fullPath: '/dashboard/funnel'
+      preLoaderRoute: typeof AuthenticatedDashboardFunnelRouteImport
+      parentRoute: typeof AuthenticatedDashboardRouteRoute
+    }
     '/_authenticated/dashboard/purchases': {
       id: '/_authenticated/dashboard/purchases'
       path: '/purchases'
@@ -1054,6 +1074,7 @@ interface AuthenticatedDashboardRouteRouteChildren {
   AuthenticatedDashboardAnalyticsRoute: typeof AuthenticatedDashboardAnalyticsRoute
   AuthenticatedDashboardCustomersRoute: typeof AuthenticatedDashboardCustomersRoute
   AuthenticatedDashboardDiscountsRoute: typeof AuthenticatedDashboardDiscountsRoute
+  AuthenticatedDashboardFunnelRoute: typeof AuthenticatedDashboardFunnelRoute
   AuthenticatedDashboardPurchasesRoute: typeof AuthenticatedDashboardPurchasesRoute
   AuthenticatedDashboardReferralsRoute: typeof AuthenticatedDashboardReferralsRoute
   AuthenticatedDashboardSettingsRoute: typeof AuthenticatedDashboardSettingsRoute
@@ -1068,6 +1089,7 @@ const AuthenticatedDashboardRouteRouteChildren: AuthenticatedDashboardRouteRoute
     AuthenticatedDashboardAnalyticsRoute: AuthenticatedDashboardAnalyticsRoute,
     AuthenticatedDashboardCustomersRoute: AuthenticatedDashboardCustomersRoute,
     AuthenticatedDashboardDiscountsRoute: AuthenticatedDashboardDiscountsRoute,
+    AuthenticatedDashboardFunnelRoute: AuthenticatedDashboardFunnelRoute,
     AuthenticatedDashboardPurchasesRoute: AuthenticatedDashboardPurchasesRoute,
     AuthenticatedDashboardReferralsRoute: AuthenticatedDashboardReferralsRoute,
     AuthenticatedDashboardSettingsRoute: AuthenticatedDashboardSettingsRoute,
