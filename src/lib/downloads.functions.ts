@@ -4,6 +4,7 @@ import { resolveEntitledFiles } from "@/lib/entitlement.server";
 import { isReadableOnline } from "@/lib/lesson-reader";
 import { assertFreeDownloadAllowed } from "@/lib/free-download-cap.server";
 import { logDownloadAccess } from "@/lib/download-log.server";
+import { linkButtonLabel } from "@/lib/product-link";
 
 // Public — what this purchase may download. The only gate is a verified,
 // non-refunded transaction; `transactionId` is only ever revealed post-purchase.
@@ -19,7 +20,7 @@ export const listPurchasedFiles = createServerFn({ method: "GET" })
 
     const entitlement = await resolveEntitledFiles(supabaseAdmin, data.transactionId);
     if (!entitlement) throw new Error("This purchase could not be verified.");
-    const { transaction, files } = entitlement;
+    const { transaction, files, links } = entitlement;
 
     // Tells a buyer the free product is paused before they click, rather than
     // after. The download route checks it again, which is what actually holds.
@@ -34,6 +35,9 @@ export const listPurchasedFiles = createServerFn({ method: "GET" })
         // A text lesson file gets a "Read online" option beside Download.
         readable: isReadableOnline({ fileName: file.file_name, sizeBytes: file.size_bytes }),
       })),
+      // A button's words, never the address itself: like a file, the link is
+      // reached through /d/<purchase>/<id>, which checks the purchase again.
+      links: links.map((link) => ({ id: link.id, label: linkButtonLabel(link.label, link.url) })),
     };
   });
 

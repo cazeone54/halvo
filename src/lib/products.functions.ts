@@ -60,7 +60,7 @@ async function freeDeliveryUsage(
   return { deliverableBytesForProduct: own, bundleRejection: null };
 }
 
-const slugify = (name: string, suffix: string) =>
+export const slugify = (name: string, suffix: string) =>
   `${name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -75,14 +75,19 @@ export const listMyProducts = createServerFn({ method: "GET" })
     // no query error either way. It's the seller's own rows, so nothing extra leaks.
     // Files come back with the products (one extra query for all of them),
     // so the product list doesn't fire a separate request per row.
-    const [{ data, error }, { data: files }] = await Promise.all([
+    const [{ data, error }, { data: files }, linksRes] = await Promise.all([
       context.supabase.from("products").select("*").eq("owner_id", context.userId).order("created_at", { ascending: false }),
       context.supabase
         .from("product_files")
         .select("id, product_id, file_name, storage_file_path, size_bytes")
         .eq("owner_id", context.userId),
+      // Links delivered instead of files (migration 0033). Before it, none.
+      context.supabase.from("product_links").select("product_id, url, label").eq("owner_id", context.userId),
     ]);
     if (error) throw new Error(error.message);
+    const linkByProduct = new Map(
+      (linksRes.error ? [] : linksRes.data ?? []).map((l) => [l.product_id, { url: l.url, label: l.label }]),
+    );
     const filesByProduct = new Map<string, Array<{ id: string; file_name: string | null; storage_file_path: string; size_bytes: number | null }>>();
     for (const { product_id, ...f } of files ?? []) {
       const list = filesByProduct.get(product_id) ?? [];
@@ -93,6 +98,7 @@ export const listMyProducts = createServerFn({ method: "GET" })
       ...product,
       imageUrl: productImageUrl(product.id, product.image_url),
       files: filesByProduct.get(product.id) ?? [],
+      link: linkByProduct.get(product.id) ?? null,
     }));
   });
 

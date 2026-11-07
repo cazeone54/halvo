@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { deliverableFiles, resolveDeliverableProductIds } from "@/lib/bundle.server";
+import { deliverableFiles, deliverableLinks, resolveDeliverableProductIds, type DeliverableLink } from "@/lib/bundle.server";
 import { sameOwner } from "@/lib/owned-storage";
 import { accessForSubscriptionRow } from "@/lib/recurring.server";
 
@@ -31,6 +31,8 @@ export async function resolveEntitledFiles(
   // sale — only free ones are subject to the monthly cap.
   transaction: { id: string; seller_id: string | null; amount_paid_cents: number };
   files: EntitledFile[];
+  // Links delivered instead of files (migration 0033); empty before it.
+  links: DeliverableLink[];
 } | null> {
   // select("*") so buyer_subscription_id (migration 0020) comes through when present.
   const { data: transaction, error } = await admin.from("transactions").select("*").eq("id", transactionId).single();
@@ -75,9 +77,13 @@ export async function resolveEntitledFiles(
     // No bump table yet — the base product's files, as before.
   }
 
-  const files = await deliverableFiles(admin, Array.from(deliverableIds));
+  const [files, links] = await Promise.all([
+    deliverableFiles(admin, Array.from(deliverableIds)),
+    deliverableLinks(admin, Array.from(deliverableIds)),
+  ]);
 
   return {
+    links,
     transaction: {
       id: transaction.id,
       seller_id: transaction.seller_id,

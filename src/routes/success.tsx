@@ -111,6 +111,8 @@ function SuccessPage() {
   }
 
   const files = filesQ.data?.files ?? [];
+  const links = filesQ.data?.links ?? [];
+  const hasDeliverable = files.length + links.length > 0;
 
   return (
     <div className="mx-auto max-w-lg px-4 pb-10">
@@ -139,8 +141,18 @@ function SuccessPage() {
             <p className="text-sm text-muted-foreground">
               {filesQ.error instanceof Error ? filesQ.error.message : "Your download isn't available right now."}
             </p>
-          ) : files.length > 0 ? (
+          ) : hasDeliverable ? (
             <>
+              {/* A link the seller delivers instead of a file (a Notion or
+                  Canva template, a Drive folder) opens in a new tab, through
+                  /d/ like a file so the purchase is checked again. */}
+              {links.map((link) => (
+                <Button key={link.id} asChild size="lg">
+                  <a href={`/d/${id}/${link.id}`} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-4 w-4" /> {link.label}
+                  </a>
+                </Button>
+              ))}
               {files.map((file) =>
                 file.readable ? (
                   // A text course: reading it in the browser (with lessons and
@@ -220,7 +232,7 @@ function SuccessPage() {
 
       {transactionQ.data?.offer ? <AfterPurchaseOffer offer={transactionQ.data.offer} /> : null}
 
-      {files.length > 0 ? <ReviewPrompt transactionId={id} /> : null}
+      {hasDeliverable ? <ReviewPrompt transactionId={id} /> : null}
     </div>
   );
 }

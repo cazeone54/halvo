@@ -88,6 +88,9 @@ import { previewFor, type Preview } from "@/lib/file-preview";
 import { FilePreviewOverlay } from "@/components/file-preview-overlay";
 import { PAGE_SIZES, isPageSize, paginate, type PageSize } from "@/lib/paginate";
 import { ProductsEmptyState } from "@/components/products-empty-state";
+import { ProductLinkEditor } from "@/components/product-link-editor";
+import { setProductLink } from "@/lib/product-links.functions";
+import { normalizeDeliveryUrl } from "@/lib/product-link";
 import { EmptyState } from "@/components/empty-state";
 import { CopySnippet } from "@/components/copy-snippet";
 import { buildProductLink, buildButtonSnippet, buildIframeSnippet, buildOverlaySnippet } from "@/lib/share-snippets";
@@ -193,6 +196,10 @@ function DashboardHome() {
   // row — creating a product and attaching its file used to be two separate
   // journeys, and stopping between them left a permanently unsellable draft.
   const [newFile, setNewFile] = useState<File | null>(null);
+  // Or a link instead of a file — a Notion or Canva template is a share link.
+  const [linkMode, setLinkMode] = useState(false);
+  const [newLink, setNewLink] = useState("");
+  const createSetLinkFn = useServerFn(setProductLink);
   const [newCoverFile, setNewCoverFile] = useState<File | null>(null);
   const createCheckUploadFn = useServerFn(checkCanUploadFile);
   const createAttachFn = useServerFn(attachProductFile);
@@ -213,6 +220,11 @@ function DashboardHome() {
     // uploaded and attached, which is what takes it out of draft. A failure
     // part-way still leaves a recoverable draft on the dashboard.
     mutationFn: async () => {
+      // A bad link is caught before anything is created, so it can't leave a
+      // stray draft behind.
+      const deliverLink = linkMode && newLink.trim() ? normalizeDeliveryUrl(newLink) : null;
+      if (deliverLink && "error" in deliverLink) throw new Error(deliverLink.error);
+
       const product = await createProductFn({
         data: {
           name,
@@ -240,7 +252,12 @@ function DashboardHome() {
         }
       }
 
-      if (!newFile) return { published: false };
+      if (deliverLink) {
+        const res = await createSetLinkFn({ data: { productId: product.id, url: deliverLink.url } });
+        return { published: res.published };
+      }
+      // In link mode a file picked earlier is ignored, matching the button.
+      if (linkMode || !newFile) return { published: false };
       if (!user) throw new Error("Not signed in");
 
       await createCheckUploadFn({ data: { productId: product.id, sizeBytes: newFile.size } });
@@ -267,6 +284,8 @@ function DashboardHome() {
       setDescription("");
       setPrice("");
       setNewFile(null);
+      setNewLink("");
+      setLinkMode(false);
       setNewCoverFile(null);
       setShowNewProduct(false);
       toast.success(
@@ -722,7 +741,33 @@ function DashboardHome() {
             </div>
 
             <div>
-              <Label>File buyers receive</Label>
+              <div className="flex items-baseline justify-between gap-2">
+                <Label>{linkMode ? "Link buyers get" : "File buyers receive"}</Label>
+                <button
+                  type="button"
+                  onClick={() => setLinkMode((v) => !v)}
+                  className="text-xs text-primary underline-offset-4 hover:underline"
+                >
+                  {linkMode ? "Upload a file instead" : "Paste a link instead"}
+                </button>
+              </div>
+              {linkMode ? (
+                <div className="mt-1 flex flex-col gap-1">
+                  <Input
+                    value={newLink}
+                    onChange={(e) => setNewLink(e.target.value)}
+                    placeholder="https://notion.so/… or canva.com/…"
+                    inputMode="url"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    For a Notion or Canva template, a Google Drive folder or a private video. Buyers get it only after
+                    they pay or claim it — it publishes the product. Make sure anyone with the link can open it.
+                  </p>
+                </div>
+              ) : (
               <label
                 className="mt-1 flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed px-4 py-6 text-center transition-colors hover:border-primary/50 hover:bg-primary/5"
                 onDragOver={(e) => e.preventDefault()}
@@ -753,10 +798,15 @@ function DashboardHome() {
                   }}
                 />
               </label>
+              )}
             </div>
 
             <Button onClick={() => createMut.mutate()} disabled={!name || !price || createMut.isPending}>
-              {createMut.isPending ? "Publishing…" : newFile ? "Create & publish" : "Create as draft"}
+              {createMut.isPending
+                ? "Publishing…"
+                : (linkMode ? newLink.trim() : newFile)
+                  ? "Create & publish"
+                  : "Create as draft"}
             </Button>
             {createMut.error ? (
               <p className="text-sm text-destructive">{(createMut.error as Error).message}</p>
@@ -1142,6 +1192,8 @@ type ProductRowData = {
   installment_count?: number | null;
   // Loaded with the product list, so rows don't each fetch their files.
   files?: Array<{ id: string; file_name: string | null; storage_file_path: string; size_bytes: number | null }>;
+  // A link delivered instead of a file (migration 0033).
+  link?: { url: string; label: string | null } | null;
 };
 
 // Enough precision for a seller to recognise a file, and to spot the classic
@@ -1311,23 +1363,26 @@ function ProductRow({
       });
     },
     onSuccess: (res) => {
-      // Attaching the first file is what publishes the product, so this is the
-      // moment to hand the seller their link — sharing it is what actually
-      // produces a sale, and it used to be hidden behind an unlabelled icon.
-      if (res?.published && canTakePayments === false && !isFree) {
-        toast.warning("Product saved. It stays hidden from buyers until you connect Stripe under Payouts.");
-      } else if (res?.published) {
-        toast.success("Your product is live — share the link to make your first sale.");
-        setSharing(true);
-        setJustPublished(true);
-      } else {
-        toast.success("File attached.");
-      }
+      if (res?.published) announcePublished();
+      else toast.success("File attached.");
       qc.invalidateQueries({ queryKey: ["product-files", product.id] });
       qc.invalidateQueries({ queryKey: ["my-products"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  // The first file or link is what publishes the product, so this is the
+  // moment to hand the seller their link — sharing it is what actually
+  // produces a sale, and it used to be hidden behind an unlabelled icon.
+  function announcePublished() {
+    if (canTakePayments === false && !isFree) {
+      toast.warning("Product saved. It stays hidden from buyers until you connect Stripe under Payouts.");
+    } else {
+      toast.success("Your product is live — share the link to make your first sale.");
+      setSharing(true);
+      setJustPublished(true);
+    }
+  }
 
   const removeMut = useMutation({
     mutationFn: (fileId: string) => removeFn({ data: { fileId } }),
@@ -1384,7 +1439,8 @@ function ProductRow({
     if (expanded) cardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [expanded]);
 
-  const noFile = (filesQ.data?.length ?? 0) === 0;
+  // Nothing for a buyer to receive yet: no file and no link (migration 0033).
+  const noFile = (filesQ.data?.length ?? 0) === 0 && !product.link;
 
   const coverInput = (
     <input
@@ -1851,6 +1907,7 @@ function ProductRow({
             }}
           />
         </label>
+        <ProductLinkEditor productId={product.id} link={product.link ?? null} primary={noFile} onPublished={announcePublished} />
         {attachMut.error ? (
           <p className="text-xs text-destructive">{(attachMut.error as Error).message}</p>
         ) : null}

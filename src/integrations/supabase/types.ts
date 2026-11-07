@@ -447,6 +447,46 @@ export type Database = {
           },
         ];
       };
+      // A link delivered instead of a file (migration 0033). One per product;
+      // no public policy — read server-side after a verified purchase.
+      product_links: {
+        Row: {
+          id: string;
+          product_id: string;
+          owner_id: string | null;
+          url: string;
+          label: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          product_id: string;
+          owner_id: string;
+          url: string;
+          label?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          product_id?: string;
+          owner_id?: string;
+          url?: string;
+          label?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "product_links_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: true;
+            referencedRelation: "products";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       transactions: {
         Row: {
           id: string;

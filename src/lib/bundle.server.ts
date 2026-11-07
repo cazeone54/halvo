@@ -30,6 +30,28 @@ export async function deliverableFiles(admin: Admin, productIds: string[]): Prom
     .map(({ id, product_id, file_name, storage_file_path, size_bytes }) => ({ id, product_id, file_name, storage_file_path, size_bytes }));
 }
 
+export type DeliverableLink = { id: string; product_id: string; url: string; label: string | null };
+
+// The links a buyer of these products receives (migration 0033), under the
+// same ownership rule as files. Before that migration the table doesn't exist
+// and this is simply empty, so delivery works exactly as it did.
+export async function deliverableLinks(admin: Admin, productIds: string[]): Promise<DeliverableLink[]> {
+  if (productIds.length === 0) return [];
+  try {
+    const [{ data: owners }, { data: links, error }] = await Promise.all([
+      admin.from("products").select("id, owner_id").in("id", productIds),
+      admin.from("product_links").select("id, product_id, owner_id, url, label").in("product_id", productIds),
+    ]);
+    if (error) return [];
+    const ownerOf = new Map((owners ?? []).map((p) => [p.id, p.owner_id]));
+    return (links ?? [])
+      .filter((l) => sameOwner(l.owner_id, ownerOf.get(l.product_id)))
+      .map(({ id, product_id, url, label }) => ({ id, product_id, url, label }));
+  } catch {
+    return [];
+  }
+}
+
 // Every product id whose files a buyer of `productId` is entitled to: the
 // product itself, plus anything bundled into it.
 //
@@ -89,9 +111,11 @@ export async function freeBundlesContaining(client: Admin, productId: string): P
   }
 }
 
-// How many files a purchase of this product would actually deliver, counting
-// bundled products. Used to refuse a checkout that would hand over nothing.
+// How many files and links a purchase of this product would actually deliver,
+// counting bundled products. Used to refuse a checkout that would hand over
+// nothing — a product whose only deliverable is a link is sellable too.
 export async function countDeliverableFiles(admin: Admin, productId: string): Promise<number> {
   const ids = await resolveDeliverableProductIds(admin, productId);
-  return (await deliverableFiles(admin, ids)).length;
+  const [files, links] = await Promise.all([deliverableFiles(admin, ids), deliverableLinks(admin, ids)]);
+  return files.length + links.length;
 }

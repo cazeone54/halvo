@@ -43,7 +43,9 @@ export const Route = createFileRoute("/d/$transactionId/$fileId")({
         // The file has to be one THIS purchase is entitled to — otherwise a
         // valid purchase id would be a key to every file on the platform.
         const file = entitlement.files.find((f) => f.id === params.fileId);
-        if (!file) return new Response("Not found", { status: 404 });
+        // A link delivered instead of a file (migration 0033), under the same rule.
+        const link = file ? null : entitlement.links.find((l) => l.id === params.fileId);
+        if (!file && !link) return new Response("Not found", { status: 404 });
 
         const isFree = entitlement.transaction.amount_paid_cents === 0;
         if (isFree) {
@@ -53,6 +55,22 @@ export const Route = createFileRoute("/d/$transactionId/$fileId")({
             return new Response(error instanceof Error ? error.message : "Not available right now.", { status: 429 });
           }
         }
+
+        if (link) {
+          // Recorded like a download (dispute evidence that the buyer got it),
+          // with no bytes: the seller's link costs nobody bandwidth.
+          await logDownloadAccess({
+            transactionId: entitlement.transaction.id,
+            sellerId: entitlement.transaction.seller_id,
+            bytes: 0,
+            isFree,
+          });
+          return new Response(null, {
+            status: 302,
+            headers: { Location: link.url, "Cache-Control": "no-store" },
+          });
+        }
+        if (!file) return new Response("Not found", { status: 404 });
 
         const name = downloadFileName(file.file_name);
         const { data: signed } = await supabaseAdmin.storage
