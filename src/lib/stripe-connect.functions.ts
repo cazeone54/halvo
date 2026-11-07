@@ -55,11 +55,7 @@ export const startStripeConnectOnboarding = createServerFn({ method: "POST" })
         userId: context.userId,
       });
 
-      const { error: updateError } = await context.supabase
-        .from("profiles")
-        .update({ stripe_connect_id: accountId })
-        .eq("id", context.userId);
-      if (updateError) throw new Error(updateError.message);
+      await saveConnectId(context.userId, accountId);
     }
 
     try {
@@ -75,6 +71,17 @@ export const startStripeConnectOnboarding = createServerFn({ method: "POST" })
       throw new Error(getStripeErrorMessage(error));
     }
   });
+
+// Which Stripe account a seller is paid through is written with the service
+// role only; a database trigger (migration 0032) refuses it from the seller's
+// own session. Account ids aren't secret — every product page gives its
+// seller's to the browser for checkout — so if sellers could set it, one could
+// point their shop at another seller's account.
+async function saveConnectId(userId: string, accountId: string | null): Promise<void> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { error } = await supabaseAdmin.from("profiles").update({ stripe_connect_id: accountId }).eq("id", userId);
+  if (error) throw new Error(error.message);
+}
 
 // Public listings only show a seller's paid products once they can take
 // payments (seller-visibility.server.ts), so the stored flag follows what Stripe
@@ -150,7 +157,8 @@ export const getStripeConnectStatus = createServerFn({ method: "GET" })
           unavailable: true,
         };
       }
-      await context.supabase.from("profiles").update({ stripe_connect_id: null }).eq("id", context.userId);
+      // Best-effort: if it fails, the next visit tries again.
+      await saveConnectId(context.userId, null).catch(() => {});
       await syncChargesEnabled(context.userId, false);
       return {
         connected: false,
