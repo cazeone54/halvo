@@ -47,6 +47,7 @@ import { Route as AuthenticatedDashboardDiscountsRouteImport } from './routes/_a
 import { Route as AuthenticatedDashboardPurchasesRouteImport } from './routes/_authenticated/dashboard/purchases'
 import { Route as AuthenticatedDashboardReferralsRouteImport } from './routes/_authenticated/dashboard/referrals'
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard/settings'
+import { Route as AuthenticatedDashboardStartRouteImport } from './routes/_authenticated/dashboard/start'
 import { Route as ApiCronEmailSequencesRouteImport } from './routes/api/cron/email-sequences'
 import { Route as ApiCronStorageSweepRouteImport } from './routes/api/cron/storage-sweep'
 import { Route as ApiPublicUnsubscribeRouteImport } from './routes/api/public/unsubscribe'
@@ -257,6 +258,12 @@ const AuthenticatedDashboardSettingsRoute =
     path: '/settings',
     getParentRoute: () => AuthenticatedDashboardRouteRoute,
   } as any)
+const AuthenticatedDashboardStartRoute =
+  AuthenticatedDashboardStartRouteImport.update({
+    id: '/start',
+    path: '/start',
+    getParentRoute: () => AuthenticatedDashboardRouteRoute,
+  } as any)
 const ApiCronEmailSequencesRoute = ApiCronEmailSequencesRouteImport.update({
   id: '/api/cron/email-sequences',
   path: '/api/cron/email-sequences',
@@ -359,6 +366,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/purchases': typeof AuthenticatedDashboardPurchasesRoute
   '/dashboard/referrals': typeof AuthenticatedDashboardReferralsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
+  '/dashboard/start': typeof AuthenticatedDashboardStartRoute
   '/api/cron/email-sequences': typeof ApiCronEmailSequencesRoute
   '/api/cron/storage-sweep': typeof ApiCronStorageSweepRoute
   '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
@@ -409,6 +417,7 @@ export interface FileRoutesByTo {
   '/dashboard/purchases': typeof AuthenticatedDashboardPurchasesRoute
   '/dashboard/referrals': typeof AuthenticatedDashboardReferralsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
+  '/dashboard/start': typeof AuthenticatedDashboardStartRoute
   '/api/cron/email-sequences': typeof ApiCronEmailSequencesRoute
   '/api/cron/storage-sweep': typeof ApiCronStorageSweepRoute
   '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
@@ -462,6 +471,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/purchases': typeof AuthenticatedDashboardPurchasesRoute
   '/_authenticated/dashboard/referrals': typeof AuthenticatedDashboardReferralsRoute
   '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
+  '/_authenticated/dashboard/start': typeof AuthenticatedDashboardStartRoute
   '/api/cron/email-sequences': typeof ApiCronEmailSequencesRoute
   '/api/cron/storage-sweep': typeof ApiCronStorageSweepRoute
   '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
@@ -515,6 +525,7 @@ export interface FileRouteTypes {
     | '/dashboard/purchases'
     | '/dashboard/referrals'
     | '/dashboard/settings'
+    | '/dashboard/start'
     | '/api/cron/email-sequences'
     | '/api/cron/storage-sweep'
     | '/api/public/unsubscribe'
@@ -565,6 +576,7 @@ export interface FileRouteTypes {
     | '/dashboard/purchases'
     | '/dashboard/referrals'
     | '/dashboard/settings'
+    | '/dashboard/start'
     | '/api/cron/email-sequences'
     | '/api/cron/storage-sweep'
     | '/api/public/unsubscribe'
@@ -617,6 +629,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/purchases'
     | '/_authenticated/dashboard/referrals'
     | '/_authenticated/dashboard/settings'
+    | '/_authenticated/dashboard/start'
     | '/api/cron/email-sequences'
     | '/api/cron/storage-sweep'
     | '/api/public/unsubscribe'
@@ -943,6 +956,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardSettingsRouteImport
       parentRoute: typeof AuthenticatedDashboardRouteRoute
     }
+    '/_authenticated/dashboard/start': {
+      id: '/_authenticated/dashboard/start'
+      path: '/start'
+      fullPath: '/dashboard/start'
+      preLoaderRoute: typeof AuthenticatedDashboardStartRouteImport
+      parentRoute: typeof AuthenticatedDashboardRouteRoute
+    }
     '/api/cron/email-sequences': {
       id: '/api/cron/email-sequences'
       path: '/api/cron/email-sequences'
@@ -1037,6 +1057,7 @@ interface AuthenticatedDashboardRouteRouteChildren {
   AuthenticatedDashboardPurchasesRoute: typeof AuthenticatedDashboardPurchasesRoute
   AuthenticatedDashboardReferralsRoute: typeof AuthenticatedDashboardReferralsRoute
   AuthenticatedDashboardSettingsRoute: typeof AuthenticatedDashboardSettingsRoute
+  AuthenticatedDashboardStartRoute: typeof AuthenticatedDashboardStartRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedDashboardStripeRefreshRoute: typeof AuthenticatedDashboardStripeRefreshRoute
   AuthenticatedDashboardStripeReturnRoute: typeof AuthenticatedDashboardStripeReturnRoute
@@ -1050,6 +1071,7 @@ const AuthenticatedDashboardRouteRouteChildren: AuthenticatedDashboardRouteRoute
     AuthenticatedDashboardPurchasesRoute: AuthenticatedDashboardPurchasesRoute,
     AuthenticatedDashboardReferralsRoute: AuthenticatedDashboardReferralsRoute,
     AuthenticatedDashboardSettingsRoute: AuthenticatedDashboardSettingsRoute,
+    AuthenticatedDashboardStartRoute: AuthenticatedDashboardStartRoute,
     AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
     AuthenticatedDashboardStripeRefreshRoute:
       AuthenticatedDashboardStripeRefreshRoute,

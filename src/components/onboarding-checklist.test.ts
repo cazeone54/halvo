@@ -15,6 +15,12 @@ describe("when the setup card stops appearing", () => {
     expect(isSetUp({ ...setUp, hasSupportEmail: false })).toBe(false);
   });
 
+  it("doesn't ask a seller of free products only for Stripe", () => {
+    expect(isSetUp({ ...setUp, stripeConnected: false, needsStripe: false })).toBe(true);
+    // …until one of their products has a price.
+    expect(isSetUp({ ...setUp, stripeConnected: false, needsStripe: true })).toBe(false);
+  });
+
   it("doesn't count an empty handle as claimed", () => {
     expect(isSetUp({ ...setUp, handle: "" })).toBe(false);
   });

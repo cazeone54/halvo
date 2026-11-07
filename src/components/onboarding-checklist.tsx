@@ -22,8 +22,11 @@ export function isSetUp(s: {
   hasProduct: boolean;
   stripeConnected: boolean;
   hasSupportEmail: boolean;
+  // Stripe is only needed once a product has a price; a seller of free
+  // products only is set up without it. Defaults to needed.
+  needsStripe?: boolean;
 }): boolean {
-  return !!s.handle && s.hasProduct && s.stripeConnected && s.hasSupportEmail;
+  return !!s.handle && s.hasProduct && (s.needsStripe === false || s.stripeConnected) && s.hasSupportEmail;
 }
 
 type Props = {
@@ -39,6 +42,9 @@ type Props = {
   handleError: string | null;
   hasProduct: boolean;
   stripeConnected: boolean;
+  // False while every product is free: Stripe is then shown as optional, not
+  // as the next thing to do.
+  needsStripe?: boolean;
   // Buyers are told to contact the seller about a faulty file (the refund
   // policy), so a seller with no support email leaves them nowhere to go.
   hasSupportEmail: boolean;
@@ -59,6 +65,7 @@ export function OnboardingChecklist({
   handleError,
   hasProduct,
   stripeConnected,
+  needsStripe = true,
   hasSupportEmail,
   ready = true,
   onCreateProduct,
@@ -74,7 +81,7 @@ export function OnboardingChecklist({
   // then vanished a moment later and moved the page under them.
   if (!ready || hidden) return null;
 
-  if (isSetUp({ handle: savedHandle, hasProduct, stripeConnected, hasSupportEmail })) return null;
+  if (isSetUp({ handle: savedHandle, hasProduct, stripeConnected, hasSupportEmail, needsStripe })) return null;
 
   const hide = () => {
     try {
@@ -113,7 +120,9 @@ export function OnboardingChecklist({
     {
       key: "stripe",
       done: stripeConnected,
-      label: "Connect Stripe to get paid",
+      // Never "next" while everything is free; shown, greyed, so it's known.
+      optional: !needsStripe,
+      label: needsStripe ? "Connect Stripe to get paid" : "Connect Stripe — only when you add a price",
       // Not "~5 minutes": Stripe still had 15–31 questions open for the sellers
       // who gave up. An honest estimate, and saying they can stop, beats a
       // promise the form then breaks.
@@ -141,11 +150,13 @@ export function OnboardingChecklist({
     },
   ];
 
-  const doneCount = steps.filter((s) => s.done).length;
-  const pct = Math.round((doneCount / steps.length) * 100);
+  // An optional step neither counts towards progress nor becomes "next".
+  const counted = steps.filter((s) => !("optional" in s && s.optional));
+  const doneCount = counted.filter((s) => s.done).length;
+  const pct = Math.round((doneCount / counted.length) * 100);
   // The next incomplete step is the only one that gets an action (or the inline
   // handle input) and a hint — one clear thing to do at a time.
-  const nextIndex = steps.findIndex((s) => !s.done);
+  const nextIndex = steps.findIndex((s) => !s.done && !("optional" in s && s.optional));
 
   return (
     <Card className="border-primary/30">
@@ -154,7 +165,7 @@ export function OnboardingChecklist({
           <CardTitle className="text-base">Get set up</CardTitle>
           <div className="flex shrink-0 items-center gap-2">
             <span className="text-xs font-medium tabular-nums text-muted-foreground">
-              {doneCount} of {steps.length}
+              {doneCount} of {counted.length}
             </span>
             {/* Somewhere to put it for anyone who would rather finish setup in
                 their own order than be reminded on every visit. */}
@@ -189,7 +200,13 @@ export function OnboardingChecklist({
                   <div>
                     <span
                       className={
-                        step.done ? "text-muted-foreground line-through" : isNext ? "font-medium" : undefined
+                        step.done
+                          ? "text-muted-foreground line-through"
+                          : isNext
+                            ? "font-medium"
+                            : "optional" in step && step.optional
+                              ? "text-muted-foreground"
+                              : undefined
                       }
                     >
                       {step.label}

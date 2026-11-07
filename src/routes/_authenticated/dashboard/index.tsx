@@ -14,7 +14,7 @@ import { getDisplayCurrency } from "@/lib/display-currency.functions";
 import { CurrencySwitch } from "@/components/currency-switch";
 import { isPaidFeatureLocked } from "@/lib/feature-gates";
 import { SINGLE_TIER_PRICING, DIRECT_CHARGES } from "@/lib/plans";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useId, useEffect, useRef } from "react";
@@ -91,6 +91,9 @@ import { ProductsEmptyState } from "@/components/products-empty-state";
 import { ProductLinkEditor } from "@/components/product-link-editor";
 import { setProductLink } from "@/lib/product-links.functions";
 import { normalizeDeliveryUrl } from "@/lib/product-link";
+import { LiveShare } from "@/components/live-share";
+import { guideSkipped } from "@/lib/first-product-guide";
+import { productImageUrl } from "@/lib/public-image-url";
 import { EmptyState } from "@/components/empty-state";
 import { CopySnippet } from "@/components/copy-snippet";
 import { buildProductLink, buildButtonSnippet, buildIframeSnippet, buildOverlaySnippet } from "@/lib/share-snippets";
@@ -189,6 +192,9 @@ function DashboardHome() {
   });
 
   const [showNewProduct, setShowNewProduct] = useState(false);
+  const [justLive, setJustLive] = useState<{ name: string; slug: string; priceCents: number; coverUrl: string | null } | null>(
+    null,
+  );
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -239,6 +245,7 @@ function DashboardHome() {
 
       // Optional cover image, uploaded best-effort so it can never block the
       // deliverable from publishing the product.
+      let coverUrl: string | null = null;
       if (newCoverFile && user) {
         const coverPath = `${user.id}/${product.id}/cover-${Date.now()}-${newCoverFile.name}`;
         // Every cover gets a new name, so a cached copy can be kept for a year.
@@ -249,22 +256,24 @@ function DashboardHome() {
           await createSetImageFn({
             data: { productId: product.id, storageFilePath: coverPath, sizeBytes: newCoverFile.size },
           });
+          coverUrl = productImageUrl(product.id, coverPath);
         }
       }
 
+      const made = { name, priceCents: Math.round(Number(price) * 100), coverUrl };
       if (deliverLink) {
         const res = await createSetLinkFn({ data: { productId: product.id, url: deliverLink.url } });
-        return { published: res.published };
+        return { published: res.published, slug: res.urlSlug, ...made };
       }
       // In link mode a file picked earlier is ignored, matching the button.
-      if (linkMode || !newFile) return { published: false };
+      if (linkMode || !newFile) return { published: false, slug: null, ...made };
       if (!user) throw new Error("Not signed in");
 
       await createCheckUploadFn({ data: { productId: product.id, sizeBytes: newFile.size } });
       const path = `${user.id}/${product.id}/${Date.now()}-${newFile.name}`;
       const { error: uploadError } = await supabase.storage.from("digital-assets").upload(path, newFile);
       if (uploadError) throw uploadError;
-      await createAttachFn({
+      const attached = await createAttachFn({
         data: {
           productId: product.id,
           storageFilePath: path,
@@ -272,7 +281,7 @@ function DashboardHome() {
           sizeBytes: newFile.size,
         },
       });
-      return { published: true };
+      return { published: true, slug: attached.urlSlug, ...made };
     },
     onSuccess: async (res) => {
       // The list first, then close the form. The other way round, a seller's
@@ -288,13 +297,19 @@ function DashboardHome() {
       setLinkMode(false);
       setNewCoverFile(null);
       setShowNewProduct(false);
-      toast.success(
-        res.published
-          ? connect?.chargesEnabled || Number(price) === 0
-            ? "Your product is live — share the link to make your first sale."
-            : "Product saved. It stays hidden from buyers until you connect Stripe under Payouts."
-          : "Product created — add a file to publish it.",
-      );
+      const live = res.published && !!res.slug && (connect?.chargesEnabled || res.priceCents === 0);
+      if (live && res.slug) {
+        // The full "You're live" panel, not just a pop-up: the link, a Story
+        // picture and a share button, at the top of the page.
+        setJustLive({ name: res.name, slug: res.slug, priceCents: res.priceCents, coverUrl: res.coverUrl });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        toast.success(
+          res.published
+            ? "Product saved. It stays hidden from buyers until you connect Stripe under Payouts."
+            : "Product created — add a file to publish it.",
+        );
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -359,6 +374,18 @@ function DashboardHome() {
   // figure only for display, below.
   const revenue = paidSales.reduce<MoneyTotals>((totals, s) => addTo(totals, s.currency, s.amountPaidCents), {});
   const productCount = productsQ.data?.length ?? 0;
+  // Stripe only matters once something has a price: a free product works
+  // without it. All 7 sellers who were asked for Stripe up front gave up on it.
+  const hasPaidProduct = (productsQ.data ?? []).some((p) => p.pay_what_you_want || p.price_cents > 0);
+
+  // A seller with nothing yet goes to the step-by-step guide, unless they
+  // skipped it in this browser.
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (productsQ.isSuccess && productsQ.data.length === 0 && !guideSkipped()) {
+      navigate({ to: "/dashboard/start", replace: true });
+    }
+  }, [productsQ.isSuccess, productsQ.data, navigate]);
 
   // The whole dashboard is shown in one currency — this one. Same cookie the
   // storefront switch sets, so the seller has a single preference rather than
@@ -411,11 +438,10 @@ function DashboardHome() {
   // Until Stripe is connected nothing can be sold, so the Payouts box (with the
   // country Stripe needs first) goes to the top of the page instead of waiting
   // below the products, sales and downloads. Once connected it moves back down.
-  // Not before the first product, though: a brand-new seller's first screen
-  // asking for ID and bank details, before they've made anything, put people
-  // off. Until then it waits at the bottom, and the setup list leads with the
-  // product.
-  const payoutsFirst = connectQ.isSuccess && !connect?.chargesEnabled && productsQ.isSuccess && productCount > 0;
+  // Not before there's a PAID product, though: asking for ID and bank details
+  // before anything needs them put people off. Until then it waits at the
+  // bottom, and the setup list leads with the product.
+  const payoutsFirst = connectQ.isSuccess && !connect?.chargesEnabled && productsQ.isSuccess && hasPaidProduct;
   const payoutsCard = (
     <Card>
       <CardHeader>
@@ -566,7 +592,28 @@ function DashboardHome() {
 
       <PurchasesShortcut />
 
+      {justLive ? (
+        <Card className="border-primary/30">
+          <CardHeader className="pb-3">
+            <div className="flex items-start justify-between gap-3">
+              <CardTitle className="text-base">"{justLive.name}" is live 🎉</CardTitle>
+              <button
+                type="button"
+                onClick={() => setJustLive(null)}
+                className="shrink-0 text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+              >
+                Close
+              </button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <LiveShare product={justLive} />
+          </CardContent>
+        </Card>
+      ) : null}
+
       <OnboardingChecklist
+        needsStripe={hasPaidProduct}
         savedHandle={profile?.handle ?? null}
         handleDraft={handle}
         onHandleDraftChange={setHandle}
@@ -1808,9 +1855,18 @@ function ProductRow({
             {justPublished ? (
               <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
                 <p className="text-sm font-medium">🎉 You're live. Now put it in front of people.</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  Drop the Buy button on your own site, or copy the direct link for anywhere else.
+                <p className="mb-3 mt-0.5 text-xs text-muted-foreground">
+                  Post it to your Story, share the link, or drop the Buy button on your own site.
                 </p>
+                <LiveShare
+                  product={{
+                    name: product.name,
+                    slug: product.url_slug,
+                    priceCents: product.price_cents,
+                    payWhatYouWant: product.pay_what_you_want,
+                    coverUrl: product.imageUrl,
+                  }}
+                />
               </div>
             ) : null}
             <CopySnippet
