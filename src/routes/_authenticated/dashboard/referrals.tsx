@@ -98,7 +98,7 @@ function ReferralsPage() {
           The {COMMISSION_PERCENT}% commission is taken out of the sale itself at checkout — the same way any
           affiliate program works. So you earn {COMMISSION_PERCENT}% on sales you refer, and when one of your own
           products sells through someone else&apos;s affiliate link, {COMMISSION_PERCENT}% of that sale goes to
-          them and the rest is paid out to you. Affected sales are marked on your dashboard.
+          them and the rest is paid out to you. Affected sales are marked under Sales.
         </p>
       </div>
 

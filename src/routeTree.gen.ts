@@ -44,8 +44,11 @@ import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedDashboardAnalyticsRouteImport } from './routes/_authenticated/dashboard/analytics'
 import { Route as AuthenticatedDashboardCustomersRouteImport } from './routes/_authenticated/dashboard/customers'
 import { Route as AuthenticatedDashboardDiscountsRouteImport } from './routes/_authenticated/dashboard/discounts'
+import { Route as AuthenticatedDashboardPayoutsRouteImport } from './routes/_authenticated/dashboard/payouts'
+import { Route as AuthenticatedDashboardProductsRouteImport } from './routes/_authenticated/dashboard/products'
 import { Route as AuthenticatedDashboardPurchasesRouteImport } from './routes/_authenticated/dashboard/purchases'
 import { Route as AuthenticatedDashboardReferralsRouteImport } from './routes/_authenticated/dashboard/referrals'
+import { Route as AuthenticatedDashboardSalesRouteImport } from './routes/_authenticated/dashboard/sales'
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard/settings'
 import { Route as ApiCronEmailSequencesRouteImport } from './routes/api/cron/email-sequences'
 import { Route as ApiCronStorageSweepRouteImport } from './routes/api/cron/storage-sweep'
@@ -239,6 +242,18 @@ const AuthenticatedDashboardDiscountsRoute =
     path: '/discounts',
     getParentRoute: () => AuthenticatedDashboardRouteRoute,
   } as any)
+const AuthenticatedDashboardPayoutsRoute =
+  AuthenticatedDashboardPayoutsRouteImport.update({
+    id: '/payouts',
+    path: '/payouts',
+    getParentRoute: () => AuthenticatedDashboardRouteRoute,
+  } as any)
+const AuthenticatedDashboardProductsRoute =
+  AuthenticatedDashboardProductsRouteImport.update({
+    id: '/products',
+    path: '/products',
+    getParentRoute: () => AuthenticatedDashboardRouteRoute,
+  } as any)
 const AuthenticatedDashboardPurchasesRoute =
   AuthenticatedDashboardPurchasesRouteImport.update({
     id: '/purchases',
@@ -249,6 +264,12 @@ const AuthenticatedDashboardReferralsRoute =
   AuthenticatedDashboardReferralsRouteImport.update({
     id: '/referrals',
     path: '/referrals',
+    getParentRoute: () => AuthenticatedDashboardRouteRoute,
+  } as any)
+const AuthenticatedDashboardSalesRoute =
+  AuthenticatedDashboardSalesRouteImport.update({
+    id: '/sales',
+    path: '/sales',
     getParentRoute: () => AuthenticatedDashboardRouteRoute,
   } as any)
 const AuthenticatedDashboardSettingsRoute =
@@ -356,8 +377,11 @@ export interface FileRoutesByFullPath {
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/dashboard/customers': typeof AuthenticatedDashboardCustomersRoute
   '/dashboard/discounts': typeof AuthenticatedDashboardDiscountsRoute
+  '/dashboard/payouts': typeof AuthenticatedDashboardPayoutsRoute
+  '/dashboard/products': typeof AuthenticatedDashboardProductsRoute
   '/dashboard/purchases': typeof AuthenticatedDashboardPurchasesRoute
   '/dashboard/referrals': typeof AuthenticatedDashboardReferralsRoute
+  '/dashboard/sales': typeof AuthenticatedDashboardSalesRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/api/cron/email-sequences': typeof ApiCronEmailSequencesRoute
   '/api/cron/storage-sweep': typeof ApiCronStorageSweepRoute
@@ -406,8 +430,11 @@ export interface FileRoutesByTo {
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/dashboard/customers': typeof AuthenticatedDashboardCustomersRoute
   '/dashboard/discounts': typeof AuthenticatedDashboardDiscountsRoute
+  '/dashboard/payouts': typeof AuthenticatedDashboardPayoutsRoute
+  '/dashboard/products': typeof AuthenticatedDashboardProductsRoute
   '/dashboard/purchases': typeof AuthenticatedDashboardPurchasesRoute
   '/dashboard/referrals': typeof AuthenticatedDashboardReferralsRoute
+  '/dashboard/sales': typeof AuthenticatedDashboardSalesRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/api/cron/email-sequences': typeof ApiCronEmailSequencesRoute
   '/api/cron/storage-sweep': typeof ApiCronStorageSweepRoute
@@ -459,8 +486,11 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/_authenticated/dashboard/customers': typeof AuthenticatedDashboardCustomersRoute
   '/_authenticated/dashboard/discounts': typeof AuthenticatedDashboardDiscountsRoute
+  '/_authenticated/dashboard/payouts': typeof AuthenticatedDashboardPayoutsRoute
+  '/_authenticated/dashboard/products': typeof AuthenticatedDashboardProductsRoute
   '/_authenticated/dashboard/purchases': typeof AuthenticatedDashboardPurchasesRoute
   '/_authenticated/dashboard/referrals': typeof AuthenticatedDashboardReferralsRoute
+  '/_authenticated/dashboard/sales': typeof AuthenticatedDashboardSalesRoute
   '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/api/cron/email-sequences': typeof ApiCronEmailSequencesRoute
   '/api/cron/storage-sweep': typeof ApiCronStorageSweepRoute
@@ -512,8 +542,11 @@ export interface FileRouteTypes {
     | '/dashboard/analytics'
     | '/dashboard/customers'
     | '/dashboard/discounts'
+    | '/dashboard/payouts'
+    | '/dashboard/products'
     | '/dashboard/purchases'
     | '/dashboard/referrals'
+    | '/dashboard/sales'
     | '/dashboard/settings'
     | '/api/cron/email-sequences'
     | '/api/cron/storage-sweep'
@@ -562,8 +595,11 @@ export interface FileRouteTypes {
     | '/dashboard/analytics'
     | '/dashboard/customers'
     | '/dashboard/discounts'
+    | '/dashboard/payouts'
+    | '/dashboard/products'
     | '/dashboard/purchases'
     | '/dashboard/referrals'
+    | '/dashboard/sales'
     | '/dashboard/settings'
     | '/api/cron/email-sequences'
     | '/api/cron/storage-sweep'
@@ -614,8 +650,11 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/analytics'
     | '/_authenticated/dashboard/customers'
     | '/_authenticated/dashboard/discounts'
+    | '/_authenticated/dashboard/payouts'
+    | '/_authenticated/dashboard/products'
     | '/_authenticated/dashboard/purchases'
     | '/_authenticated/dashboard/referrals'
+    | '/_authenticated/dashboard/sales'
     | '/_authenticated/dashboard/settings'
     | '/api/cron/email-sequences'
     | '/api/cron/storage-sweep'
@@ -922,6 +961,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardDiscountsRouteImport
       parentRoute: typeof AuthenticatedDashboardRouteRoute
     }
+    '/_authenticated/dashboard/payouts': {
+      id: '/_authenticated/dashboard/payouts'
+      path: '/payouts'
+      fullPath: '/dashboard/payouts'
+      preLoaderRoute: typeof AuthenticatedDashboardPayoutsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRouteRoute
+    }
+    '/_authenticated/dashboard/products': {
+      id: '/_authenticated/dashboard/products'
+      path: '/products'
+      fullPath: '/dashboard/products'
+      preLoaderRoute: typeof AuthenticatedDashboardProductsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRouteRoute
+    }
     '/_authenticated/dashboard/purchases': {
       id: '/_authenticated/dashboard/purchases'
       path: '/purchases'
@@ -934,6 +987,13 @@ declare module '@tanstack/react-router' {
       path: '/referrals'
       fullPath: '/dashboard/referrals'
       preLoaderRoute: typeof AuthenticatedDashboardReferralsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRouteRoute
+    }
+    '/_authenticated/dashboard/sales': {
+      id: '/_authenticated/dashboard/sales'
+      path: '/sales'
+      fullPath: '/dashboard/sales'
+      preLoaderRoute: typeof AuthenticatedDashboardSalesRouteImport
       parentRoute: typeof AuthenticatedDashboardRouteRoute
     }
     '/_authenticated/dashboard/settings': {
@@ -1034,8 +1094,11 @@ interface AuthenticatedDashboardRouteRouteChildren {
   AuthenticatedDashboardAnalyticsRoute: typeof AuthenticatedDashboardAnalyticsRoute
   AuthenticatedDashboardCustomersRoute: typeof AuthenticatedDashboardCustomersRoute
   AuthenticatedDashboardDiscountsRoute: typeof AuthenticatedDashboardDiscountsRoute
+  AuthenticatedDashboardPayoutsRoute: typeof AuthenticatedDashboardPayoutsRoute
+  AuthenticatedDashboardProductsRoute: typeof AuthenticatedDashboardProductsRoute
   AuthenticatedDashboardPurchasesRoute: typeof AuthenticatedDashboardPurchasesRoute
   AuthenticatedDashboardReferralsRoute: typeof AuthenticatedDashboardReferralsRoute
+  AuthenticatedDashboardSalesRoute: typeof AuthenticatedDashboardSalesRoute
   AuthenticatedDashboardSettingsRoute: typeof AuthenticatedDashboardSettingsRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedDashboardStripeRefreshRoute: typeof AuthenticatedDashboardStripeRefreshRoute
@@ -1047,8 +1110,11 @@ const AuthenticatedDashboardRouteRouteChildren: AuthenticatedDashboardRouteRoute
     AuthenticatedDashboardAnalyticsRoute: AuthenticatedDashboardAnalyticsRoute,
     AuthenticatedDashboardCustomersRoute: AuthenticatedDashboardCustomersRoute,
     AuthenticatedDashboardDiscountsRoute: AuthenticatedDashboardDiscountsRoute,
+    AuthenticatedDashboardPayoutsRoute: AuthenticatedDashboardPayoutsRoute,
+    AuthenticatedDashboardProductsRoute: AuthenticatedDashboardProductsRoute,
     AuthenticatedDashboardPurchasesRoute: AuthenticatedDashboardPurchasesRoute,
     AuthenticatedDashboardReferralsRoute: AuthenticatedDashboardReferralsRoute,
+    AuthenticatedDashboardSalesRoute: AuthenticatedDashboardSalesRoute,
     AuthenticatedDashboardSettingsRoute: AuthenticatedDashboardSettingsRoute,
     AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
     AuthenticatedDashboardStripeRefreshRoute:

@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { LayoutDashboard, Tag, BarChart3, Settings, PauseCircle } from "lucide-react";
+import { LayoutDashboard, Package, Receipt, BarChart3, PauseCircle } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 import { DashboardSidebar } from "@/components/dashboard-sidebar";
 import { getMyProfile } from "@/lib/profile.functions";
@@ -11,16 +11,16 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardLayout,
 });
 
-// The four highest-traffic seller destinations, pinned to a thumb-reachable
-// bottom tab bar on mobile — the pattern successful SaaS mobile apps use over a
-// hamburger (faster, one-handed, always visible). Overflow (Affiliate,
-// Discover) still lives in the top menu.
+// The four highest-traffic seller destinations — the top of the side menu —
+// pinned to a thumb-reachable bottom tab bar on mobile: faster than a menu,
+// one-handed, always visible. The rest (Customers, Discounts, Payouts,
+// Settings…) live behind the menu button.
 const PRIMARY_TABS = [
   // Named like the side menu on a computer, so it's one place with one name.
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { to: "/dashboard/discounts", label: "Discounts", icon: Tag },
+  { to: "/dashboard/products", label: "Products", icon: Package },
+  { to: "/dashboard/sales", label: "Sales", icon: Receipt },
   { to: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
-  { to: "/dashboard/settings", label: "Settings", icon: Settings },
 ] as const;
 
 function DashboardLayout() {

@@ -27,7 +27,7 @@ function SideLink({ link }: { link: (typeof APP_NAV_LINKS)[number] }) {
 
 // The seller's menu down the left on a computer: every section in one column,
 // each with its icon, always in view. Phones keep the bottom tabs and the menu
-// button, and tablets the links across the header — there isn't the width.
+// button, and tablets the menu button — there isn't the width.
 //
 // `floating`: on a public page (Discover, Help…) it's fixed to the left edge
 // instead of sitting in the dashboard's two-column layout.
@@ -52,11 +52,11 @@ export function DashboardSidebar({ floating = false }: { floating?: boolean }) {
           floating ? "h-full" : "sticky top-14 h-[calc(100vh-3.5rem)]",
         )}
       >
-        {APP_NAV_LINKS.filter((l) => l.group === "shop").map((link) => (
+        {APP_NAV_LINKS.filter((l) => l.group === "main").map((link) => (
           <SideLink key={link.to} link={link} />
         ))}
         <div className="mx-3 my-2 border-t" />
-        {APP_NAV_LINKS.filter((l) => l.group === "site").map((link) => (
+        {APP_NAV_LINKS.filter((l) => l.group === "more").map((link) => (
           <SideLink key={link.to} link={link} />
         ))}
         <div className="mt-auto flex flex-col gap-1 border-t pt-3">
