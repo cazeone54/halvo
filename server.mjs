@@ -161,6 +161,43 @@ async function staticFile(request) {
   return new Response(body, { headers });
 }
 
+// The biggest request body the app accepts. Files never come through here —
+// the browser uploads them straight to Supabase storage — so what arrives is
+// form saves, checkout calls and Stripe webhooks, a few KB each. The cap stops
+// one huge request from using up the server's memory (zod 3, which checks
+// incoming data, reads an oversized list in full before refusing it).
+const MAX_BODY_BYTES = 1024 * 1024;
+
+const tooLarge = () => new Response("Request too large", { status: 413 });
+
+// The request as the app should see it, or a 413. Almost every request states
+// its size up front and passes through untouched; one that doesn't (a streamed
+// body) is read here, never past the cap, and handed on as a plain buffer.
+async function limitBody(request) {
+  if (!request.body) return request;
+  const declared = request.headers.get("content-length");
+  if (declared !== null) return Number(declared) > MAX_BODY_BYTES ? tooLarge() : request;
+  const reader = request.body.getReader();
+  const chunks = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > MAX_BODY_BYTES) {
+      await reader.cancel().catch(() => {});
+      return tooLarge();
+    }
+    chunks.push(value);
+  }
+  return new Request(request.url, {
+    method: request.method,
+    headers: request.headers,
+    body: Buffer.concat(chunks),
+    signal: request.signal,
+  });
+}
+
 // Follow-up emails after free downloads: once an hour, ask the app whether any
 // are due. It runs inside this process so no separate scheduler has to be set
 // up, and goes straight to the app handler rather than over the network. The
@@ -196,6 +233,8 @@ serve({
     } catch {
       // Malformed path (bad % escape) — let the app answer it.
     }
-    return withSecurityHeaders(await server.fetch(request), pathname);
+    const limited = await limitBody(request);
+    if (limited instanceof Response) return withSecurityHeaders(limited, pathname);
+    return withSecurityHeaders(await server.fetch(limited), pathname);
   },
 });
