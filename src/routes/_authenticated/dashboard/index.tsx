@@ -432,11 +432,12 @@ function DashboardHome() {
           // actually goes, rather than presenting a bare button.
           <div className="flex flex-col items-start gap-3">
             <p className="text-sm text-muted-foreground">
-              Connect Stripe to start selling. Until you do, your paid products are hidden from buyers. Your
-              share goes straight to your own Stripe account — we never hold it.
+              Connect Stripe to start selling. Until you do, your paid products are hidden from buyers — free
+              ones already work by their link. Your share goes straight to your own Stripe account — we never
+              hold it.
             </p>
             <ul className="flex flex-col gap-1 text-xs text-muted-foreground">
-              <li>· About 5 minutes</li>
+              <li>· About 10–15 minutes — you can stop and finish later</li>
               <li>· Photo ID and your bank details</li>
               <li>· Required by law for card payments, not by us</li>
             </ul>

@@ -98,7 +98,9 @@ export function OnboardingChecklist({
       key: "product",
       done: hasProduct,
       label: "Create your first product",
-      hint: "Upload a file and set a price — this publishes it.",
+      // Every account that started selling got stuck at Stripe (Nov 2026), so
+      // the first screen says plainly that a free product doesn't need it.
+      hint: "Upload a file and set a price — this publishes it. A free one (price 0) goes live straight away, no Stripe needed.",
       action: !hasProduct ? onCreateProduct : undefined,
       actionLabel: "Create product",
     },
@@ -112,7 +114,10 @@ export function OnboardingChecklist({
       key: "stripe",
       done: stripeConnected,
       label: "Connect Stripe to get paid",
-      hint: "~5 minutes. Payouts go to your own account.",
+      // Not "~5 minutes": Stripe still had 15–31 questions open for the sellers
+      // who gave up. An honest estimate, and saying they can stop, beats a
+      // promise the form then breaks.
+      hint: "Have photo ID and bank details ready — about 10–15 minutes, and you can stop and finish later. Payouts go to your own account.",
       action: !stripeConnected ? onConnectStripe : undefined,
       actionLabel: "Connect Stripe",
     },
