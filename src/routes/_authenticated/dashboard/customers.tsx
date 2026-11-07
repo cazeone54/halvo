@@ -111,7 +111,7 @@ function CustomersPage() {
                 message="Everyone who buys from you lands here, with what they bought and what they've spent. You'll be able to email them about a new product and take the whole list with you whenever you want."
               >
                 <Button asChild size="sm" variant="outline">
-                  <Link to="/dashboard/products">Go to your products</Link>
+                  <Link to="/dashboard">Go to your products</Link>
                 </Button>
               </EmptyState>
             ) : filtered.length === 0 ? (

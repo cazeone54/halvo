@@ -525,7 +525,7 @@ function AnalyticsPage() {
           message="Analytics start the moment someone opens one of your product pages. Publish a product and share the link — views, sales and conversion for each product show up here."
         >
           <Button asChild size="sm" variant="outline">
-            <Link to="/dashboard/products">Go to your products</Link>
+            <Link to="/dashboard">Go to your products</Link>
           </Button>
         </EmptyState>
       ) : (

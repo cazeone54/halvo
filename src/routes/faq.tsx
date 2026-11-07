@@ -109,7 +109,7 @@ const FAQS: Array<{ group: string; items: Array<{ q: string; a: string }> }> = [
       },
       {
         q: "What about chargebacks?",
-        a: "If a buyer disputes a payment, that order's download is suspended and it's flagged under Sales in your dashboard. We automatically record the buyer's final-sale agreement and a download log (time, IP, device) as evidence to help win it.",
+        a: "If a buyer disputes a payment, that order's download is suspended and it's flagged on your dashboard. We automatically record the buyer's final-sale agreement and a download log (time, IP, device) as evidence to help win it.",
       },
     ],
   },
