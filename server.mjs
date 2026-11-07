@@ -36,14 +36,15 @@ function isFramable(pathname) {
 //   Meta pixel after consent, Cloudflare's analytics beacon
 //   Supabase — sign-in, uploads, and the signed file links /f/ redirects to
 //   YouTube, Vimeo and Loom — product preview videos
+//   Cloudflare Turnstile — the bot check on sign-in (challenges.cloudflare.com)
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://js.stripe.com https://*.js.stripe.com https://checkout.stripe.com https://maps.googleapis.com https://accounts.google.com https://connect.facebook.net https://www.googletagmanager.com https://static.cloudflareinsights.com",
+  "script-src 'self' 'unsafe-inline' https://js.stripe.com https://*.js.stripe.com https://checkout.stripe.com https://maps.googleapis.com https://accounts.google.com https://connect.facebook.net https://www.googletagmanager.com https://static.cloudflareinsights.com https://challenges.cloudflare.com",
   "style-src 'self' 'unsafe-inline' https://accounts.google.com",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.stripe.com https://maps.googleapis.com https://accounts.google.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://www.facebook.com https://cloudflareinsights.com",
-  "frame-src 'self' blob: https://*.stripe.com https://accounts.google.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.loom.com https://*.supabase.co",
+  "frame-src 'self' blob: https://*.stripe.com https://accounts.google.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.loom.com https://*.supabase.co https://challenges.cloudflare.com",
   "media-src 'self' blob: https://*.supabase.co",
   "worker-src 'self' blob:",
   "object-src 'none'",

@@ -16,10 +16,23 @@ import { GOOGLE_CLIENT_ID, createNoncePair, loadGoogleIdentity } from "@/lib/goo
  * offline network), so the caller can show the redirect button instead rather
  * than leaving a gap where the button should be.
  */
-export function GoogleSignInButton({ onUnavailable }: { onUnavailable?: () => void }) {
+export function GoogleSignInButton({
+  onUnavailable,
+  captchaToken,
+  onCaptchaUsed,
+}: {
+  onUnavailable?: () => void;
+  // The login page's bot check (see bot-check.tsx). Read at the moment Google
+  // hands back the sign-in, since a token is single-use and may have been
+  // refreshed since the button was drawn.
+  captchaToken?: () => string | null;
+  onCaptchaUsed?: () => void;
+}) {
   const holder = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const captchaRef = useRef({ captchaToken, onCaptchaUsed });
+  captchaRef.current = { captchaToken, onCaptchaUsed };
 
   useEffect(() => {
     if (!GOOGLE_CLIENT_ID || !holder.current) return;
@@ -42,11 +55,20 @@ export function GoogleSignInButton({ onUnavailable }: { onUnavailable?: () => vo
           auto_select: false,
           cancel_on_tap_outside: true,
           callback: async (response) => {
+            const { captchaToken: readCaptcha, onCaptchaUsed: used } = captchaRef.current;
+            const captcha = readCaptcha?.() ?? undefined;
+            if (readCaptcha && !captcha) {
+              setError("One moment — a quick security check is still running. Please try again in a second.");
+              return;
+            }
+            setError(null);
             const { error } = await supabase.auth.signInWithIdToken({
               provider: "google",
               token: response.credential,
               nonce: raw,
+              options: captcha ? { captchaToken: captcha } : undefined,
             });
+            used?.();
             if (error) setError(error.message);
             else navigate({ to: "/dashboard" });
           },
