@@ -1,4 +1,3 @@
-import { Fragment } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
@@ -10,9 +9,6 @@ import {
   LifeBuoy,
   ShoppingBag,
   LayoutDashboard,
-  Package,
-  Receipt,
-  Wallet,
   Tag,
   Handshake,
   BarChart3,
@@ -36,21 +32,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// One list, most-used first: Products, Sales and Payouts each have their own
-// page, so the sale a seller was just emailed about is one click away. The
-// "more" group (Discover, Help, Settings) sits below a line at the bottom.
 export const APP_NAV_LINKS = [
-  { to: "/dashboard", label: "Dashboard", exact: true, icon: LayoutDashboard, group: "main" },
-  { to: "/dashboard/products", label: "Products", icon: Package, group: "main" },
-  { to: "/dashboard/sales", label: "Sales", icon: Receipt, group: "main" },
-  { to: "/dashboard/customers", label: "Customers", icon: Users, group: "main" },
-  { to: "/dashboard/analytics", label: "Analytics", icon: BarChart3, group: "main" },
-  { to: "/dashboard/discounts", label: "Discounts", icon: Tag, group: "main" },
-  { to: "/dashboard/referrals", label: "Affiliate", icon: Handshake, group: "main" },
-  { to: "/dashboard/payouts", label: "Payouts", icon: Wallet, group: "main" },
-  { to: "/discover", label: "Discover", icon: Compass, group: "more" },
-  { to: "/guides", label: "Help", icon: LifeBuoy, group: "more" },
-  { to: "/dashboard/settings", label: "Settings", icon: Settings, group: "more" },
+  // "Dashboard", not "Products": this page carries the KPIs, the products list
+  // AND the sales list, so labelling it after one of them sent sellers hunting
+  // under Analytics or Customers for the sale they'd just been emailed about.
+  { to: "/dashboard", label: "Dashboard", exact: true, icon: LayoutDashboard, group: "shop" },
+  { to: "/dashboard/discounts", label: "Discounts", icon: Tag, group: "shop" },
+  { to: "/dashboard/referrals", label: "Affiliate", icon: Handshake, group: "shop" },
+  { to: "/dashboard/analytics", label: "Analytics", icon: BarChart3, group: "shop" },
+  { to: "/dashboard/customers", label: "Customers", icon: Users, group: "shop" },
+  { to: "/discover", label: "Discover", icon: Compass, group: "site" },
+  { to: "/guides", label: "Help", icon: LifeBuoy, group: "site" },
+  { to: "/dashboard/settings", label: "Settings", icon: Settings, group: "shop" },
 ] as const;
 
 // The signed-in header. Used by the dashboard and by every public page while a
@@ -58,8 +51,7 @@ export const APP_NAV_LINKS = [
 // and account menu instead of looking like they were logged out.
 //
 // `sideNav`: the page has the menu down the left on a wide screen (the
-// dashboard). Too many links to fit across the top, so below that width they
-// sit behind the menu button instead.
+// dashboard), so the same links aren't repeated across the top there.
 export function AppHeader({ sideNav = false }: { sideNav?: boolean }) {
   const navigate = useNavigate();
   const profileFn = useServerFn(getMyProfile);
@@ -81,7 +73,7 @@ export function AppHeader({ sideNav = false }: { sideNav?: boolean }) {
         <Link to="/dashboard">
           <Logo />
         </Link>
-        <nav className={cn("hidden gap-4 text-sm text-muted-foreground", !sideNav && "sm:flex")}>
+        <nav className={cn("hidden gap-4 text-sm text-muted-foreground sm:flex", sideNav && "lg:hidden")}>
           {APP_NAV_LINKS.map((link) => (
             <Link
               key={link.to}
@@ -96,12 +88,10 @@ export function AppHeader({ sideNav = false }: { sideNav?: boolean }) {
       </div>
       <div className="flex items-center gap-2">
         <ThemeToggle />
-        {/* Wherever the links above are hidden (phones; tablets too on pages
-            with the side menu) this is the only way to reach every section,
-            so it isn't optional polish. */}
+        {/* Below sm, the nav above is hidden entirely — this is the only way to
+            reach every section from a phone, so it isn't optional polish. */}
         <MobileMenu
           homeTo="/dashboard"
-          until={sideNav ? "lg" : "sm"}
           footer={(close) => (
             <>
               <div className="flex items-center gap-3 pb-1">
@@ -150,22 +140,17 @@ export function AppHeader({ sideNav = false }: { sideNav?: boolean }) {
           )}
         >
           {(close) =>
-            APP_NAV_LINKS.map((link, i) => (
-              <Fragment key={link.to}>
-                {/* The same line as the side menu, above Discover, Help and Settings. */}
-                {link.group === "more" && APP_NAV_LINKS[i - 1]?.group === "main" ? (
-                  <div className="mx-3 my-2 border-t" />
-                ) : null}
-                <Link
-                  to={link.to}
-                  onClick={close}
-                  className={MOBILE_MENU_LINK}
-                  activeOptions={"exact" in link ? { exact: link.exact } : undefined}
-                  activeProps={{ className: MOBILE_MENU_LINK_ACTIVE, "aria-current": "page" }}
-                >
-                  {link.label}
-                </Link>
-              </Fragment>
+            APP_NAV_LINKS.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                onClick={close}
+                className={MOBILE_MENU_LINK}
+                activeOptions={"exact" in link ? { exact: link.exact } : undefined}
+                activeProps={{ className: MOBILE_MENU_LINK_ACTIVE, "aria-current": "page" }}
+              >
+                {link.label}
+              </Link>
             ))
           }
         </MobileMenu>

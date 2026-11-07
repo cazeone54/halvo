@@ -43,7 +43,7 @@ export const GUIDES: Guide[] = [
       {
         type: "steps",
         items: [
-          "In your dashboard, open Products and click New product.",
+          "Click New product on your dashboard.",
           "Give it a name, a short description, and a price. A cover picture is optional, but it sells.",
           "Hit Create as draft. It's saved as a draft for now.",
         ],
@@ -118,7 +118,7 @@ export const GUIDES: Guide[] = [
       {
         type: "steps",
         items: [
-          "In your dashboard, open Payouts and click Connect Stripe.",
+          "On your dashboard, find the Payouts card and click Connect Stripe.",
           "Complete Stripe's onboarding form (usually a few minutes).",
           "You'll be sent back automatically. The card will show as connected.",
         ],
@@ -262,7 +262,7 @@ export const GUIDES: Guide[] = [
       },
       {
         type: "note",
-        text: "Any sale that came through an affiliate link is marked under Sales in your dashboard with the exact amount deducted, so a payout is never a surprise.",
+        text: "Any sale that came through an affiliate link is marked on your dashboard with the exact amount deducted, so a payout is never a surprise.",
       },
       { type: "h2", text: "Two kinds of link" },
       {
@@ -306,7 +306,7 @@ export const GUIDES: Guide[] = [
       { type: "h2", text: "If a buyer disputes a payment" },
       {
         type: "p",
-        text: "A chargeback is when a buyer goes to their bank instead of to you. While a dispute is open, that order's downloads are suspended and it's flagged under Sales in your dashboard.",
+        text: "A chargeback is when a buyer goes to their bank instead of to you. While a dispute is open, that order's downloads are suspended and it's flagged on your dashboard.",
       },
       {
         type: "p",
@@ -338,7 +338,7 @@ export const GUIDES: Guide[] = [
       {
         type: "steps",
         items: [
-          "In your dashboard, open Products, find the product and click Share.",
+          "On your dashboard, open the product and click Share.",
           "Copy the block labelled “Buy button — opens checkout over your site (recommended)”.",
           "Paste it wherever your site accepts custom HTML.",
         ],
