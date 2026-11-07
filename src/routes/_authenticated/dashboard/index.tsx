@@ -392,7 +392,11 @@ function DashboardHome() {
   // Until Stripe is connected nothing can be sold, so the Payouts box (with the
   // country Stripe needs first) goes to the top of the page instead of waiting
   // below the products, sales and downloads. Once connected it moves back down.
-  const payoutsFirst = connectQ.isSuccess && !connect?.chargesEnabled;
+  // Not before the first product, though: a brand-new seller's first screen
+  // asking for ID and bank details, before they've made anything, put people
+  // off. Until then it waits at the bottom, and the setup list leads with the
+  // product.
+  const payoutsFirst = connectQ.isSuccess && !connect?.chargesEnabled && productsQ.isSuccess && productCount > 0;
   const payoutsCard = (
     <Card>
       <CardHeader>
@@ -494,7 +498,9 @@ function DashboardHome() {
               <ExternalLink className="h-3 w-3 shrink-0" />
             </a>
           ) : (
-            <p className="mt-0.5 text-sm text-muted-foreground">Pick a handle below to open your shop.</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              {productCount > 0 ? "Pick a handle below to open your shop." : "Start with your first product below."}
+            </p>
           )}
         </div>
         {storefrontUrl ? (
@@ -552,7 +558,13 @@ function DashboardHome() {
         hasSupportEmail={!!profile?.support_email?.trim()}
         // Every answer the card needs, before it draws anything.
         ready={profileQ.isSuccess && productsQ.isSuccess && connectQ.isSuccess}
-        onCreateProduct={() => setShowNewProduct(true)}
+        onCreateProduct={() => {
+          setShowNewProduct(true);
+          // The form opens further down; on a phone it would be off-screen.
+          requestAnimationFrame(() =>
+            document.getElementById("products-heading")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+          );
+        }}
         onConnectStripe={() => {
           // Mid-setup sellers already have an account, so go straight back to
           // Stripe; anyone else picks a country first, in the Payouts box.

@@ -30,8 +30,8 @@ type Props = {
   // The saved handle (null until claimed) drives both the first step's done
   // state and the share step's copy-link target.
   savedHandle: string | null;
-  // The handle input now lives inside this checklist (step 1), so setup reads
-  // as one sequence instead of a separate card competing with it.
+  // The handle input lives inside this checklist (step 2), so setup reads as
+  // one sequence instead of a separate card competing with it.
   handleDraft: string;
   onHandleDraftChange: (value: string) => void;
   onSaveHandle: () => void;
@@ -90,13 +90,10 @@ export function OnboardingChecklist({
     await navigator.clipboard.writeText(`${BASE_URL}/${savedHandle}`);
   };
 
+  // The product comes first: it's what someone signed up to do, and it needs
+  // nothing else. Stripe waits until there's something to sell — asking for ID
+  // and bank details on the first screen put people off before they'd begun.
   const steps = [
-    {
-      key: "handle",
-      done: !!savedHandle,
-      label: "Claim your shop handle",
-      hint: "Your public store address — it lists everything you sell.",
-    },
     {
       key: "product",
       done: hasProduct,
@@ -104,6 +101,12 @@ export function OnboardingChecklist({
       hint: "Upload a file and set a price — this publishes it.",
       action: !hasProduct ? onCreateProduct : undefined,
       actionLabel: "Create product",
+    },
+    {
+      key: "handle",
+      done: !!savedHandle,
+      label: "Claim your shop handle",
+      hint: "Your public store address — it lists everything you sell.",
     },
     {
       key: "stripe",
