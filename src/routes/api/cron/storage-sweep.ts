@@ -15,9 +15,10 @@ export const Route = createFileRoute("/api/cron/storage-sweep")({
 });
 
 async function run(request: Request, apply: boolean): Promise<Response> {
-  const secret = process.env.CRON_SECRET;
-  const auth = request.headers.get("authorization") ?? "";
-  if (!secret || auth !== `Bearer ${secret}`) return new Response("Unauthorized", { status: 401 });
+  const { isCronAuthorized } = await import("@/lib/cron-auth");
+  if (!(await isCronAuthorized(request.headers.get("authorization"), process.env.CRON_SECRET))) {
+    return new Response("Unauthorized", { status: 401 });
+  }
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { sweepStorage } = await import("@/lib/storage-sweep.server");

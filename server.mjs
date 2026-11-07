@@ -28,6 +28,32 @@ function isFramable(pathname) {
   return pathname.startsWith("/p/") || pathname === "/success";
 }
 
+// Where pages may load things from. An injected <script src> pointing anywhere
+// else is refused, as are plugins and a rewritten <base>. Inline scripts stay
+// allowed: the server-rendered pages hydrate through them.
+//   Stripe — Payment Element, Embedded Checkout, 3-D Secure (Stripe's own list)
+//   Google — the sign-in button (accounts.google.com) and GA after consent
+//   Meta pixel after consent, Cloudflare's analytics beacon
+//   Supabase — sign-in, uploads, and the signed file links /f/ redirects to
+//   YouTube, Vimeo and Loom — product preview videos
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' https://js.stripe.com https://*.js.stripe.com https://checkout.stripe.com https://maps.googleapis.com https://accounts.google.com https://connect.facebook.net https://www.googletagmanager.com https://static.cloudflareinsights.com",
+  "style-src 'self' 'unsafe-inline' https://accounts.google.com",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' data:",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.stripe.com https://maps.googleapis.com https://accounts.google.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://www.facebook.com https://cloudflareinsights.com",
+  "frame-src 'self' blob: https://*.stripe.com https://accounts.google.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.loom.com https://*.supabase.co",
+  "media-src 'self' blob: https://*.supabase.co",
+  "worker-src 'self' blob:",
+  "object-src 'none'",
+  "base-uri 'self'",
+].join("; ");
+
+// Report-only until every page has been checked on the live site: the browser
+// only logs what it would have blocked. Set to true to enforce.
+const ENFORCE_CSP = false;
+
 function securityHeaders(pathname) {
   const headers = {
     // Never reach this site over plain HTTP again. Deliberately without
@@ -42,9 +68,14 @@ function securityHeaders(pathname) {
     // needs it for Apple Pay and Google Pay, including inside the embed.
     "Permissions-Policy": "camera=(), microphone=(), geolocation=(), browsing-topics=()",
   };
-  if (!isFramable(pathname)) {
-    headers["X-Frame-Options"] = "SAMEORIGIN";
-    headers["Content-Security-Policy"] = "frame-ancestors 'self'";
+  const framing = isFramable(pathname) ? [] : ["frame-ancestors 'self'"];
+  if (framing.length) headers["X-Frame-Options"] = "SAMEORIGIN";
+  if (ENFORCE_CSP) {
+    headers["Content-Security-Policy"] = [CONTENT_SECURITY_POLICY, ...framing].join("; ");
+  } else {
+    // Framing is already enforced; only the new rules are on trial.
+    if (framing.length) headers["Content-Security-Policy"] = framing[0];
+    headers["Content-Security-Policy-Report-Only"] = CONTENT_SECURITY_POLICY;
   }
   return headers;
 }
