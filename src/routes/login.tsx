@@ -159,7 +159,9 @@ function LoginPage() {
         inputMode="numeric"
         pattern="[0-9]*"
         maxLength={10}
-        placeholder="123456"
+        // No example digits: the code is 6 or 8 long depending on the
+        // Supabase "Email OTP Length" setting (8 on 7 Nov 2026).
+        placeholder="Code"
         aria-label="Code from the email"
         className="text-center text-lg tracking-[0.3em] tabular-nums"
         value={code}
