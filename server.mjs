@@ -50,9 +50,11 @@ const CONTENT_SECURITY_POLICY = [
   "base-uri 'self'",
 ].join("; ");
 
-// Report-only until every page has been checked on the live site: the browser
-// only logs what it would have blocked. Set to true to enforce.
-const ENFORCE_CSP = false;
+// Enforced since 2026-11-07, after a trial in report-only mode found
+// nothing blocked on 17 live pages (checkout with Stripe, sign-in, dashboard).
+// Set to false to go back to report-only (the browser just logs what it would
+// have blocked) if a new outside service has to be tried first.
+const ENFORCE_CSP = true;
 
 function securityHeaders(pathname) {
   const headers = {
