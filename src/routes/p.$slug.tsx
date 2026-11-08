@@ -20,6 +20,7 @@ import { Stars } from "@/components/stars";
 import { CheckoutWidget } from "@/components/checkout-widget";
 import { Logo, LogoMark } from "@/components/logo";
 import { BRAND_NAME, BASE_URL, BRAND_EMAIL } from "@/lib/site";
+import { madeWithUrl } from "@/lib/made-with";
 import { CURRENCY_META } from "@/lib/currency";
 import { CurrencySwitch } from "@/components/currency-switch";
 import { Button } from "@/components/ui/button";
@@ -460,27 +461,17 @@ function ProductCheckoutPage() {
             brand or distract from the buy button. When embedded, open Halvo in
             a new tab so a curious buyer discovers us without losing checkout. */}
         <div className="order-5 flex justify-center lg:col-span-2">
-          {embed ? (
-            <a
-              href={BASE_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="flex w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Powered by
-              <LogoMark className="h-3.5 w-3.5" />
-              <span className="font-medium">{BRAND_NAME}</span>
-            </a>
-          ) : (
-            <Link
-              to="/"
-              className="flex w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Powered by
-              <LogoMark className="h-3.5 w-3.5" />
-              <span className="font-medium">{BRAND_NAME}</span>
-            </Link>
-          )}
+          <a
+            href={madeWithUrl(embed ? "embed" : "product_page")}
+            {...(embed ? { target: "_blank", rel: "noreferrer" } : {})}
+            className="flex w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Powered by
+            <LogoMark className="h-3.5 w-3.5" />
+            <span className="font-medium">{BRAND_NAME}</span>
+            <span aria-hidden="true">·</span>
+            <span className="underline-offset-2 hover:underline">Sell yours</span>
+          </a>
         </div>
 
         {/* Phones: a Buy bar along the bottom while neither the Buy button nor

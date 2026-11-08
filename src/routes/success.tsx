@@ -14,6 +14,8 @@ import { getBillingForTransaction } from "@/lib/recurring.functions";
 import { getSupportContactForTransaction } from "@/lib/support.functions";
 import { trackEvent } from "@/lib/ad-pixels";
 import { responsiveImage } from "@/lib/public-image-url";
+import { madeWithUrl } from "@/lib/made-with";
+import { BRAND_NAME } from "@/lib/site";
 import { StarInput } from "@/components/stars";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -233,6 +235,21 @@ function SuccessPage() {
       {transactionQ.data?.offer ? <AfterPurchaseOffer offer={transactionQ.data.offer} /> : null}
 
       {hasDeliverable ? <ReviewPrompt transactionId={id} /> : null}
+
+      {/* The moment a buyer has just been through it themselves: a quiet
+          invitation to sell their own, after everything that's theirs. */}
+      <a
+        href={madeWithUrl("success_page")}
+        className="mt-6 flex items-center justify-between gap-3 rounded-lg border border-dashed px-4 py-3 text-sm transition-colors hover:border-primary/50 hover:bg-primary/5"
+      >
+        <span className="min-w-0">
+          <span className="block font-medium">Make things people would buy?</span>
+          <span className="block text-xs text-muted-foreground">
+            Sell them like this on {BRAND_NAME} — your own shop and checkout in a few minutes.
+          </span>
+        </span>
+        <span className="shrink-0 text-xs font-medium text-primary">Start selling →</span>
+      </a>
     </div>
   );
 }

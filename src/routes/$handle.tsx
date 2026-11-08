@@ -14,6 +14,7 @@ import { ProductCard, ProductGrid } from "@/components/product-card";
 import { getSellerStorefront } from "@/lib/storefront.functions";
 import { LogoMark } from "@/components/logo";
 import { BRAND_NAME, BASE_URL } from "@/lib/site";
+import { madeWithUrl } from "@/lib/made-with";
 import { categoryLabel } from "@/lib/category-label";
 import { brandThemeStyle } from "@/lib/brand-color";
 import { cn } from "@/lib/utils";
@@ -442,11 +443,13 @@ function StorefrontPage() {
           the links a buyer might need. */}
       <footer className="border-t">
         <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-3 px-4 py-8 text-xs text-muted-foreground sm:flex-row sm:justify-between sm:px-6">
-          <Link to="/" className="flex items-center gap-1.5 transition-colors hover:text-foreground">
+          <a href={madeWithUrl("shop_page")} className="flex items-center gap-1.5 transition-colors hover:text-foreground">
             Powered by
             <LogoMark className="h-3.5 w-3.5" />
             <span className="font-medium">{BRAND_NAME}</span>
-          </Link>
+            <span aria-hidden="true">·</span>
+            <span className="underline-offset-2 hover:underline">Open your own shop</span>
+          </a>
           <nav aria-label="Help" className="flex flex-wrap justify-center gap-x-4 gap-y-2">
             <Link to="/access" className="hover:text-foreground">
               Recover a purchase

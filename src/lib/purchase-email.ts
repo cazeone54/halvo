@@ -1,4 +1,5 @@
 import { BRAND_NAME } from "@/lib/site";
+import { madeWithUrl } from "@/lib/made-with";
 import { formatCents } from "@/lib/format";
 import type { Currency } from "@/lib/currency";
 
@@ -54,9 +55,10 @@ export function buildPurchaseEmail(params: {
       <a href="${params.downloadPageUrl}" style="display:inline-block;margin-top:16px;padding:12px 24px;background:#1a7a7a;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">Get your download</a>
       ${finalSaleHtml}
       <p style="margin-top:24px;color:#94a3b8;font-size:13px;">Sent by ${BRAND_NAME}. Keep this email in case you need to redownload later.</p>
+      <p style="margin-top:8px;color:#94a3b8;font-size:13px;">Make things people would buy? <a href="${madeWithUrl("email")}" style="color:#1a7a7a;">Sell them on ${BRAND_NAME} too</a>.</p>
     </div>
   `.trim();
-  const text = `Thanks for your purchase!\n\n${params.productName}${receiptText}\n\nDownload it here: ${params.downloadPageUrl}${finalSaleText}\n\nSent by ${BRAND_NAME}.`;
+  const text = `Thanks for your purchase!\n\n${params.productName}${receiptText}\n\nDownload it here: ${params.downloadPageUrl}${finalSaleText}\n\nSent by ${BRAND_NAME}.\nMake things people would buy? Sell them on ${BRAND_NAME} too: ${madeWithUrl("email")}`;
 
   return { subject, html, text };
 }

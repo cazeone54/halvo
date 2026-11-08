@@ -65,6 +65,12 @@ describe("buildPurchaseEmail", () => {
     expect(result.text).not.toContain(FINAL_SALE_CONFIRMATION);
   });
 
+  it("invites the buyer to sell their own, with a link tagged so sign-ups from it can be counted", () => {
+    const result = buildPurchaseEmail({ productName: "Ebook", downloadPageUrl: "https://halvo.io/success?id=x", amountCents: 0 });
+    expect(result.html).toContain("utm_source=made_with_halvo&utm_medium=email");
+    expect(result.text).toContain("utm_source=made_with_halvo&utm_medium=email");
+  });
+
   it("escapes the seller-written product name in the HTML", () => {
     const result = buildPurchaseEmail({ productName: '<img src=x onerror="a">Kit', downloadPageUrl: "https://halvo.io/success?id=x" });
     expect(result.html).not.toContain("<img src=x");
