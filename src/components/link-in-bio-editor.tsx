@@ -2,7 +2,8 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowDown, ArrowUp, Copy, ExternalLink, Facebook, Globe, Instagram, Linkedin, Music2, Plus, Trash2, Twitter, Youtube, type LucideIcon } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, ExternalLink, Facebook, Globe, Instagram, Linkedin, Plus, Trash2, Twitter, Youtube, type LucideIcon } from "lucide-react";
+import { TikTok } from "@/components/tiktok-icon";
 import { getMyLinks, updateMyLinks } from "@/lib/link-in-bio.functions";
 import { listMyProducts } from "@/lib/products.functions";
 import { MAX_BIO_LINKS, MAX_FEATURED, MAX_LINK_TITLE, SOCIAL_PLATFORMS, type SocialPlatform } from "@/lib/link-in-bio";
@@ -17,7 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const ICONS: Record<SocialPlatform, LucideIcon> = {
   instagram: Instagram,
-  tiktok: Music2,
+  tiktok: TikTok,
   youtube: Youtube,
   x: Twitter,
   facebook: Facebook,

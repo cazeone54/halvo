@@ -1,7 +1,8 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useId, useMemo, useState } from "react";
-import { ArrowRight, Facebook, Globe, Instagram, Linkedin, Music2, Package, Twitter, Youtube, type LucideIcon } from "lucide-react";
+import { ArrowRight, Facebook, Globe, Instagram, Linkedin, Package, Twitter, Youtube, type LucideIcon } from "lucide-react";
+import { TikTok } from "@/components/tiktok-icon";
 import { Stars } from "@/components/stars";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,11 +65,9 @@ export const Route = createFileRoute("/$handle")({
   component: StorefrontPage,
 });
 
-// lucide has no TikTok mark; a music note with the name read out is the
-// honest stand-in rather than a hand-drawn imitation of their logo.
 const SOCIAL_ICONS: Record<SocialPlatform, LucideIcon> = {
   instagram: Instagram,
-  tiktok: Music2,
+  tiktok: TikTok,
   youtube: Youtube,
   x: Twitter,
   facebook: Facebook,
