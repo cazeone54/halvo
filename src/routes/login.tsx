@@ -12,6 +12,7 @@ import { GOOGLE_CLIENT_ID } from "@/lib/google-identity";
 import { parseEnabledProviders, type AuthProviderId } from "@/lib/auth-providers";
 import { detectInAppBrowser, openInChromeUrl, type InAppBrowser } from "@/lib/in-app-browser";
 import { BRAND_NAME } from "@/lib/site";
+import { cn } from "@/lib/utils";
 import { readArrival } from "@/lib/signup-arrival";
 
 export const Route = createFileRoute("/login")({
@@ -161,9 +162,15 @@ function LoginPage() {
         maxLength={10}
         // No example digits: the code is 6 or 8 long depending on the
         // Supabase "Email OTP Length" setting (8 on 7 Nov 2026).
-        placeholder="Code"
+        placeholder="Enter the code"
         aria-label="Code from the email"
-        className="text-center text-lg tracking-[0.3em] tabular-nums"
+        // Wide spacing and a big bold size are for the digits only: on the
+        // placeholder they stretched "Code" into "C o d e". The text-indent
+        // balances the spacing after the last digit, so the code sits centred.
+        className={cn(
+          "h-12 text-center tabular-nums md:text-base",
+          code && "text-2xl font-semibold tracking-[0.3em] [text-indent:0.3em] md:text-2xl",
+        )}
         value={code}
         onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
         autoFocus
