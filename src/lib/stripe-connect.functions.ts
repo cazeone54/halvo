@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getStripeErrorMessage } from "@/lib/stripe.server";
 import { createSellerAccount } from "@/lib/stripe-seller-account.server";
+import { stripeProfilePrefill } from "@/lib/stripe-prefill";
 import { isSellerCountry } from "@/lib/seller-countries";
 import { safeToForget } from "@/lib/stripe-platform.server";
 import { BASE_URL } from "@/lib/site";
@@ -49,10 +50,28 @@ export const startStripeConnectOnboarding = createServerFn({ method: "POST" })
       // Platform-side problems surface here, and createSellerAccount passes on
       // Stripe's own message instead of a generic "couldn't reach Stripe".
       const claims = context.claims as { email?: unknown } | undefined;
+      // What Halvo already knows, filled in so Stripe's first screen asks less.
+      const [{ data: me }, { data: mine }] = await Promise.all([
+        context.supabase.from("profiles").select("handle").eq("id", context.userId).maybeSingle(),
+        context.supabase
+          .from("products")
+          .select("name, url_slug, price_cents, pay_what_you_want")
+          .eq("owner_id", context.userId)
+          .order("created_at", { ascending: true }),
+      ]);
       accountId = await createSellerAccount(stripe, {
         country: data.country,
         email: typeof claims?.email === "string" ? claims.email : null,
         userId: context.userId,
+        profile: stripeProfilePrefill({
+          baseUrl: BASE_URL,
+          handle: me?.handle ?? null,
+          products: (mine ?? []).map((p) => ({
+            name: p.name,
+            slug: p.url_slug,
+            free: !p.pay_what_you_want && p.price_cents === 0,
+          })),
+        }),
       });
 
       await saveConnectId(context.userId, accountId);

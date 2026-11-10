@@ -213,9 +213,11 @@ function HomePage() {
             <h1 className="font-[family-name:var(--font-display)] text-4xl font-bold tracking-tight sm:text-6xl">
               Sell digital products <span className="text-gradient">in minutes</span>.
             </h1>
+            {/* Says what "digital" means up front: some sign-ups arriving from
+                search took Halvo for a shop for physical items (Nov 2026). */}
             <p className="max-w-xl text-lg text-muted-foreground">
-              Instant Stripe checkout, instant delivery, and payouts straight to your own account. No store to
-              build, no code to write.
+              Templates, guides, presets, courses — files or links your buyers get the moment they pay. Instant
+              Stripe checkout and payouts straight to your own account. No store to build, no code to write.
             </p>
             <div className="flex flex-wrap justify-center gap-3">
               <Button asChild size="lg">
@@ -228,11 +230,13 @@ function HomePage() {
                 <Link to="/pricing">See pricing</Link>
               </Button>
             </div>
-            <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            {/* The row wraps on a phone, where a dot would be left hanging at
+                the end of the first line — so dots only where it fits on one. */}
+            <p className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground sm:gap-x-3">
               <span>Free to start</span>
-              <span aria-hidden="true">·</span>
-              <span>No code</span>
-              <span aria-hidden="true">·</span>
+              <span aria-hidden="true" className="hidden sm:inline">·</span>
+              <span>Digital products only</span>
+              <span aria-hidden="true" className="hidden sm:inline">·</span>
               <span>Paid out to your own Stripe</span>
             </p>
           </div>

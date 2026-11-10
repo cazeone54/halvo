@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, CircleCheck, FileUp, Gift, ImagePlus, Link2, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -12,7 +12,8 @@ import {
   updateProduct,
 } from "@/lib/products.functions";
 import { setProductLink } from "@/lib/product-links.functions";
-import { getStripeConnectStatus } from "@/lib/stripe-connect.functions";
+import { getStripeConnectStatus, startStripeConnectOnboarding } from "@/lib/stripe-connect.functions";
+import { SELLER_COUNTRIES, guessSellerCountry } from "@/lib/seller-countries";
 import { normalizeDeliveryUrl } from "@/lib/product-link";
 import { productImageUrl } from "@/lib/public-image-url";
 import { skipGuide } from "@/lib/first-product-guide";
@@ -147,14 +148,10 @@ function FirstProductGuide() {
                 </p>
               </div>
               <StripeWhatToExpect />
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button asChild className="sm:flex-1">
-                  <Link to="/dashboard">Set up payouts</Link>
-                </Button>
-                <Button asChild variant="outline" className="sm:flex-1">
-                  <Link to="/dashboard">I'll do it later</Link>
-                </Button>
-              </div>
+              <ConnectStripeNow alreadyStarted={!!connectQ.data?.connected} />
+              <Button asChild variant="ghost" className="self-start">
+                <Link to="/dashboard">I'll do it later</Link>
+              </Button>
             </CardContent>
           </Card>
         ) : (
@@ -206,6 +203,12 @@ function FirstProductGuide() {
                 <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold">What are you selling?</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
                   A template, a guide, presets, a checklist — anything people can download or open.
+                </p>
+                {/* Two of the first six products were physical items (a photo
+                    of a camera stand, "Clothes"): say it before they start. */}
+                <p className="mt-2 rounded-md bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+                  {BRAND_NAME} is for <span className="font-medium text-foreground">digital products only</span>: a file
+                  or a link buyers get right away. Physical items that need posting can't be sold here.
                 </p>
               </div>
               <div className="flex flex-col gap-1.5">
@@ -425,6 +428,57 @@ function FirstProductGuide() {
           ) : null}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+// Straight into Stripe from the end of the guide. It used to send sellers to
+// the dashboard to find the Payouts box first — one more step, and all five
+// who set a price on 9–10 Nov 2026 stopped around there. Stripe fixes an
+// account's country when it's made, so that's asked here; a seller who has
+// already started only needs the button.
+function ConnectStripeNow({ alreadyStarted }: { alreadyStarted: boolean }) {
+  const startFn = useServerFn(startStripeConnectOnboarding);
+  const [country, setCountry] = useState("");
+  useEffect(() => {
+    setCountry((current) => current || guessSellerCountry(navigator.language));
+  }, []);
+  const connectMut = useMutation({
+    mutationFn: () => startFn({ data: alreadyStarted ? {} : { country } }),
+    onSuccess: (res) => {
+      if (res.url) window.location.href = res.url;
+    },
+  });
+
+  return (
+    <div className="flex flex-col gap-3">
+      {alreadyStarted ? null : (
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="guide-country">Country you live in, or where your business is registered</Label>
+          <select
+            id="guide-country"
+            value={country}
+            onChange={(e) => setCountry(e.target.value)}
+            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="">Choose your country…</option>
+            {SELLER_COUNTRIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-muted-foreground">Stripe sets this once and it can't be changed later.</p>
+        </div>
+      )}
+      <Button onClick={() => connectMut.mutate()} disabled={connectMut.isPending || (!alreadyStarted && !country)}>
+        {connectMut.isPending ? "Opening Stripe…" : alreadyStarted ? "Continue on Stripe" : "Connect Stripe now"}
+      </Button>
+      {connectMut.error ? (
+        <p className="text-sm text-destructive">Stripe: {(connectMut.error as Error).message}</p>
+      ) : connectMut.isSuccess && !connectMut.data?.url ? (
+        <p className="text-sm text-destructive">Couldn't open Stripe just now. Please try again.</p>
+      ) : null}
     </div>
   );
 }
