@@ -440,8 +440,11 @@ function DashboardHome() {
   // below the products, sales and downloads. Once connected it moves back down.
   // Not before there's a PAID product, though: asking for ID and bank details
   // before anything needs them put people off. Until then it waits at the
-  // bottom, and the setup list leads with the product.
-  const payoutsFirst = connectQ.isSuccess && !connect?.chargesEnabled && productsQ.isSuccess && hasPaidProduct;
+  // bottom, and the setup list leads with the product. Someone who already
+  // started Stripe is the exception: they chose to, the box is just "Finish
+  // setup" by then, and the reminder email (seller-nudge.ts) sends them here.
+  const payoutsFirst =
+    connectQ.isSuccess && !connect?.chargesEnabled && (!!connect?.connected || (productsQ.isSuccess && hasPaidProduct));
   const payoutsCard = (
     <Card>
       <CardHeader>

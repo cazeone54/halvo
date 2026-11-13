@@ -268,6 +268,17 @@ export async function sendBroadcastEmails(params: {
   return accepted;
 }
 
+// A one-time reminder to a seller who stopped part-way (seller-nudge.ts). Sent
+// from our own address, so a reply reaches us and we can help.
+export async function sendSellerNudgeEmail(params: {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+}): Promise<boolean> {
+  return sendEmail(params);
+}
+
 // Tells the seller they earned money, at the moment they earned it. This is the
 // retention half of a sale — the dashboard row only works if they happen to be
 // looking at it.

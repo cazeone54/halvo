@@ -222,6 +222,25 @@ if (CRON_SECRET) {
   };
   setTimeout(runSequences, 2 * 60 * 1000).unref();
   setInterval(runSequences, 60 * 60 * 1000).unref();
+
+  // One-time reminders to sellers who stopped part-way, on the same hour. A
+  // no-op report until SELLER_NUDGES_LIVE is switched on in seller-nudge.server.ts.
+  const runNudges = async () => {
+    try {
+      const response = await server.fetch(
+        new Request("http://localhost/api/cron/seller-nudges", {
+          method: "POST",
+          headers: { authorization: `Bearer ${CRON_SECRET}` },
+        }),
+      );
+      const result = await response.json().catch(() => null);
+      if (!response.ok || result?.sent) console.log("Seller reminders:", response.status, result?.sent ?? JSON.stringify(result));
+    } catch (error) {
+      console.error("Seller reminder run failed:", error);
+    }
+  };
+  setTimeout(runNudges, 3 * 60 * 1000).unref();
+  setInterval(runNudges, 60 * 60 * 1000).unref();
 }
 
 serve({

@@ -50,6 +50,7 @@ import { Route as AuthenticatedDashboardReferralsRouteImport } from './routes/_a
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard/settings'
 import { Route as AuthenticatedDashboardStartRouteImport } from './routes/_authenticated/dashboard/start'
 import { Route as ApiCronEmailSequencesRouteImport } from './routes/api/cron/email-sequences'
+import { Route as ApiCronSellerNudgesRouteImport } from './routes/api/cron/seller-nudges'
 import { Route as ApiCronStorageSweepRouteImport } from './routes/api/cron/storage-sweep'
 import { Route as ApiPublicUnsubscribeRouteImport } from './routes/api/public/unsubscribe'
 import { Route as DTransactionIdFileIdRouteImport } from './routes/d.$transactionId.$fileId'
@@ -276,6 +277,11 @@ const ApiCronEmailSequencesRoute = ApiCronEmailSequencesRouteImport.update({
   path: '/api/cron/email-sequences',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCronSellerNudgesRoute = ApiCronSellerNudgesRouteImport.update({
+  id: '/api/cron/seller-nudges',
+  path: '/api/cron/seller-nudges',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCronStorageSweepRoute = ApiCronStorageSweepRouteImport.update({
   id: '/api/cron/storage-sweep',
   path: '/api/cron/storage-sweep',
@@ -376,6 +382,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/dashboard/start': typeof AuthenticatedDashboardStartRoute
   '/api/cron/email-sequences': typeof ApiCronEmailSequencesRoute
+  '/api/cron/seller-nudges': typeof ApiCronSellerNudgesRoute
   '/api/cron/storage-sweep': typeof ApiCronStorageSweepRoute
   '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
   '/d/$transactionId/$fileId': typeof DTransactionIdFileIdRoute
@@ -428,6 +435,7 @@ export interface FileRoutesByTo {
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/dashboard/start': typeof AuthenticatedDashboardStartRoute
   '/api/cron/email-sequences': typeof ApiCronEmailSequencesRoute
+  '/api/cron/seller-nudges': typeof ApiCronSellerNudgesRoute
   '/api/cron/storage-sweep': typeof ApiCronStorageSweepRoute
   '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
   '/d/$transactionId/$fileId': typeof DTransactionIdFileIdRoute
@@ -483,6 +491,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/_authenticated/dashboard/start': typeof AuthenticatedDashboardStartRoute
   '/api/cron/email-sequences': typeof ApiCronEmailSequencesRoute
+  '/api/cron/seller-nudges': typeof ApiCronSellerNudgesRoute
   '/api/cron/storage-sweep': typeof ApiCronStorageSweepRoute
   '/api/public/unsubscribe': typeof ApiPublicUnsubscribeRoute
   '/d/$transactionId/$fileId': typeof DTransactionIdFileIdRoute
@@ -538,6 +547,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings'
     | '/dashboard/start'
     | '/api/cron/email-sequences'
+    | '/api/cron/seller-nudges'
     | '/api/cron/storage-sweep'
     | '/api/public/unsubscribe'
     | '/d/$transactionId/$fileId'
@@ -590,6 +600,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings'
     | '/dashboard/start'
     | '/api/cron/email-sequences'
+    | '/api/cron/seller-nudges'
     | '/api/cron/storage-sweep'
     | '/api/public/unsubscribe'
     | '/d/$transactionId/$fileId'
@@ -644,6 +655,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/settings'
     | '/_authenticated/dashboard/start'
     | '/api/cron/email-sequences'
+    | '/api/cron/seller-nudges'
     | '/api/cron/storage-sweep'
     | '/api/public/unsubscribe'
     | '/d/$transactionId/$fileId'
@@ -690,6 +702,7 @@ export interface RootRouteChildren {
   BlogIndexRoute: typeof BlogIndexRoute
   GuidesIndexRoute: typeof GuidesIndexRoute
   ApiCronEmailSequencesRoute: typeof ApiCronEmailSequencesRoute
+  ApiCronSellerNudgesRoute: typeof ApiCronSellerNudgesRoute
   ApiCronStorageSweepRoute: typeof ApiCronStorageSweepRoute
   ApiPublicUnsubscribeRoute: typeof ApiPublicUnsubscribeRoute
   DTransactionIdFileIdRoute: typeof DTransactionIdFileIdRoute
@@ -990,6 +1003,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCronEmailSequencesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/cron/seller-nudges': {
+      id: '/api/cron/seller-nudges'
+      path: '/api/cron/seller-nudges'
+      fullPath: '/api/cron/seller-nudges'
+      preLoaderRoute: typeof ApiCronSellerNudgesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/cron/storage-sweep': {
       id: '/api/cron/storage-sweep'
       path: '/api/cron/storage-sweep'
@@ -1150,6 +1170,7 @@ const rootRouteChildren: RootRouteChildren = {
   BlogIndexRoute: BlogIndexRoute,
   GuidesIndexRoute: GuidesIndexRoute,
   ApiCronEmailSequencesRoute: ApiCronEmailSequencesRoute,
+  ApiCronSellerNudgesRoute: ApiCronSellerNudgesRoute,
   ApiCronStorageSweepRoute: ApiCronStorageSweepRoute,
   ApiPublicUnsubscribeRoute: ApiPublicUnsubscribeRoute,
   DTransactionIdFileIdRoute: DTransactionIdFileIdRoute,

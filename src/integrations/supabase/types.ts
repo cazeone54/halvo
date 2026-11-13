@@ -144,6 +144,13 @@ export type Database = {
         Update: { id?: number; seller_id?: string; transaction_id?: string; step?: number; sent_at?: string };
         Relationships: [];
       };
+      // One-time seller reminders already sent (migration 0034). Service role only.
+      seller_nudges: {
+        Row: { seller_id: string; kind: string; sent_at: string };
+        Insert: { seller_id: string; kind: string; sent_at?: string };
+        Update: { seller_id?: string; kind?: string; sent_at?: string };
+        Relationships: [];
+      };
       // One row per visit to a seller's page (migration 0029). Server-written.
       shop_views: {
         Row: { id: number; seller_id: string; source: string | null; created_at: string };
