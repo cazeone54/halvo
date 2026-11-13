@@ -2,9 +2,9 @@ import { BASE_URL } from "@/lib/site";
 import { isFreeProduct } from "@/lib/checkout-math";
 import { buildNudgeEmail, firstNameOf, nextNudge, type NudgeKind, type NudgeVariant } from "@/lib/seller-nudge";
 
-// Off until the owner has read the emails and said yes: until then a run only
-// reports who would get what. Flip to true to start sending.
-export const SELLER_NUDGES_LIVE = false;
+// On since 2026-11-13, after the owner read the three emails and said yes.
+// Set to false to stop sending: a run then only reports who would get what.
+export const SELLER_NUDGES_LIVE = true;
 
 // One run never sends more than this, whatever the backlog.
 const MAX_PER_RUN = 100;
